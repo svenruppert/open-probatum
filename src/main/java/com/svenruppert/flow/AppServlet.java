@@ -47,6 +47,6 @@ public class AppServlet
         + getServletConfig().getInitParameter("i18n.provider"));
     VaadinServletService service = getService();
     service.addSessionInitListener(e -> e.getSession().setErrorHandler(
-        err -> err.getThrowable().printStackTrace()));
+        err -> logger().error("Unhandled UI error", err.getThrowable())));
   }
 }
