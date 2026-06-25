@@ -37,6 +37,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -157,6 +158,43 @@ class AppAuthenticationServiceTest {
   void beforeAttemptCarriesUsername() {
     service.checkCredentials(new Credentials("alice", "abcdef-abcdef-1"));
     assertEquals("alice", policy.beforeCalls.get(0).username());
+  }
+
+  // ── authenticate — single-pass, returns the subject (R15) ──────
+
+  @Test
+  @DisplayName("authenticate returns the user for valid credentials; recordSuccess once")
+  void authenticateReturnsUser() {
+    Optional<AppUser> user = service.authenticate(new Credentials("alice", "abcdef-abcdef-1"));
+    assertTrue(user.isPresent());
+    assertEquals("Alice", user.get().name());
+    assertEquals(1, policy.successes.size());
+    assertEquals(0, policy.failures.size());
+  }
+
+  @Test
+  @DisplayName("authenticate is empty for a wrong password; recordFailure")
+  void authenticateEmptyForWrongPassword() {
+    Optional<AppUser> user = service.authenticate(new Credentials("alice", "wrong-wrong-wrong"));
+    assertTrue(user.isEmpty());
+    assertEquals(0, policy.successes.size());
+    assertEquals(1, policy.failures.size());
+  }
+
+  @Test
+  @DisplayName("authenticate is empty for null without consulting the policy")
+  void authenticateNullShortCircuits() {
+    assertTrue(service.authenticate(null).isEmpty());
+    assertEquals(0, policy.beforeCalls.size());
+  }
+
+  @Test
+  @DisplayName("authenticate is empty on lockout and records neither success nor failure")
+  void authenticateEmptyOnLockout() {
+    policy.nextDecision = LoginAttemptDecision.lockedOut(Duration.ofSeconds(30), 5);
+    assertTrue(service.authenticate(new Credentials("alice", "abcdef-abcdef-1")).isEmpty());
+    assertEquals(0, policy.successes.size());
+    assertEquals(0, policy.failures.size());
   }
 
   // ── Recording LoginAttemptPolicy ───────────────────────────────

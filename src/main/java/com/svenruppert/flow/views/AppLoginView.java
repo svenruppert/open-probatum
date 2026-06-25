@@ -21,7 +21,7 @@ import com.svenruppert.flow.i18n.I18nSupport;
 import com.svenruppert.flow.security.bootstrap.BootstrapWiring;
 import com.svenruppert.flow.security.model.AppUser;
 import com.svenruppert.flow.security.model.Credentials;
-import com.svenruppert.flow.security.model.UserDirectoryProvider;
+import com.svenruppert.flow.security.services.AppAuthenticationService;
 import com.svenruppert.flow.security.services.SessionStoreProvider;
 import com.svenruppert.flow.security.services.SessionVersionResolver;
 import com.svenruppert.jsentinel.authentication.AuthenticationService;
@@ -44,11 +44,14 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.VaadinRequest;
+import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.server.WrappedSession;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Optional;
 
 import static com.svenruppert.flow.views.AppLoginView.NAV;
 
@@ -113,14 +116,39 @@ public class AppLoginView
   @Override
   public boolean checkCredentials() {
     Credentials credentials = new Credentials(username(), password());
-    boolean ok = authenticationService.checkCredentials(credentials);
-    if (ok) {
-      UserDirectoryProvider.directory().findByCredentials(credentials).ifPresent(user -> {
-        SubjectStores.subjectStore().setCurrentSubject(user, AppUser.class);
-        recordSession(user);
-      });
+    Optional<AppUser> user = authenticate(credentials);
+    if (user.isEmpty()) {
+      return false;
     }
-    return ok;
+    // Rotate the HTTP session id BEFORE binding the subject, so a fixed
+    // pre-login session cannot be reused after authentication (CWE-384).
+    reinitializeSession();
+    SubjectStores.subjectStore().setCurrentSubject(user.get(), AppUser.class);
+    recordSession(user.get());
+    return true;
+  }
+
+  /**
+   * Single-pass authentication: when the registered SPI is our
+   * {@link AppAuthenticationService}, verify the password once and reuse
+   * the resolved subject. Falls back to the two-call interface form if a
+   * different {@code AuthenticationService} was registered.
+   */
+  private Optional<AppUser> authenticate(Credentials credentials) {
+    if (authenticationService instanceof AppAuthenticationService app) {
+      return app.authenticate(credentials);
+    }
+    return authenticationService.checkCredentials(credentials)
+        ? Optional.ofNullable(authenticationService.loadSubject(credentials))
+        : Optional.empty();
+  }
+
+  private static void reinitializeSession() {
+    VaadinService service = VaadinService.getCurrent();
+    VaadinRequest request = VaadinRequest.getCurrent();
+    if (service != null && request != null) {
+      service.reinitializeSession(request);
+    }
   }
 
   @Override

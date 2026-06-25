@@ -32,6 +32,7 @@ import com.vaadin.flow.server.VaadinRequest;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Optional;
 
 /**
  * SPI-registered via {@link JSentinelAutoService @JSentinelAutoService} —
@@ -49,8 +50,21 @@ public class AppAuthenticationService
 
   @Override
   public boolean checkCredentials(Credentials credentials) {
+    return authenticate(credentials).isPresent();
+  }
+
+  /**
+   * Throttled, audited authentication that resolves the subject in a
+   * <em>single</em> credential verification, so callers obtain the user
+   * without re-running the (deliberately expensive) Argon2id verify.
+   * {@link #checkCredentials(Credentials)} delegates here.
+   *
+   * @return the authenticated user, or empty when the credentials are
+   *     null, throttled (locked out), unknown, or the password does not match.
+   */
+  public Optional<AppUser> authenticate(Credentials credentials) {
     if (credentials == null) {
-      return false;
+      return Optional.empty();
     }
 
     LoginAttemptPolicy policy = JSentinelServiceResolver.loginAttemptPolicy();
@@ -61,17 +75,18 @@ public class AppAuthenticationService
     if (decision instanceof LoginAttemptDecision.LockedOut lockout) {
       logger().warn("Login throttled for username={} (remaining={}s, failedAttempts={})",
           credentials.username(), lockout.remaining().toSeconds(), lockout.failedAttempts());
-      return false;
+      return Optional.empty();
     }
 
-    boolean ok = UserDirectoryProvider.directory().checkCredentials(credentials);
-    if (ok) {
+    Optional<AppUser> user =
+        UserDirectoryProvider.directory().findByCredentials(credentials);
+    if (user.isPresent()) {
       policy.recordSuccess(attempt);
       auditLoginSucceeded(credentials.username(), attempt.clientAddress());
     } else {
       policy.recordFailure(attempt);
     }
-    return ok;
+    return user;
   }
 
   @Override
