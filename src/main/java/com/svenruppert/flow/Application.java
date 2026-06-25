@@ -103,6 +103,8 @@ public final class Application implements HasLogger {
     try {
       return Integer.parseInt(raw);
     } catch (NumberFormatException ignored) {
+      HasLogger.staticLogger().warn(
+          "Invalid app.port value '{}', falling back to {}", raw, fallback);
       return fallback;
     }
   }

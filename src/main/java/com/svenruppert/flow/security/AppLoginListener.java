@@ -16,6 +16,7 @@
 
 package com.svenruppert.flow.security;
 
+import com.svenruppert.dependencies.core.logger.HasLogger;
 import com.svenruppert.flow.security.model.AppUser;
 import com.svenruppert.flow.views.AppLoginView;
 import com.svenruppert.flow.views.DashboardView;
@@ -27,8 +28,12 @@ import com.vaadin.flow.component.Component;
  * Wires the framework's authentication-phase navigation listener to
  * the application's login and default route classes. Registered via
  * {@code META-INF/services/com.svenruppert.jsentinel.authorization.LoginListener}.
+ *
+ * <p>Implements {@link HasLogger} so the logging contract is owned
+ * locally (the project's standing rule) rather than depending on the
+ * framework supertype still exposing {@code logger()} after a bump.
  */
-public class AppLoginListener extends LoginListener<AppUser> {
+public class AppLoginListener extends LoginListener<AppUser> implements HasLogger {
 
   @Override
   public void notARestrictedTarget(Class<?> navigationTarget) {

@@ -47,7 +47,7 @@ public final class VersionBumper {
    * {@link JSentinelVersionStore} SPI is not registered.
    */
   public static Optional<Long> bump(AppUser user) {
-    if (user == null) {
+    if (user == null || user.id() == null) {
       return Optional.empty();
     }
     Optional<JSentinelVersionStore> storeOpt =

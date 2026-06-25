@@ -59,6 +59,14 @@ class VersionBumperTest {
   }
 
   @Test
+  @DisplayName("user with null id → empty (no NPE)")
+  void nullUserIdIsEmpty() {
+    JSentinelServiceResolver.setJSentinelVersionStore(new InMemoryJSentinelVersionStore());
+    AppUser noId = new AppUser(null, "x", EnumSet.of(AuthorizationRole.USER));
+    assertFalse(VersionBumper.bump(noId).isPresent());
+  }
+
+  @Test
   @DisplayName("registered SPI → version is incremented and the new value is returned")
   void registeredStoreGetsIncremented() {
     RecordingStore store = new RecordingStore();
