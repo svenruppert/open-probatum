@@ -63,20 +63,22 @@ public final class AdministratorAccountStoreImpl
         idSequence.getAndIncrement(),
         displayName,
         EnumSet.of(AuthorizationRole.ADMIN, AuthorizationRole.USER));
-    logger().info("Persisting initial administrator: username='{}', id={}, displayName='{}', roles={}",
-        newAdministrator.username(), user.id(), displayName, user.roles());
+    logger().debug("Persisting initial administrator: id={}, roles={}",
+        user.id(), user.roles());
     try {
       directory.registerWithHashedPassword(
           newAdministrator.username(),
           newAdministrator.passwordHash(),
           user);
-      logger().info("Initial administrator '{}' (id={}) committed to {}",
-          newAdministrator.username(), user.id(), directory.getClass().getSimpleName());
+      // The username is recorded in the UserCreated audit event; keep it out
+      // of the app log to avoid a plaintext admin-username trail (R09).
+      logger().info("Initial administrator (id={}) committed to {}",
+          user.id(), directory.getClass().getSimpleName());
     } catch (RuntimeException failure) {
       // InitialAdminBootstrapService swallows this exception and surfaces a
       // generic "could not persist administrator" — log the real cause first.
-      logger().error("Failed to persist initial administrator '{}' (id={})",
-          newAdministrator.username(), user.id(), failure);
+      logger().error("Failed to persist initial administrator (id={})",
+          user.id(), failure);
       throw failure;
     }
   }

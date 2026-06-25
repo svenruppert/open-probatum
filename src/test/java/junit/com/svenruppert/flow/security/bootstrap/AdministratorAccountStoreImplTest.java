@@ -170,4 +170,52 @@ class AdministratorAccountStoreImplTest {
   void nullDirectoryRejected() {
     assertThrows(NullPointerException.class, () -> new AdministratorAccountStoreImpl(null));
   }
+
+  // ── R12 — a persist failure must propagate, not be swallowed ────
+
+  @Test
+  @DisplayName("a persistence failure during register propagates so the token is not silently burned (R12)")
+  void persistFailurePropagates() {
+    AdministratorAccountStoreImpl failing =
+        new AdministratorAccountStoreImpl(new FailingDirectory());
+    String hash = BouncyCastleHashingServices.modern()
+        .hash("12-char-password".toCharArray()).encodedHash();
+
+    // createAdministrator must RETHROW the persistence failure (it logs the
+    // real cause first) — so InitialAdminBootstrapService surfaces an
+    // InternalError and does not report success on a half-write that would
+    // leave the system "token consumed, no admin": /setup must stay usable.
+    assertThrows(IllegalStateException.class, () ->
+        failing.createAdministrator(new NewAdministrator("admin", null, null, hash)));
+  }
+
+  /**
+   * Real {@link UserDirectory} that fails the one method the adapter calls —
+   * a true implementation, not a mock framework.
+   */
+  private static final class FailingDirectory implements UserDirectory {
+    @Override public java.util.Optional<AppUser> findByCredentials(Credentials c) {
+      return java.util.Optional.empty();
+    }
+    @Override public java.util.Optional<AppUser> findById(Long id) {
+      return java.util.Optional.empty();
+    }
+    @Override public java.util.stream.Stream<AppUser> all() {
+      return java.util.stream.Stream.empty();
+    }
+    @Override public boolean hasAnyAdministrator() {
+      return false;
+    }
+    @Override public void addUser(String u, String p, AppUser user) {
+    }
+    @Override public void registerWithHashedPassword(String u, String h, AppUser user) {
+      throw new IllegalStateException("simulated persistence failure");
+    }
+    @Override public void deleteUser(Long id) {
+    }
+    @Override public void assignRole(Long id, AuthorizationRole role) {
+    }
+    @Override public void revokeRole(Long id, AuthorizationRole role) {
+    }
+  }
 }

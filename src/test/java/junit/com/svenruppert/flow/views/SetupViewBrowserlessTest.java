@@ -76,13 +76,16 @@ class SetupViewBrowserlessTest extends BrowserlessTest {
     assertTrue(hint.getText().contains("server console"),
         "hint paragraph must mention the server console");
 
-    // Username field is preseeded with 'admin'
+    // Username field is NOT pre-filled (R09 — avoid shipping a literal 'admin'
+    // admin); 'admin' is only a placeholder hint.
     TextField usernameField = $view(TextField.class).all().stream()
         .filter(t -> "Admin username".equals(t.getLabel()))
         .findFirst()
         .orElseThrow();
-    assertEquals("admin", usernameField.getValue(),
-        "Admin-username field should be pre-filled with 'admin'");
+    assertEquals("", usernameField.getValue(),
+        "Admin-username field must NOT be pre-filled (R09)");
+    assertEquals("admin", usernameField.getPlaceholder(),
+        "'admin' should be a placeholder hint, not a pre-filled value");
 
     // Password field carries helper text with MIN_PASSWORD_LENGTH
     PasswordField passwordField = $view(PasswordField.class).all().stream()

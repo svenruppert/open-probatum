@@ -110,7 +110,7 @@ public class SetupView extends Composite<Div>
 
     tokenField.setWidthFull();
     usernameField.setWidthFull();
-    usernameField.setValue("admin");
+    usernameField.setPlaceholder("admin");
     usernameField.setHelperText(tr(K_F_USER_HELPER,
         "1–64 chars of [A-Za-z0-9._-]"));
     passwordField.setWidthFull();
@@ -160,11 +160,15 @@ public class SetupView extends Composite<Div>
     String password = passwordField.getValue();
     String confirm = confirmField.getValue();
 
-    logger().info("Setup attempt: username='{}', tokenLen={}, passwordLen={}, "
-            + "displayNamePresent={}, emailPresent={}",
-        username,
-        token == null ? 0 : token.length(),
-        password == null ? 0 : password.length(),
+    // Do NOT log the chosen username or password length per attempt — on a
+    // shared bootstrap host that would build a directory of valid/attempted
+    // admin usernames and narrow the password brute-force space. Presence
+    // flags at DEBUG are enough to diagnose an empty-field submission.
+    logger().debug("Setup attempt: tokenPresent={}, usernamePresent={}, "
+            + "passwordPresent={}, displayNamePresent={}, emailPresent={}",
+        token != null && !token.isBlank(),
+        username != null && !username.isBlank(),
+        password != null && !password.isEmpty(),
         blankToNull(displayNameField.getValue()) != null,
         blankToNull(emailField.getValue()) != null);
 
@@ -198,7 +202,7 @@ public class SetupView extends Composite<Div>
     }
 
     // ── Server-side bootstrap call ─────────────────────────────────
-    logger().info("Calling InitialAdminBootstrapService.createInitialAdmin for username='{}'", username);
+    logger().debug("Calling InitialAdminBootstrapService.createInitialAdmin");
     InitialAdminCreationResult result = BootstrapWiring.instance().bootstrapService()
         .createInitialAdmin(new CreateInitialAdminCommand(
             token, username, password.toCharArray(),
@@ -211,8 +215,8 @@ public class SetupView extends Composite<Div>
     // ── Outcome handling ───────────────────────────────────────────
     switch (result) {
       case InitialAdminCreationResult.Created created -> {
-        logger().info("Setup succeeded: administrator '{}' created. Bootstrap token invalidated; "
-            + "subsequent /setup visits will redirect to /login.", created.username());
+        logger().info("Setup succeeded: administrator created. Bootstrap token invalidated; "
+            + "subsequent /setup visits will redirect to /login.");
         success(tr(K_SUCCESS,
             "Administrator ''{0}'' created. You can now sign in.",
             created.username()));
@@ -239,8 +243,8 @@ public class SetupView extends Composite<Div>
             : policy.reason());
       }
       case InitialAdminCreationResult.InvalidUsername invalid -> {
-        logger().warn("Setup rejected: invalid username '{}' — {}",
-            username, invalid.reason() == null ? "<no reason supplied>" : invalid.reason());
+        logger().warn("Setup rejected: invalid username — {}",
+            invalid.reason() == null ? "<no reason supplied>" : invalid.reason());
         warn(invalid.reason() == null
             ? tr(K_E_USERNAME, "Invalid username.")
             : invalid.reason());
