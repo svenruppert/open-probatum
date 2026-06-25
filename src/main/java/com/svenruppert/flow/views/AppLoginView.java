@@ -23,13 +23,13 @@ import com.svenruppert.flow.security.model.AppUser;
 import com.svenruppert.flow.security.model.Credentials;
 import com.svenruppert.flow.security.model.UserDirectoryProvider;
 import com.svenruppert.flow.security.services.SessionStoreProvider;
+import com.svenruppert.flow.security.services.SessionVersionResolver;
 import com.svenruppert.jsentinel.authentication.AuthenticationService;
 import com.svenruppert.jsentinel.authorization.LoginView;
 import com.svenruppert.jsentinel.authorization.api.JSentinelServiceResolver;
 import com.svenruppert.jsentinel.authorization.api.SubjectStores;
 import com.svenruppert.jsentinel.authorization.api.tenant.TenantId;
 import com.svenruppert.jsentinel.logout.SubjectId;
-import com.svenruppert.jsentinel.session.JSentinelVersion;
 import com.svenruppert.jsentinel.session.SessionId;
 import com.svenruppert.jsentinel.session.SessionRecord;
 import com.svenruppert.jsentinel.session.SessionStatus;
@@ -147,7 +147,7 @@ public class AppLoginView
           SubjectId.of(user.id().toString()),
           TenantId.DEFAULT,
           now, now,
-          JSentinelVersion.INITIAL,
+          SessionVersionResolver.current(user),
           SessionStatus.ACTIVE));
     } catch (RuntimeException ignored) {
       // session bookkeeping must not block login
