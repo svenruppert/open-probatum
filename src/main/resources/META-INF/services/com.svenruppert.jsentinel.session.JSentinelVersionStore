@@ -1,1 +1,1 @@
-com.svenruppert.flow.security.bootstrap.PersistentJSentinelVersionStoreProvider
+com.svenruppert.openprobatum.security.bootstrap.PersistentJSentinelVersionStoreProvider

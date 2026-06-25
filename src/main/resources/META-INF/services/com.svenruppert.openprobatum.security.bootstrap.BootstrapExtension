@@ -1,0 +1,3 @@
+com.svenruppert.openprobatum.security.bootstrap.DefaultBootstrapExtension
+com.svenruppert.openprobatum.security.bootstrap.PersistenceBootstrapExtension
+com.svenruppert.openprobatum.security.bootstrap.HardeningBootstrapExtension

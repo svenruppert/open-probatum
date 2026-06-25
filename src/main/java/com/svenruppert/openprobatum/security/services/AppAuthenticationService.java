@@ -1,0 +1,131 @@
+/*
+ * Copyright © 2013 Sven Ruppert (sven.ruppert@gmail.com)
+ *
+ * Licensed under the EUPL, Version 1.2 (the "Licence");
+ * you may not use this file except in compliance with the Licence.
+ * You may obtain a copy of the Licence at:
+ *
+ *     https://joinup.ec.europa.eu/software/page/eupl
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the Licence is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the Licence for the specific language governing permissions and
+ * limitations under the Licence.
+ */
+
+package com.svenruppert.openprobatum.security.services;
+
+import com.svenruppert.dependencies.core.logger.HasLogger;
+import com.svenruppert.openprobatum.security.AppClock;
+import com.svenruppert.openprobatum.security.model.AppUser;
+import com.svenruppert.openprobatum.security.model.Credentials;
+import com.svenruppert.openprobatum.security.model.UserDirectoryProvider;
+import com.svenruppert.jsentinel.audit.JSentinelAuditService;
+import com.svenruppert.jsentinel.audit.LoginSucceeded;
+import com.svenruppert.jsentinel.authentication.AuthenticationService;
+import com.svenruppert.jsentinel.authorization.api.JSentinelServiceResolver;
+import com.svenruppert.jsentinel.autoservice.api.JSentinelAutoService;
+import com.svenruppert.jsentinel.bruteforce.LoginAttemptContext;
+import com.svenruppert.jsentinel.bruteforce.LoginAttemptDecision;
+import com.svenruppert.jsentinel.bruteforce.LoginAttemptPolicy;
+import com.vaadin.flow.server.VaadinRequest;
+
+import java.util.Optional;
+
+/**
+ * SPI-registered via {@link JSentinelAutoService @JSentinelAutoService} —
+ * the annotation processor produces the matching
+ * {@code META-INF/services/com.svenruppert.jsentinel.authentication.AuthenticationService}
+ * entry at compile time.
+ *
+ * <p>Consults the active {@link LoginAttemptPolicy} for throttling
+ * before delegating to the user directory; records success / failure
+ * back into the policy so brute-force protection works.
+ */
+@JSentinelAutoService(AuthenticationService.class)
+public class AppAuthenticationService
+    implements AuthenticationService<Credentials, AppUser>, HasLogger {
+
+  @Override
+  public boolean checkCredentials(Credentials credentials) {
+    return authenticate(credentials).isPresent();
+  }
+
+  /**
+   * Throttled, audited authentication that resolves the subject in a
+   * <em>single</em> credential verification, so callers obtain the user
+   * without re-running the (deliberately expensive) Argon2id verify.
+   * {@link #checkCredentials(Credentials)} delegates here.
+   *
+   * @return the authenticated user, or empty when the credentials are
+   *     null, throttled (locked out), unknown, or the password does not match.
+   */
+  public Optional<AppUser> authenticate(Credentials credentials) {
+    if (credentials == null) {
+      return Optional.empty();
+    }
+
+    LoginAttemptPolicy policy = JSentinelServiceResolver.loginAttemptPolicy();
+    LoginAttemptContext attempt = LoginAttemptContext.now(
+        credentials.username(), currentClientAddress(), null);
+
+    LoginAttemptDecision decision = policy.beforeAttempt(attempt);
+    if (decision instanceof LoginAttemptDecision.LockedOut lockout) {
+      logger().warn("Login throttled for username={} (remaining={}s, failedAttempts={})",
+          credentials.username(), lockout.remaining().toSeconds(), lockout.failedAttempts());
+      return Optional.empty();
+    }
+
+    Optional<AppUser> user =
+        UserDirectoryProvider.directory().findByCredentials(credentials);
+    if (user.isPresent()) {
+      policy.recordSuccess(attempt);
+      auditLoginSucceeded(credentials.username(), attempt.clientAddress());
+    } else {
+      policy.recordFailure(attempt);
+    }
+    return user;
+  }
+
+  @Override
+  public AppUser loadSubject(Credentials credentials) {
+    return UserDirectoryProvider.directory().findByCredentials(credentials).orElse(null);
+  }
+
+  @Override
+  public Class<AppUser> subjectType() {
+    return AppUser.class;
+  }
+
+  private static void auditLoginSucceeded(String username, String clientAddress) {
+    JSentinelAuditService sink = JSentinelServiceResolver.securityAuditService();
+    try {
+      sink.publish(new LoginSucceeded(
+          AppClock.now(), username, clientAddress, null));
+    } catch (RuntimeException ignored) {
+      // never block a successful login because the audit sink failed
+    }
+  }
+
+  /**
+   * The client address used as (part of) the brute-force throttle key.
+   *
+   * <p>NOTE (deploy-time security): {@code getRemoteAddr()} is the
+   * <em>direct</em> peer. Behind a reverse proxy / load balancer this is
+   * the proxy's address, so all clients collapse into one throttle
+   * bucket. A trusted-proxy {@code X-Forwarded-For} resolver must be
+   * wired at deploy before relying on per-IP throttling. We deliberately
+   * do NOT read {@code X-Forwarded-For} blindly here — without a
+   * trusted-proxy allowlist that would let an attacker spoof their IP and
+   * evade the throttle, which is worse than the current behaviour.
+   */
+  private static String currentClientAddress() {
+    try {
+      VaadinRequest request = VaadinRequest.getCurrent();
+      return request == null ? null : request.getRemoteAddr();
+    } catch (RuntimeException ignored) {
+      return null;
+    }
+  }
+}

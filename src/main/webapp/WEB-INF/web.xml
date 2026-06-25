@@ -7,7 +7,7 @@
          Referrer-Policy, X-Frame-Options, HSTS over HTTPS). -->
     <filter>
         <filter-name>SecurityHeadersFilter</filter-name>
-        <filter-class>com.svenruppert.flow.security.SecurityHeadersFilter</filter-class>
+        <filter-class>com.svenruppert.openprobatum.security.SecurityHeadersFilter</filter-class>
     </filter>
     <filter-mapping>
         <filter-name>SecurityHeadersFilter</filter-name>
@@ -15,7 +15,7 @@
     </filter-mapping>
     <servlet>
         <servlet-name>Vaadin Servlet</servlet-name>
-        <servlet-class>com.svenruppert.flow.AppServlet</servlet-class>
+        <servlet-class>com.svenruppert.openprobatum.AppServlet</servlet-class>
         <async-supported>true</async-supported>
         <load-on-startup>1</load-on-startup>
         <!--
@@ -24,11 +24,11 @@
             Without it the framework hard-instantiates DefaultI18NProvider,
             which carries the JVM-default-locale fallback bug that makes
             EN clicks silently return German on German machines. See
-            com.svenruppert.flow.i18n.AppI18NProvider for the full story.
+            com.svenruppert.openprobatum.i18n.AppI18NProvider for the full story.
         -->
         <init-param>
             <param-name>i18n.provider</param-name>
-            <param-value>com.svenruppert.flow.i18n.AppI18NProvider</param-value>
+            <param-value>com.svenruppert.openprobatum.i18n.AppI18NProvider</param-value>
         </init-param>
     </servlet>
     <servlet-mapping>

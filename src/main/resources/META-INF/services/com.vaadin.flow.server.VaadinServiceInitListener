@@ -1,3 +1,3 @@
-com.svenruppert.flow.security.bootstrap.JSentinelBootstrapInitListener
-com.svenruppert.flow.security.bootstrap.JSentinelVersionInitListener
-com.svenruppert.flow.views.ui.SessionPreferencesInitListener
+com.svenruppert.openprobatum.security.bootstrap.JSentinelBootstrapInitListener
+com.svenruppert.openprobatum.security.bootstrap.JSentinelVersionInitListener
+com.svenruppert.openprobatum.views.ui.SessionPreferencesInitListener

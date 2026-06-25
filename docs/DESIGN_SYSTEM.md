@@ -33,7 +33,7 @@ your own and the whole app follows.
 
 ## Java components
 
-All under `com.svenruppert.flow.views.ui`.
+All under `com.svenruppert.openprobatum.views.ui`.
 
 ### `TemplateBrand`
 
