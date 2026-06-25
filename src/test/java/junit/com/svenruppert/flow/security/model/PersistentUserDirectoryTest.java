@@ -31,7 +31,11 @@ import com.svenruppert.jsentinel.audit.RoleRevoked;
 import com.svenruppert.jsentinel.audit.UserCreated;
 import com.svenruppert.jsentinel.audit.UserDeleted;
 import com.svenruppert.jsentinel.authorization.api.JSentinelServiceResolver;
+import com.svenruppert.jsentinel.credential.password.CredentialVerificationResult;
+import com.svenruppert.jsentinel.credential.password.PasswordHashResult;
+import com.svenruppert.jsentinel.credential.password.PasswordHashingService;
 import com.svenruppert.jsentinel.credential.password.PasswordHashingServices;
+import com.svenruppert.jsentinel.credential.password.RehashDecision;
 import com.svenruppert.jsentinel.credential.password.bouncycastle.BouncyCastleHashingServices;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +47,10 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -327,11 +335,136 @@ class PersistentUserDirectoryTest {
         "the rehashed envelope must still verify the original password");
   }
 
+  // ── R14 — login timing equalisation (unknown user pays a decoy verify) ──
+
+  @Test
+  @DisplayName("unknown username pays one verifyAgainstNothing (timing equalised, R14)")
+  void unknownUsernameEqualisesTiming() {
+    CountingHashingService counting =
+        new CountingHashingService(BouncyCastleHashingServices.modern());
+    PersistentUserDirectory dir = new PersistentUserDirectory(
+        new InMemoryUserDirectoryPersistence(), counting);
+    dir.addUser("alice", "abcdef-abcdef-1",
+        new AppUser(1L, "Alice", EnumSet.of(AuthorizationRole.USER)));
+    counting.verifyAgainstNothingCalls.set(0);
+    counting.verifyCalls.set(0);
+
+    assertFalse(dir.findByCredentials(new Credentials("ghost", "whatever")).isPresent());
+
+    assertEquals(1, counting.verifyAgainstNothingCalls.get(),
+        "an unknown username must pay one constant-time decoy verify");
+    assertEquals(0, counting.verifyCalls.get(),
+        "no real verify happens for an unknown username");
+  }
+
+  @Test
+  @DisplayName("a known username with a wrong password uses the real verify, not the decoy (R14)")
+  void knownUsernameUsesRealVerify() {
+    CountingHashingService counting =
+        new CountingHashingService(BouncyCastleHashingServices.modern());
+    PersistentUserDirectory dir = new PersistentUserDirectory(
+        new InMemoryUserDirectoryPersistence(), counting);
+    dir.addUser("alice", "abcdef-abcdef-1",
+        new AppUser(1L, "Alice", EnumSet.of(AuthorizationRole.USER)));
+    counting.verifyAgainstNothingCalls.set(0);
+    counting.verifyCalls.set(0);
+
+    assertFalse(dir.findByCredentials(new Credentials("alice", "wrong-wrong-wrong")).isPresent());
+
+    assertEquals(1, counting.verifyCalls.get(), "known user → one real verify");
+    assertEquals(0, counting.verifyAgainstNothingCalls.get(), "known user → no decoy verify");
+  }
+
+  // ── R25 — deleteUser is keyed by id, not user-equality ──────────
+
+  @Test
+  @DisplayName("deleteUser(id) removes only that id; same-name twin survives (R25)")
+  void deleteByIdDoesNotAffectTwin() {
+    directory.addUser("twin-a", "alpha-alpha-alpha",
+        new AppUser(40L, "Twin", EnumSet.of(AuthorizationRole.USER)));
+    directory.addUser("twin-b", "beta-beta-beta-b",
+        new AppUser(41L, "Twin", EnumSet.of(AuthorizationRole.USER)));
+
+    directory.deleteUser(40L);
+
+    assertFalse(directory.findById(40L).isPresent());
+    assertTrue(directory.findById(41L).isPresent(), "the same-name twin must survive");
+    assertFalse(persistence.load().containsKey("twin-a"));
+    assertTrue(persistence.load().containsKey("twin-b"));
+  }
+
+  // ── R06 — concurrent role change + login-rehash never reverts ───
+
+  @Test
+  @DisplayName("role assigned concurrently with a login-triggered rehash is not lost (R06)")
+  void concurrentRoleChangeAndRehashKeepsRole() throws Exception {
+    String pbkdf2 = PasswordHashingServices.defaults()
+        .hash("legacy-12345".toCharArray()).encodedHash();
+
+    for (int i = 0; i < 12; i++) {
+      // Reset to a fresh PBKDF2 (legacy) user so each round's login rehashes —
+      // the path that previously persisted outside the mutator lock.
+      directory.deleteUser(60L);
+      directory.registerWithHashedPassword("race", pbkdf2,
+          new AppUser(60L, "Race", EnumSet.of(AuthorizationRole.USER)));
+
+      ExecutorService pool = Executors.newFixedThreadPool(2);
+      try {
+        Future<?> login = pool.submit(() ->
+            directory.findByCredentials(new Credentials("race", "legacy-12345")));
+        Future<?> assign = pool.submit(() -> {
+          directory.assignRole(60L, AuthorizationRole.ADMIN);
+          return null;
+        });
+        login.get();
+        assign.get();
+      } finally {
+        pool.shutdownNow();
+      }
+
+      assertTrue(directory.findById(60L).orElseThrow().roles().contains(AuthorizationRole.ADMIN),
+          "a role assigned concurrently with a login-rehash must not be reverted");
+    }
+  }
+
   // ── Recording audit sink (Skill §2.7 — assert on side effects, not mocks) ──
 
   private static final class RecordingAudit implements JSentinelAuditService {
     final List<AuditEvent> events = new ArrayList<>();
     @Override public void publish(AuditEvent e) { events.add(e); }
     @Override public List<AuditEvent> query(AuditQuery q) { return List.copyOf(events); }
+  }
+
+  /**
+   * Real {@link PasswordHashingService} that delegates to a genuine
+   * implementation while counting verify / decoy-verify calls — a true
+   * implementation, not a mock framework (Skill §6 no-mocks).
+   */
+  private static final class CountingHashingService implements PasswordHashingService {
+    private final PasswordHashingService delegate;
+    final AtomicInteger verifyCalls = new AtomicInteger();
+    final AtomicInteger verifyAgainstNothingCalls = new AtomicInteger();
+
+    CountingHashingService(PasswordHashingService delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override public PasswordHashResult hash(char[] raw) {
+      return delegate.hash(raw);
+    }
+
+    @Override public CredentialVerificationResult verify(char[] raw, String stored) {
+      verifyCalls.incrementAndGet();
+      return delegate.verify(raw, stored);
+    }
+
+    @Override public RehashDecision needsRehash(String stored) {
+      return delegate.needsRehash(stored);
+    }
+
+    @Override public CredentialVerificationResult verifyAgainstNothing(char[] raw) {
+      verifyAgainstNothingCalls.incrementAndGet();
+      return delegate.verifyAgainstNothing(raw);
+    }
   }
 }

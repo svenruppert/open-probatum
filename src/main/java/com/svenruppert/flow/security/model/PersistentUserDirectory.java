@@ -64,6 +64,7 @@ public final class PersistentUserDirectory implements UserDirectory, HasLogger {
   private final PasswordHashingService hashingService;
   private final Map<String, StoredUser> byUsername = new ConcurrentHashMap<>();
   private final Map<Long, AppUser> byId = new ConcurrentHashMap<>();
+  private final Map<Long, String> usernameById = new ConcurrentHashMap<>();
 
   public PersistentUserDirectory(UserDirectoryPersistence persistence,
                                  PasswordHashingService hashingService) {
@@ -71,8 +72,10 @@ public final class PersistentUserDirectory implements UserDirectory, HasLogger {
     this.hashingService = Objects.requireNonNull(hashingService, "hashingService");
     Map<String, StoredUser> initial = persistence.load();
     byUsername.putAll(initial);
-    for (StoredUser stored : initial.values()) {
-      byId.put(stored.user().id(), stored.user());
+    for (Map.Entry<String, StoredUser> entry : initial.entrySet()) {
+      AppUser u = entry.getValue().user();
+      byId.put(u.id(), u);
+      usernameById.put(u.id(), entry.getKey());
     }
     logger().info("PersistentUserDirectory loaded: {} users from {}",
         byUsername.size(), persistence.getClass().getSimpleName());
@@ -92,23 +95,22 @@ public final class PersistentUserDirectory implements UserDirectory, HasLogger {
         || credentials.password() == null) {
       return Optional.empty();
     }
-    StoredUser stored = byUsername.get(credentials.username());
-    if (stored == null) return Optional.empty();
     char[] raw = credentials.password().toCharArray();
+    StoredUser stored = byUsername.get(credentials.username());
+    if (stored == null) {
+      // Equalise timing against a known user: pay one constant-time decoy
+      // verify so an unknown username is not detectably faster to reject
+      // (CWE-208 enumeration).
+      hashingService.verifyAgainstNothing(raw);
+      return Optional.empty();
+    }
     CredentialVerificationResult verification =
         hashingService.verify(raw, stored.passwordHash());
     if (!(verification instanceof CredentialVerificationResult.Verified)) {
       return Optional.empty();
     }
     if (hashingService.needsRehash(stored.passwordHash()) instanceof RehashDecision.Required) {
-      try {
-        String fresh = hashingService.hash(raw).encodedHash();
-        byUsername.put(credentials.username(), new StoredUser(stored.user(), fresh));
-        persist();
-        logger().debug("Transparent rehash for user '{}'", credentials.username());
-      } catch (RuntimeException ignored) {
-        // login already succeeded; rehash failure is not a security failure
-      }
+      rehash(credentials.username(), stored.user(), raw);
     }
     return Optional.of(stored.user());
   }
@@ -137,6 +139,7 @@ public final class PersistentUserDirectory implements UserDirectory, HasLogger {
     String hash = hashingService.hash(plaintextPassword.toCharArray()).encodedHash();
     byUsername.put(username, new StoredUser(user, hash));
     byId.put(user.id(), user);
+    usernameById.put(user.id(), username);
     persist();
     audit(new UserCreated(Instant.now(Clock.systemUTC()), username, firstRoleOf(user), null));
   }
@@ -148,21 +151,18 @@ public final class PersistentUserDirectory implements UserDirectory, HasLogger {
     }
     byUsername.put(username, new StoredUser(user, passwordHash));
     byId.put(user.id(), user);
+    usernameById.put(user.id(), username);
     persist();
   }
 
   @Override
   public synchronized void deleteUser(Long id) {
+    String username = usernameById.remove(id);
     AppUser removed = byId.remove(id);
-    if (removed == null) return;
-    String username = byUsername.entrySet().stream()
-        .filter(e -> e.getValue().user().equals(removed))
-        .map(Map.Entry::getKey).findFirst().orElse(null);
-    byUsername.values().removeIf(stored -> stored.user().equals(removed));
+    if (username == null || removed == null) return;
+    byUsername.remove(username);
     persist();
-    if (username != null) {
-      audit(new UserDeleted(Instant.now(Clock.systemUTC()), username, null));
-    }
+    audit(new UserDeleted(Instant.now(Clock.systemUTC()), username, null));
   }
 
   @Override
@@ -195,6 +195,36 @@ public final class PersistentUserDirectory implements UserDirectory, HasLogger {
 
   // ── Internal ───────────────────────────────────────────────────
 
+  private void rehash(String username, AppUser user, char[] raw) {
+    final String fresh;
+    try {
+      fresh = hashingService.hash(raw).encodedHash();
+    } catch (RuntimeException ignored) {
+      return; // login already succeeded; rehash failure is not a security failure
+    }
+    applyRehash(username, user, fresh);
+  }
+
+  /**
+   * Applies a transparent rehash under the directory monitor, so the
+   * write + whole-map persist is atomic with respect to the role/CRUD
+   * mutators and can neither clobber nor be clobbered by a concurrent
+   * change (the lost-update window). Re-reads under the lock and only
+   * upgrades if the entry still matches and still needs a rehash.
+   */
+  private synchronized void applyRehash(String username, AppUser user, String freshHash) {
+    StoredUser current = byUsername.get(username);
+    if (current == null || !current.user().equals(user)) {
+      return;
+    }
+    if (!(hashingService.needsRehash(current.passwordHash()) instanceof RehashDecision.Required)) {
+      return;
+    }
+    byUsername.put(username, new StoredUser(current.user(), freshHash));
+    persist();
+    logger().debug("Transparent rehash for user '{}'", username);
+  }
+
   private void persist() {
     try {
       persistence.save(new HashMap<>(byUsername));
@@ -220,7 +250,7 @@ public final class PersistentUserDirectory implements UserDirectory, HasLogger {
   private static String firstRoleOf(AppUser user) {
     if (user.roles().contains(AuthorizationRole.ADMIN)) return AuthorizationRole.ADMIN.name();
     if (user.roles().contains(AuthorizationRole.USER)) return AuthorizationRole.USER.name();
-    return "USER";
+    return AuthorizationRole.USER.name();
   }
 
   private static void audit(com.svenruppert.jsentinel.audit.AuditEvent event) {
