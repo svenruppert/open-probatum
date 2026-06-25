@@ -16,6 +16,8 @@
 
 package com.svenruppert.openprobatum.credential;
 
+import com.svenruppert.dependencies.core.logger.HasLogger;
+
 import java.util.Objects;
 import java.util.UUID;
 
@@ -49,9 +51,20 @@ public record IssuerIdentity(String name, String validationBaseUrl) {
 
   /** Resolves the issuer identity from per-instance config, with defaults. */
   public static IssuerIdentity fromConfig() {
+    String validationBaseUrl = System.getProperty(VALIDATION_URL_PROPERTY, DEFAULT_VALIDATION_URL);
+    if (DEFAULT_VALIDATION_URL.equals(validationBaseUrl)) {
+      // The base URL is baked into every QR code on printed certificates and
+      // cannot be corrected after the fact — warn loudly so a production
+      // instance that forgot to set app.validation.baseUrl is noticed before
+      // it ships unverifiable localhost links.
+      HasLogger.staticLogger().warn(
+          "IssuerIdentity: app.validation.baseUrl is unset — issued credentials will "
+              + "point at the localhost default {}. Set -D{}=https://… in production.",
+          DEFAULT_VALIDATION_URL, VALIDATION_URL_PROPERTY);
+    }
     return new IssuerIdentity(
         System.getProperty(NAME_PROPERTY, DEFAULT_NAME),
-        System.getProperty(VALIDATION_URL_PROPERTY, DEFAULT_VALIDATION_URL));
+        validationBaseUrl);
   }
 
   /** The full public validation URL for a credential id. */

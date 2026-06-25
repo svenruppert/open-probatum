@@ -24,7 +24,6 @@ import com.svenruppert.openprobatum.credential.ValidationRateLimiterProvider;
 import com.svenruppert.openprobatum.credential.ValidationResult;
 import com.svenruppert.openprobatum.i18n.I18nSupport;
 import com.svenruppert.openprobatum.security.AppClock;
-import com.svenruppert.openprobatum.views.ui.GridSupport;
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
@@ -36,6 +35,8 @@ import com.vaadin.flow.router.OptionalParameter;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.VaadinRequest;
 
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 /**
@@ -52,6 +53,15 @@ public class ValidationView extends Composite<VerticalLayout>
     implements HasUrlParameter<String>, I18nSupport {
 
   public static final String NAV = "validate";
+
+  /**
+   * Date format for the public page — {@code yyyy-MM-dd} in UTC, identical to
+   * {@code CredentialPdf}. A verifier compares the page against the printed PDF,
+   * so both must show the same calendar date regardless of the host's timezone
+   * (the admin-grid {@code systemDefault()} formatter would drift by hours/a day).
+   */
+  private static final DateTimeFormatter VALIDATION_DATE =
+      DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneOffset.UTC);
 
   @Override
   public void setParameter(BeforeEvent event, @OptionalParameter String id) {
@@ -117,9 +127,9 @@ public class ValidationView extends Composite<VerticalLayout>
     box.add(field("validate.field.title", "Title", c.title()));
     box.add(field("validate.field.type", "Type", c.type().name()));
     box.add(field("validate.field.issuer", "Issuer", c.issuer()));
-    box.add(field("validate.field.issued", "Issued on", GridSupport.TIMESTAMP.format(c.issuedAt())));
+    box.add(field("validate.field.issued", "Issued on", VALIDATION_DATE.format(c.issuedAt())));
     c.expiry().ifPresent(e ->
-        box.add(field("validate.field.expiry", "Expires on", GridSupport.TIMESTAMP.format(e))));
+        box.add(field("validate.field.expiry", "Expires on", VALIDATION_DATE.format(e))));
     box.add(field("validate.field.id", "Credential ID", c.id().toString()));
     c.superseder().ifPresent(ref ->
         box.add(field("validate.field.supersededBy", "Replaced by", ref.toString())));

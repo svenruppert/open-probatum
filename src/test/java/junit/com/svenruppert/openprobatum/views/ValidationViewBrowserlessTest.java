@@ -122,6 +122,22 @@ class ValidationViewBrowserlessTest extends BrowserlessTest {
   }
 
   @Test
+  @DisplayName("the issued date renders as the UTC calendar date, matching the PDF (M1)")
+  void issuedDateIsUtcCalendarDate() {
+    // Issued at exactly 2026-01-01T00:00:00Z: a host in any negative UTC offset
+    // would slip to 2025-12-31 if the page used the system zone instead of UTC.
+    Credential c = issue();
+    repo.save(c);
+
+    String text = renderText(c.id().toString());
+
+    assertTrue(text.contains("2026-01-01"),
+        "the public page must show the UTC calendar date (same as the PDF)");
+    assertFalse(text.contains("2025-12-31"),
+        "the issued date must not drift to the host's local zone");
+  }
+
+  @Test
   @DisplayName("a revoked credential renders the REVOKED result")
   void revokedShowsRevoked() {
     Credential c = issue().withStatus(CredentialStatus.REVOKED);
