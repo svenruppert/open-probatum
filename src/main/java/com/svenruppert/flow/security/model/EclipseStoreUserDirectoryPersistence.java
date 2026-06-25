@@ -65,7 +65,7 @@ public final class EclipseStoreUserDirectoryPersistence
       AppStoragePaths.userDirectoryDir();
 
   private final Path storageDir;
-  private final AtomicBoolean closed = new AtomicBoolean();
+  private final AtomicBoolean hookRegistered = new AtomicBoolean();
   private volatile EmbeddedStorageManager manager;
   private volatile AppUsersRoot root;
 
@@ -95,19 +95,21 @@ public final class EclipseStoreUserDirectoryPersistence
 
   @Override
   public synchronized void close() {
-    if (!closed.compareAndSet(false, true)) return;
-    if (manager != null) {
-      try {
-        manager.shutdown();
-        logger().info("EclipseStoreUserDirectoryPersistence: storage at {} closed", storageDir);
-      } catch (RuntimeException e) {
-        logger().warn("EclipseStoreUserDirectoryPersistence: shutdown failed for {}", storageDir, e);
-      }
+    EmbeddedStorageManager local = manager;
+    if (local == null) return; // not open or already closed — idempotent
+    manager = null;
+    root = null;
+    try {
+      local.shutdown();
+      logger().info("EclipseStoreUserDirectoryPersistence: storage at {} closed", storageDir);
+    } catch (RuntimeException e) {
+      logger().warn("EclipseStoreUserDirectoryPersistence: shutdown failed for {}", storageDir, e);
     }
   }
 
   private void ensureOpen() {
     if (manager != null) return;
+    AppStoragePaths.ensureSecureDir(storageDir);
     AppUsersRoot initial = new AppUsersRoot();
     manager = EmbeddedStorage.start(initial, storageDir);
     Object loaded = manager.root();
@@ -121,13 +123,20 @@ public final class EclipseStoreUserDirectoryPersistence
       manager.storeRoot();
       logger().info("EclipseStoreUserDirectoryPersistence: bootstrapped fresh storage at {}", storageDir);
     } else {
-      manager.shutdown();
+      EmbeddedStorageManager bad = manager;
+      manager = null;
+      bad.shutdown();
       throw new IllegalStateException(
           "Unexpected root type in " + storageDir + ": " + loaded.getClass().getName()
               + " — expected " + AppUsersRoot.class.getName());
     }
-    Runtime.getRuntime().addShutdownHook(new Thread(this::close,
-        "app-users-storage-shutdown"));
+    // Register the JVM shutdown hook exactly once for this instance's
+    // lifetime, even across close()/reopen cycles, so we neither leak a
+    // hook per open nor pin every reopened instance for the JVM lifetime.
+    if (hookRegistered.compareAndSet(false, true)) {
+      Runtime.getRuntime().addShutdownHook(new Thread(this::close,
+          "app-users-storage-shutdown"));
+    }
   }
 
   /** Eclipse-Store root container. Public type so EclipseStore can map it. */

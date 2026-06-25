@@ -121,6 +121,12 @@ public final class BootstrapWiring implements HasLogger {
     BootstrapStartup.initializeIfRequired(
         state, tokenStore, new BootstrapTokenGenerator(), output, config);
 
+    // Harden the on-disk bootstrap secret: the token authorises first-admin
+    // creation, so restrict it (and its directory) to owner-only access on
+    // POSIX systems so a co-tenant process cannot read it and race /setup.
+    AppStoragePaths.ensureSecureDir(AppStoragePaths.frameworkStorageDir());
+    AppStoragePaths.secureFile(config.tokenFilePath());
+
     InitialAdminBootstrapService service = new InitialAdminBootstrapService(
         state, tokenStore, adminStore,
         BouncyCastleHashingServices.modern(),

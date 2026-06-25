@@ -24,14 +24,19 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 @DisplayName("EclipseStoreUserDirectoryPersistence — round-trip + close lifecycle")
 class EclipseStoreUserDirectoryPersistenceTest {
@@ -121,6 +126,48 @@ class EclipseStoreUserDirectoryPersistenceTest {
     p.load();
     p.close();
     p.close();
+  }
+
+  @Test
+  @DisplayName("same instance reopens after close() — manager is nulled, not stale (R22)")
+  void reopenAfterCloseOnSameInstance(@TempDir Path tempDir) {
+    Path dir = tempDir.resolve("users-reopen");
+    EclipseStoreUserDirectoryPersistence p = new EclipseStoreUserDirectoryPersistence(dir);
+    try {
+      Map<String, StoredUser> snapshot = new HashMap<>();
+      snapshot.put("alice",
+          new StoredUser(new AppUser(1L, "Alice", EnumSet.of(AuthorizationRole.USER)), "$h"));
+      p.save(snapshot);
+      p.close();
+
+      // A stale (non-nulled) manager would make this load() throw or
+      // early-return on a shut-down storage; nulling it on close lets the
+      // same instance reopen and see the persisted data.
+      Map<String, StoredUser> reloaded = p.load();
+      assertEquals(1, reloaded.size());
+      assertEquals("$h", reloaded.get("alice").passwordHash());
+    } finally {
+      p.close();
+    }
+  }
+
+  @Test
+  @DisplayName("storage directory is owner-only (0700) on POSIX (R02)")
+  void storageDirIsOwnerOnly(@TempDir Path tempDir) throws java.io.IOException {
+    Path dir = tempDir.resolve("users-perms");
+    EclipseStoreUserDirectoryPersistence p = new EclipseStoreUserDirectoryPersistence(dir);
+    try {
+      p.load(); // opens the storage, which secures the directory first
+      assumeTrue(FileSystems.getDefault().supportedFileAttributeViews().contains("posix"),
+          "POSIX permission assertions only apply to POSIX file systems");
+      assertEquals(
+          Set.of(PosixFilePermission.OWNER_READ,
+              PosixFilePermission.OWNER_WRITE,
+              PosixFilePermission.OWNER_EXECUTE),
+          Files.getPosixFilePermissions(dir));
+    } finally {
+      p.close();
+    }
   }
 
   @Test

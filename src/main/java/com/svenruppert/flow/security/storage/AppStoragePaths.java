@@ -16,7 +16,14 @@
 
 package com.svenruppert.flow.security.storage;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.EnumSet;
+import java.util.Set;
 
 /**
  * Single source of truth for the application's on-disk storage paths.
@@ -41,6 +48,13 @@ import java.nio.file.Path;
  * sets {@code app.storage.dir = ${project.build.directory}/test-data}
  * via {@code <systemPropertyVariables>}, so test runs never touch
  * the repository-rooted {@code ./data/} directory.
+ *
+ * <p>The base is resolved to an <em>absolute, normalised</em> path so
+ * {@code ..} segments and the process working directory can no longer
+ * move the credential store to an unexpected location. The
+ * {@link #ensureSecureDir(Path)} / {@link #secureFile(Path)} helpers
+ * restrict the credential and token stores to owner-only access on
+ * POSIX file systems.
  */
 public final class AppStoragePaths {
 
@@ -50,12 +64,31 @@ public final class AppStoragePaths {
   /** Built-in default when nothing was configured. */
   public static final String DEFAULT = "./data";
 
+  private static final boolean POSIX =
+      FileSystems.getDefault().supportedFileAttributeViews().contains("posix");
+
+  /** {@code rwx------} (0700) — owner-only directory. */
+  private static final Set<PosixFilePermission> DIR_0700 = EnumSet.of(
+      PosixFilePermission.OWNER_READ,
+      PosixFilePermission.OWNER_WRITE,
+      PosixFilePermission.OWNER_EXECUTE);
+
+  /** {@code rw-------} (0600) — owner-only file. */
+  private static final Set<PosixFilePermission> FILE_0600 = EnumSet.of(
+      PosixFilePermission.OWNER_READ,
+      PosixFilePermission.OWNER_WRITE);
+
   private AppStoragePaths() {
   }
 
-  /** Base directory for all app-owned storage. */
+  /**
+   * Base directory for all app-owned storage, resolved to an absolute,
+   * normalised path.
+   */
   public static Path baseDir() {
-    return Path.of(System.getProperty(PROPERTY, DEFAULT));
+    return Path.of(System.getProperty(PROPERTY, DEFAULT))
+        .toAbsolutePath()
+        .normalize();
   }
 
   /** jSentinel framework storage — audit + session stores. */
@@ -71,5 +104,39 @@ public final class AppStoragePaths {
   /** Bootstrap token file written on first start. */
   public static Path bootstrapTokenFile() {
     return frameworkStorageDir().resolve("bootstrap.token");
+  }
+
+  /**
+   * Creates {@code dir} (and any missing parents) and restricts it to
+   * owner-only access ({@code 0700}) on POSIX file systems, so the
+   * credential and token stores beneath it are not world-readable. The
+   * permission step is a no-op on non-POSIX systems (e.g. Windows),
+   * where ACLs govern access instead. Returns {@code dir} for chaining.
+   */
+  public static Path ensureSecureDir(Path dir) {
+    try {
+      Files.createDirectories(dir);
+      if (POSIX) {
+        Files.setPosixFilePermissions(dir, DIR_0700);
+      }
+      return dir;
+    } catch (IOException e) {
+      throw new UncheckedIOException("Could not create secure directory " + dir, e);
+    }
+  }
+
+  /**
+   * Restricts an existing file to owner read/write ({@code 0600}) on
+   * POSIX file systems. No-op if the file does not exist yet or on
+   * non-POSIX systems.
+   */
+  public static void secureFile(Path file) {
+    try {
+      if (POSIX && Files.exists(file)) {
+        Files.setPosixFilePermissions(file, FILE_0600);
+      }
+    } catch (IOException e) {
+      throw new UncheckedIOException("Could not secure file " + file, e);
+    }
   }
 }
