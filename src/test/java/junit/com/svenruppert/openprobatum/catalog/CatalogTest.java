@@ -20,15 +20,18 @@ import com.svenruppert.openprobatum.catalog.LearningPath;
 import com.svenruppert.openprobatum.catalog.Module;
 import com.svenruppert.openprobatum.catalog.Offering;
 import com.svenruppert.openprobatum.catalog.OfferingType;
+import com.svenruppert.openprobatum.catalog.OfferingVisibility;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("Catalog — Offering / LearningPath / Module (P004)")
 class CatalogTest {
@@ -71,5 +74,39 @@ class CatalogTest {
   void nullsRejected() {
     assertThrows(NullPointerException.class, () -> new Module(null, "c"));
     assertThrows(NullPointerException.class, () -> Offering.certificationPath(null, path()));
+  }
+
+  @Test
+  @DisplayName("certificationPath() is PUBLIC with no gate data")
+  void certificationPathIsPublic() {
+    Offering o = Offering.certificationPath("Vaadin Certified", path());
+    assertEquals(OfferingVisibility.PUBLIC, o.visibility());
+    assertTrue(o.accessCodeOpt().isEmpty());
+    assertTrue(o.prerequisiteOfferingIdOpt().isEmpty());
+  }
+
+  @Test
+  @DisplayName("the four visibility factories set the right visibility + gate data")
+  void visibilityFactories() {
+    assertEquals(OfferingVisibility.REGISTERED,
+        Offering.registeredPath("R", "d", path()).visibility());
+
+    Offering coded = Offering.codePath("C", "d", path(), "SECRET-2026");
+    assertEquals(OfferingVisibility.CODE, coded.visibility());
+    assertEquals("SECRET-2026", coded.accessCodeOpt().orElseThrow());
+
+    UUID prereq = UUID.randomUUID();
+    Offering gated = Offering.prerequisitePath("P", "d", path(), prereq);
+    assertEquals(OfferingVisibility.PREREQUISITE, gated.visibility());
+    assertEquals(prereq, gated.prerequisiteOfferingIdOpt().orElseThrow());
+  }
+
+  @Test
+  @DisplayName("a CODE offering needs a non-blank code; PREREQUISITE needs a prerequisite id")
+  void gateDataIsValidated() {
+    assertThrows(IllegalArgumentException.class,
+        () -> Offering.codePath("C", "d", path(), "  "));
+    assertThrows(IllegalArgumentException.class,
+        () -> Offering.prerequisitePath("P", "d", path(), null));
   }
 }

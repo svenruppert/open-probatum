@@ -120,5 +120,7 @@ public final class AppStorage {
   public static final class AppRoot {
     public final Map<String, StoredUser> users = new ConcurrentHashMap<>();
     public final Map<UUID, Credential> credentials = new ConcurrentHashMap<>();
+    public final Map<UUID, com.svenruppert.openprobatum.catalog.Offering> offerings =
+        new ConcurrentHashMap<>();
   }
 }
