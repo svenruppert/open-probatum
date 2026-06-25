@@ -36,6 +36,7 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.html.UnorderedList;
 import com.vaadin.flow.component.html.ListItem;
 import com.vaadin.flow.component.Composite;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.BeforeEvent;
@@ -104,7 +105,10 @@ public class OfferingView extends Composite<VerticalLayout>
       case GRANTED -> {
         Span ok = new Span(tr("offering.granted", "You have access — start learning."));
         ok.getElement().getThemeList().add("badge success pill");
-        box.add(ok);
+        Button start = new Button(tr("offering.start", "Start learning"),
+            e -> UI.getCurrent().navigate(LearnPathView.class, offering.id().toString()));
+        start.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        box.add(ok, start);
       }
       case LOGIN_REQUIRED -> box.add(new Paragraph(
           tr("offering.login", "Please sign in to access this offering.")));
