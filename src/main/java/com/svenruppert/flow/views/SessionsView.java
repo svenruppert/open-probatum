@@ -18,6 +18,9 @@ package com.svenruppert.flow.views;
 
 import com.svenruppert.flow.i18n.I18nSupport;
 import com.svenruppert.flow.security.AppClock;
+import com.svenruppert.flow.security.SessionAccess;
+import com.svenruppert.flow.security.model.AppUser;
+import com.svenruppert.flow.security.permissions.AppPermission;
 import com.svenruppert.flow.security.services.SessionStoreProvider;
 import com.svenruppert.flow.views.ui.EmptyState;
 import com.svenruppert.flow.views.ui.FilterBar;
@@ -25,7 +28,9 @@ import com.svenruppert.flow.views.ui.GridSupport;
 import com.svenruppert.flow.views.ui.PageHeader;
 import com.svenruppert.jsentinel.audit.SessionInvalidated;
 import com.svenruppert.jsentinel.authorization.annotations.RequiresPermission;
+import com.svenruppert.jsentinel.authorization.api.AuthorizationService;
 import com.svenruppert.jsentinel.authorization.api.JSentinelServiceResolver;
+import com.svenruppert.jsentinel.authorization.api.SubjectStores;
 import com.svenruppert.jsentinel.session.SessionRecord;
 import com.svenruppert.jsentinel.session.SessionStatus;
 import com.vaadin.flow.component.Composite;
@@ -191,11 +196,33 @@ public class SessionsView extends Composite<VerticalLayout>
                   .toLocalDate().isBefore(activeAfter))
         .filter(s -> wantedStatus == null || s.status() == wantedStatus)
         .toList();
+    // Enforce the single row-level visibility rule per query (§3.6/5.4): a
+    // non-admin viewer sees only their own sessions; an admin:sessions holder
+    // sees all. This view is admin-gated, so today this returns all — but the
+    // read is routed through the same seam every non-admin session read must use.
+    sessions = SessionAccess.visibleTo(sessions, currentViewer(), viewerCanSeeAllSessions());
     grid.setItems(sessions);
     filterBar.setCount(sessions.size(), tr(K_UNIT_SESSIONS, "sessions"));
     boolean empty = sessions.isEmpty();
     grid.setVisible(!empty);
     emptyState.setVisible(empty);
+  }
+
+  private static AppUser currentViewer() {
+    return SubjectStores.subjectStore().currentSubject(AppUser.class).orElse(null);
+  }
+
+  private static boolean viewerCanSeeAllSessions() {
+    return SubjectStores.subjectStore().currentSubject(AppUser.class)
+        .map(SessionsView::holdsAdminSessions)
+        .orElse(false);
+  }
+
+  private static boolean holdsAdminSessions(AppUser subject) {
+    AuthorizationService<AppUser> authz = JSentinelServiceResolver.authorizationService();
+    String wanted = AppPermission.ADMIN_SESSIONS.permissionName().value();
+    return authz.permissionsFor(subject).permissionNames().stream()
+        .anyMatch(p -> wanted.equals(p.value()));
   }
 
   private com.vaadin.flow.component.html.Span renderStatusBadge(SessionRecord s) {
