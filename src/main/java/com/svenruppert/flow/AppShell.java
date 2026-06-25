@@ -39,18 +39,8 @@ public class AppShell
 
   @Override
   public void configurePage(AppShellSettings settings) {
-
-//    settings.addFavIcon("icon",
-//                        "icons/my-favicon.png",
-//                        "32x32");
-//
-//    // Externes CSS
-//    settings.addLink("stylesheet",
-//                     "https://cdn.example.com/styles/global.css");
-//
-//    // Externes Script
-//    settings.addInlineWithContents(
-//        "console.log('Hello from AppShell!');",
-//        Inline.Wrapping.AUTOMATIC);
+    // Intentionally empty. Do NOT load third-party origins (external CSS/JS)
+    // here without first widening the Content-Security-Policy in
+    // com.svenruppert.flow.security.SecurityHeaders accordingly.
   }
 }
