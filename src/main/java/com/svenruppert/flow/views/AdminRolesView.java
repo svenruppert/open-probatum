@@ -25,6 +25,7 @@ import com.svenruppert.flow.security.services.VersionBumper;
 import com.svenruppert.flow.i18n.I18nSupport;
 import com.svenruppert.flow.views.ui.EmptyState;
 import com.svenruppert.flow.views.ui.FilterBar;
+import com.svenruppert.flow.views.ui.GridSupport;
 import com.svenruppert.flow.views.ui.PageHeader;
 import com.svenruppert.jsentinel.authorization.annotations.RequiresPermission;
 import com.vaadin.flow.component.Composite;
@@ -102,7 +103,7 @@ public class AdminRolesView extends Composite<VerticalLayout>
   private static final String K_CR_E_FAIL = "roles.create.error.failed";
   private static final String K_EMPTY_TITLE = "roles.empty.title";
   private static final String K_EMPTY_BODY = "roles.empty.body";
-  private static final String K_UNIT_USERS = "users";
+  private static final String K_UNIT_USERS = "roles.unit.users";
 
   private final Grid<AppUser> grid = new Grid<>(AppUser.class, false);
   private final FilterBar filterBar = new FilterBar();
@@ -309,8 +310,8 @@ public class AdminRolesView extends Composite<VerticalLayout>
 
   private void refresh() {
     UserDirectory directory = UserDirectoryProvider.directory();
-    String idNeedle = textValue(idFilter);
-    String nameNeedle = textValue(nameFilter);
+    String idNeedle = GridSupport.textValue(idFilter);
+    String nameNeedle = GridSupport.textValue(nameFilter);
     java.util.Set<AuthorizationRole> wantedRoles = rolesFilter.getValue();
 
     List<AppUser> users = directory.all()
@@ -323,15 +324,10 @@ public class AdminRolesView extends Composite<VerticalLayout>
             || u.roles().stream().anyMatch(wantedRoles::contains))
         .toList();
     grid.setItems(users);
-    filterBar.setCount(users.size(), K_UNIT_USERS);
+    filterBar.setCount(users.size(), tr(K_UNIT_USERS, "users"));
     boolean empty = users.isEmpty();
     grid.setVisible(!empty);
     emptyState.setVisible(empty);
-  }
-
-  private static String textValue(TextField field) {
-    String v = field.getValue();
-    return v == null ? "" : v.trim().toLowerCase();
   }
 
   private static void success(String message) {

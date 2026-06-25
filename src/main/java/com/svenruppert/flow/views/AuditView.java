@@ -19,6 +19,7 @@ package com.svenruppert.flow.views;
 import com.svenruppert.flow.i18n.I18nSupport;
 import com.svenruppert.flow.views.ui.EmptyState;
 import com.svenruppert.flow.views.ui.FilterBar;
+import com.svenruppert.flow.views.ui.GridSupport;
 import com.svenruppert.flow.views.ui.PageHeader;
 import com.svenruppert.jsentinel.audit.AuditEvent;
 import com.svenruppert.jsentinel.audit.AuditQuery;
@@ -48,7 +49,6 @@ import com.vaadin.flow.router.Route;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -82,10 +82,7 @@ public class AuditView extends Composite<VerticalLayout>
   private static final String K_EMPTY_TITLE = "audit.empty.title";
   private static final String K_EMPTY_BODY = "audit.empty.body";
   private static final String K_ROWCOUNT = "audit.rowcount";
-  private static final String K_UNIT_EVENTS_PLAIN = "events";
-
-  private static final DateTimeFormatter TIMESTAMP =
-      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
+  private static final String K_UNIT_EVENTS_PLAIN = "audit.unit.events";
 
   /** Enumerated event types the type-filter chip exposes to operators. */
   private static final List<String> KNOWN_TYPES = List.of(
@@ -149,7 +146,7 @@ public class AuditView extends Composite<VerticalLayout>
 
     grid.setSizeFull();
     grid.setPageSize(50);
-    grid.addColumn(e -> TIMESTAMP.format(e.timestamp()))
+    grid.addColumn(e -> GridSupport.TIMESTAMP.format(e.timestamp()))
         .setHeader(tr(K_COL_TS, "Timestamp")).setWidth("11em").setFlexGrow(0);
     grid.addColumn(e -> e.getClass().getSimpleName())
         .setHeader(tr(K_COL_TYPE, "Type")).setWidth("16em").setFlexGrow(0);
@@ -177,8 +174,8 @@ public class AuditView extends Composite<VerticalLayout>
     LocalDate since = sinceFilter.getValue();
     LocalDate until = untilFilter.getValue();
     Set<String> wantedTypes = typeFilter.getValue();
-    String subjectNeedle = textValue(subjectFilter);
-    String detailNeedle = textValue(detailFilter);
+    String subjectNeedle = GridSupport.textValue(subjectFilter);
+    String detailNeedle = GridSupport.textValue(detailFilter);
 
     List<AuditEvent> filtered = reversed.stream()
         .filter(e -> since == null
@@ -198,16 +195,11 @@ public class AuditView extends Composite<VerticalLayout>
     grid.setItems(filtered);
     rowCount.setText(tr(K_ROWCOUNT, "Showing {0} of {1} event(s).",
         filtered.size(), reversed.size()));
-    filterBar.setCount(filtered.size(), K_UNIT_EVENTS_PLAIN);
+    filterBar.setCount(filtered.size(), tr(K_UNIT_EVENTS_PLAIN, "events"));
     boolean empty = filtered.isEmpty();
     grid.setVisible(!empty);
     emptyState.setVisible(empty);
     rowCount.setVisible(!empty);
-  }
-
-  private static String textValue(TextField field) {
-    String v = field.getValue();
-    return v == null ? "" : v.trim().toLowerCase();
   }
 
   private static String subjectOf(AuditEvent event) {

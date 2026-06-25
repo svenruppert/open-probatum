@@ -21,6 +21,7 @@ import com.svenruppert.flow.security.AppClock;
 import com.svenruppert.flow.security.services.SessionStoreProvider;
 import com.svenruppert.flow.views.ui.EmptyState;
 import com.svenruppert.flow.views.ui.FilterBar;
+import com.svenruppert.flow.views.ui.GridSupport;
 import com.svenruppert.flow.views.ui.PageHeader;
 import com.svenruppert.jsentinel.audit.SessionInvalidated;
 import com.svenruppert.jsentinel.authorization.annotations.RequiresPermission;
@@ -40,7 +41,6 @@ import com.vaadin.flow.router.Route;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 
@@ -82,11 +82,7 @@ public class SessionsView extends Composite<VerticalLayout>
   private static final String K_REVOKE_DISABLED = "sessions.action.revoke.disabled";
   private static final String K_EMPTY_TITLE = "sessions.empty.title";
   private static final String K_EMPTY_BODY = "sessions.empty.body";
-  private static final String K_UNIT_SESSIONS = "sessions";
-
-  private static final DateTimeFormatter TS =
-      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-          .withZone(ZoneId.systemDefault());
+  private static final String K_UNIT_SESSIONS = "sessions.unit";
 
   private final Grid<SessionRecord> grid = new Grid<>(SessionRecord.class, false);
   private final FilterBar filterBar = new FilterBar();
@@ -149,15 +145,15 @@ public class SessionsView extends Composite<VerticalLayout>
 
     grid.setSizeFull();
     grid.setPageSize(50);
-    grid.addColumn(s -> s.sessionId().value())
-        .setHeader(tr(K_COL_SID, "Session id")).setWidth("16em").setFlexGrow(0);
+    grid.addColumn(s -> GridSupport.maskId(s.sessionId().value()))
+        .setHeader(tr(K_COL_SID, "Session id")).setWidth("12em").setFlexGrow(0);
     grid.addColumn(s -> s.subjectId().value())
         .setHeader(tr(K_COL_SUBJECT, "Subject")).setWidth("12em").setFlexGrow(0);
     grid.addColumn(s -> s.tenant().value())
         .setHeader(tr(K_COL_TENANT, "Tenant")).setWidth("9em").setFlexGrow(0);
-    grid.addColumn(s -> TS.format(s.createdAt()))
+    grid.addColumn(s -> GridSupport.TIMESTAMP.format(s.createdAt()))
         .setHeader(tr(K_COL_STARTED, "Started")).setWidth("12em").setFlexGrow(0);
-    grid.addColumn(s -> TS.format(s.lastActivityAt()))
+    grid.addColumn(s -> GridSupport.TIMESTAMP.format(s.lastActivityAt()))
         .setHeader(tr(K_COL_LAST, "Last activity")).setWidth("12em").setFlexGrow(0);
     grid.addComponentColumn(this::renderStatusBadge)
         .setHeader(tr(K_COL_STATUS, "Status")).setWidth("8em").setFlexGrow(0);
@@ -171,9 +167,9 @@ public class SessionsView extends Composite<VerticalLayout>
   }
 
   private void refresh() {
-    String sidNeedle = textValue(sessionIdFilter);
-    String subNeedle = textValue(subjectFilter);
-    String tenNeedle = textValue(tenantFilter);
+    String sidNeedle = GridSupport.textValue(sessionIdFilter);
+    String subNeedle = GridSupport.textValue(subjectFilter);
+    String tenNeedle = GridSupport.textValue(tenantFilter);
     LocalDate startedAfter = startedSince.getValue();
     LocalDate activeAfter = activitySince.getValue();
     SessionStatus wantedStatus = statusFilter.getValue();
@@ -196,15 +192,10 @@ public class SessionsView extends Composite<VerticalLayout>
         .filter(s -> wantedStatus == null || s.status() == wantedStatus)
         .toList();
     grid.setItems(sessions);
-    filterBar.setCount(sessions.size(), K_UNIT_SESSIONS);
+    filterBar.setCount(sessions.size(), tr(K_UNIT_SESSIONS, "sessions"));
     boolean empty = sessions.isEmpty();
     grid.setVisible(!empty);
     emptyState.setVisible(empty);
-  }
-
-  private static String textValue(TextField field) {
-    String v = field.getValue();
-    return v == null ? "" : v.trim().toLowerCase();
   }
 
   private com.vaadin.flow.component.html.Span renderStatusBadge(SessionRecord s) {
