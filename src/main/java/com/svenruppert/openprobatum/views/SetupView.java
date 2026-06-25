@@ -249,11 +249,16 @@ public class SetupView extends Composite<Div>
             ? tr(K_E_USERNAME, "Invalid username.")
             : invalid.reason());
       }
-      case InitialAdminCreationResult.InternalError error -> {
-        logger().warn("Setup failed with internal error: {}", error.reason());
+      case InitialAdminCreationResult.InternalError(var reason, var cause) -> {
+        // reason is end-user-safe; cause carries the diagnosis (since 00.75.20).
+        if (cause != null) {
+          logger().error("Setup failed with internal error: {}", reason, cause);
+        } else {
+          logger().warn("Setup failed with internal error: {}", reason);
+        }
         warn(tr(K_E_INTERNAL,
             "Internal error during setup: {0}. See server log.",
-            error.reason() == null ? "<no reason supplied>" : error.reason()));
+            reason == null ? "<no reason supplied>" : reason));
       }
     }
   }
