@@ -20,6 +20,7 @@ import com.svenruppert.openprobatum.credential.Credential;
 import com.svenruppert.openprobatum.credential.CredentialRepositoryProvider;
 import com.svenruppert.openprobatum.credential.CredentialValidator;
 import com.svenruppert.openprobatum.credential.ValidationOutcome;
+import com.svenruppert.openprobatum.credential.ValidationRateLimiterProvider;
 import com.svenruppert.openprobatum.credential.ValidationResult;
 import com.svenruppert.openprobatum.i18n.I18nSupport;
 import com.svenruppert.openprobatum.security.AppClock;
@@ -33,6 +34,7 @@ import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.OptionalParameter;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.VaadinRequest;
 
 import java.util.UUID;
 
@@ -59,8 +61,23 @@ public class ValidationView extends Composite<VerticalLayout>
     root.getStyle().set("margin", "var(--lumo-space-xl) auto");
 
     root.add(new H2(tr("validate.heading", "Credential validation")));
+
+    if (!ValidationRateLimiterProvider.limiter().allow(clientIp())) {
+      // Throttled (§11.5): show a notice and do NOT look the credential up.
+      Span throttled = new Span(tr("validate.throttled",
+          "Too many validation requests. Please wait a moment and try again."));
+      throttled.getElement().getThemeList().add("badge error pill");
+      root.add(throttled);
+      return;
+    }
+
     render(root, validate(id));
     root.add(matchRuleHint(), privacyHint());
+  }
+
+  private static String clientIp() {
+    VaadinRequest request = VaadinRequest.getCurrent();
+    return request == null ? null : request.getRemoteAddr();
   }
 
   private static ValidationOutcome validate(String idParam) {

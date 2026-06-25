@@ -21,7 +21,12 @@ import com.svenruppert.openprobatum.credential.CredentialRepositoryProvider;
 import com.svenruppert.openprobatum.credential.CredentialStatus;
 import com.svenruppert.openprobatum.credential.CredentialType;
 import com.svenruppert.openprobatum.credential.InMemoryCredentialRepository;
+import com.svenruppert.openprobatum.credential.ValidationRateLimiter;
+import com.svenruppert.openprobatum.credential.ValidationRateLimiterProvider;
 import com.svenruppert.openprobatum.views.ValidationView;
+import com.svenruppert.jsentinel.authorization.api.JSentinelServiceResolver;
+import com.svenruppert.jsentinel.ratelimiting.InMemoryRateLimitPolicy;
+import com.svenruppert.jsentinel.ratelimiting.InMemoryRateLimitStore;
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasText;
@@ -30,6 +35,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -46,11 +52,22 @@ class ValidationViewBrowserlessTest extends BrowserlessTest {
   void setUp() {
     repo = new InMemoryCredentialRepository();
     CredentialRepositoryProvider.setRepository(repo);
+    // A generous per-test limiter so the rendering tests are not throttled by
+    // the process-wide singleton (each renderText() is an "anon"-IP lookup).
+    ValidationRateLimiterProvider.setLimiter(limiter(100));
   }
 
   @AfterEach
   void tearDown() {
     CredentialRepositoryProvider.reset();
+    ValidationRateLimiterProvider.reset();
+  }
+
+  private static ValidationRateLimiter limiter(int limit) {
+    return new ValidationRateLimiter(new InMemoryRateLimitPolicy(
+        new InMemoryRateLimitStore(),
+        JSentinelServiceResolver.securityAuditService(),
+        limit, Duration.ofMinutes(1)));
   }
 
   private static Credential issue() {
@@ -122,5 +139,19 @@ class ValidationViewBrowserlessTest extends BrowserlessTest {
   @DisplayName("a malformed id is treated as unknown (no crash)")
   void malformedIdIsUnknown() {
     assertTrue(renderText("not-a-uuid").contains("validate.result.unknown"));
+  }
+
+  @Test
+  @DisplayName("exceeding the per-IP limit throttles the lookup and reveals no record (P010)")
+  void throttlesAfterLimit() {
+    ValidationRateLimiterProvider.setLimiter(limiter(2));
+    Credential c = issue();
+    repo.save(c);
+
+    assertTrue(renderText(c.id().toString()).contains("validate.result.valid"), "1st allowed");
+    assertTrue(renderText(c.id().toString()).contains("validate.result.valid"), "2nd allowed");
+    String third = renderText(c.id().toString());
+    assertTrue(third.contains("validate.throttled"), "3rd must be throttled");
+    assertFalse(third.contains("Alice"), "a throttled lookup must not reveal the record");
   }
 }
