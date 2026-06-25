@@ -16,6 +16,7 @@
 
 package junit.com.svenruppert.flow.security.model;
 
+import com.svenruppert.flow.security.AppClock;
 import com.svenruppert.flow.security.model.AppUser;
 import com.svenruppert.flow.security.model.Credentials;
 import com.svenruppert.flow.security.model.InMemoryUserDirectoryPersistence;
@@ -42,6 +43,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -87,6 +91,7 @@ class PersistentUserDirectoryTest {
   @AfterEach
   void tearDown() {
     JSentinelServiceResolver.setJSentinelAuditService(previousAudit);
+    AppClock.reset();
   }
 
   // ── addUser + findByCredentials ────────────────────────────────
@@ -333,6 +338,22 @@ class PersistentUserDirectoryTest {
     assertTrue(directory.findByCredentials(
         new Credentials("legacy", "legacy-12345")).isPresent(),
         "the rehashed envelope must still verify the original password");
+  }
+
+  // ── R18 — audit timestamps come from the injectable AppClock ────
+
+  @Test
+  @DisplayName("audit event timestamps come from AppClock (injectable, R18)")
+  void auditUsesAppClock() {
+    Instant fixed = Instant.parse("2026-01-02T03:04:05Z");
+    AppClock.setClock(Clock.fixed(fixed, ZoneOffset.UTC));
+
+    directory.addUser("tim", "abcdef-abcdef-1",
+        new AppUser(500L, "Tim", EnumSet.of(AuthorizationRole.USER)));
+
+    assertEquals(1, audit.events.size());
+    assertEquals(fixed, ((UserCreated) audit.events.get(0)).timestamp(),
+        "the UserCreated timestamp must come from the installed clock");
   }
 
   // ── R14 — login timing equalisation (unknown user pays a decoy verify) ──

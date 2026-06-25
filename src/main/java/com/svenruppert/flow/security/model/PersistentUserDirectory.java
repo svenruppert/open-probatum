@@ -17,6 +17,7 @@
 package com.svenruppert.flow.security.model;
 
 import com.svenruppert.dependencies.core.logger.HasLogger;
+import com.svenruppert.flow.security.AppClock;
 import com.svenruppert.flow.security.roles.AuthorizationRole;
 import com.svenruppert.jsentinel.audit.JSentinelAuditService;
 import com.svenruppert.jsentinel.audit.RoleAssigned;
@@ -29,8 +30,6 @@ import com.svenruppert.jsentinel.credential.password.PasswordHashingService;
 import com.svenruppert.jsentinel.credential.password.RehashDecision;
 import com.svenruppert.jsentinel.credential.password.bouncycastle.BouncyCastleHashingServices;
 
-import java.time.Clock;
-import java.time.Instant;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -141,7 +140,7 @@ public final class PersistentUserDirectory implements UserDirectory, HasLogger {
     byId.put(user.id(), user);
     usernameById.put(user.id(), username);
     persist();
-    audit(new UserCreated(Instant.now(Clock.systemUTC()), username, firstRoleOf(user), null));
+    audit(new UserCreated(AppClock.now(), username, firstRoleOf(user), null));
   }
 
   @Override
@@ -162,7 +161,7 @@ public final class PersistentUserDirectory implements UserDirectory, HasLogger {
     if (username == null || removed == null) return;
     byUsername.remove(username);
     persist();
-    audit(new UserDeleted(Instant.now(Clock.systemUTC()), username, null));
+    audit(new UserDeleted(AppClock.now(), username, null));
   }
 
   @Override
@@ -175,7 +174,7 @@ public final class PersistentUserDirectory implements UserDirectory, HasLogger {
     next.add(role);
     replace(current, new AppUser(current.id(), current.name(), next));
     persist();
-    audit(new RoleAssigned(Instant.now(Clock.systemUTC()),
+    audit(new RoleAssigned(AppClock.now(),
         current.id().toString(), role.name(), null));
   }
 
@@ -189,7 +188,7 @@ public final class PersistentUserDirectory implements UserDirectory, HasLogger {
     next.remove(role);
     replace(current, new AppUser(current.id(), current.name(), next));
     persist();
-    audit(new RoleRevoked(Instant.now(Clock.systemUTC()),
+    audit(new RoleRevoked(AppClock.now(),
         current.id().toString(), role.name(), null));
   }
 

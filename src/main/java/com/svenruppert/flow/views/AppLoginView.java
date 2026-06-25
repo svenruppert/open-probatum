@@ -18,6 +18,7 @@ package com.svenruppert.flow.views;
 
 import com.svenruppert.dependencies.core.logger.HasLogger;
 import com.svenruppert.flow.i18n.I18nSupport;
+import com.svenruppert.flow.security.AppClock;
 import com.svenruppert.flow.security.bootstrap.BootstrapWiring;
 import com.svenruppert.flow.security.model.AppUser;
 import com.svenruppert.flow.security.model.Credentials;
@@ -49,7 +50,6 @@ import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.server.WrappedSession;
 
-import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -169,7 +169,7 @@ public class AppLoginView
       WrappedSession wrapped = vaadin.getSession();
       String sessionId = wrapped == null ? null : wrapped.getId();
       if (sessionId == null) return;
-      Instant now = Instant.now(Clock.systemUTC());
+      Instant now = AppClock.now();
       SessionStoreProvider.sessionStore().save(new SessionRecord(
           SessionId.of(sessionId),
           SubjectId.of(user.id().toString()),

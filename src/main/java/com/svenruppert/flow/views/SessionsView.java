@@ -17,6 +17,7 @@
 package com.svenruppert.flow.views;
 
 import com.svenruppert.flow.i18n.I18nSupport;
+import com.svenruppert.flow.security.AppClock;
 import com.svenruppert.flow.security.services.SessionStoreProvider;
 import com.svenruppert.flow.views.ui.EmptyState;
 import com.svenruppert.flow.views.ui.FilterBar;
@@ -37,8 +38,6 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
 
-import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -239,7 +238,7 @@ public class SessionsView extends Composite<VerticalLayout>
     // recorded as a SessionInvalidated in the audit trail.
     try {
       JSentinelServiceResolver.securityAuditService().publish(new SessionInvalidated(
-          Instant.now(Clock.systemUTC()),
+          AppClock.now(),
           record.subjectId().value(), record.sessionId().value(), "admin-revoked"));
     } catch (RuntimeException ignored) {
       // audit must never block the admin action

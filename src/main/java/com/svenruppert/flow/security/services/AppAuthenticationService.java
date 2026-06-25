@@ -17,6 +17,7 @@
 package com.svenruppert.flow.security.services;
 
 import com.svenruppert.dependencies.core.logger.HasLogger;
+import com.svenruppert.flow.security.AppClock;
 import com.svenruppert.flow.security.model.AppUser;
 import com.svenruppert.flow.security.model.Credentials;
 import com.svenruppert.flow.security.model.UserDirectoryProvider;
@@ -30,8 +31,6 @@ import com.svenruppert.jsentinel.bruteforce.LoginAttemptDecision;
 import com.svenruppert.jsentinel.bruteforce.LoginAttemptPolicy;
 import com.vaadin.flow.server.VaadinRequest;
 
-import java.time.Clock;
-import java.time.Instant;
 import java.util.Optional;
 
 /**
@@ -103,12 +102,24 @@ public class AppAuthenticationService
     JSentinelAuditService sink = JSentinelServiceResolver.securityAuditService();
     try {
       sink.publish(new LoginSucceeded(
-          Instant.now(Clock.systemUTC()), username, clientAddress, null));
+          AppClock.now(), username, clientAddress, null));
     } catch (RuntimeException ignored) {
       // never block a successful login because the audit sink failed
     }
   }
 
+  /**
+   * The client address used as (part of) the brute-force throttle key.
+   *
+   * <p>NOTE (deploy-time security): {@code getRemoteAddr()} is the
+   * <em>direct</em> peer. Behind a reverse proxy / load balancer this is
+   * the proxy's address, so all clients collapse into one throttle
+   * bucket. A trusted-proxy {@code X-Forwarded-For} resolver must be
+   * wired at deploy before relying on per-IP throttling. We deliberately
+   * do NOT read {@code X-Forwarded-For} blindly here — without a
+   * trusted-proxy allowlist that would let an attacker spoof their IP and
+   * evade the throttle, which is worse than the current behaviour.
+   */
   private static String currentClientAddress() {
     try {
       VaadinRequest request = VaadinRequest.getCurrent();
