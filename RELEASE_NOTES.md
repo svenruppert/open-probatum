@@ -2,7 +2,71 @@
 
 ## Unreleased
 
-## 00.10.00 — 2026-06-14
+## 00.10.00 — Trust Core (2026-06-25)
+
+The first domain-level vertical slice (concept §23.1): the trust flow proven
+end-to-end on the grounding gear. The credential record is the sole source of
+truth — online-only verification, no offline trust, no cryptographic signatures.
+This cut also renames the base package from the inherited template identity and
+hardens the inherited security stack.
+
+### Trust Core — credential flow
+
+- **Credential domain** (`com.svenruppert.openprobatum.credential`): the
+  `Credential` record with a random, non-enumerable UUIDv4 id (§10.4), the
+  three-layer status model (§10.5) — stored `CredentialStatus`
+  (Valid/Revoked/Suspended/Superseded), computed `EffectiveStatus` adding
+  `Expired` at read time (never stored), and the `ValidationResult` (the seven
+  verification outcomes, §11.7). Optional expiry; immutable transitions.
+- **Persistence**: `CredentialRepository` + Eclipse-Store backend in the single
+  shared application store (record only — never a PDF, §3.2/§10.7).
+- **Catalog / assessment**: minimal `Offering`/`LearningPath`/`Module` (§7.2/§8),
+  `Assessment` with a fixed versioned question set + pass threshold and grading
+  (§9.6), `Attempt` as the issuance evidence (§9.7).
+- **Issuance**: on a passed attempt, `IssuanceService` mints and persists a
+  `VALID` credential with this instance's `IssuerIdentity` (§4.3).
+- **PDF + QR**: `CredentialPdf` (Apache PDFBox) renders the certificate with
+  separated issued/generated dates, the match-rule and validation link, and **no
+  printed status** (§10.7); `CredentialQr` (ZXing) encodes the validation link.
+- **Public validation page** (`/validate/<id>`): the sole source of truth (§11.1)
+  — reachable without login, computes the status on read, renders the seven
+  results and only the match fields (§11.3) plus the match-rule and privacy hint
+  (§11.4/§11.6). Dates render as `yyyy-MM-dd` in UTC, identical to the PDF, so a
+  verifier comparing the two never sees a timezone-induced mismatch. Per-IP
+  **rate limiting** via jSentinel `ratelimiting` (§11.5).
+- **Governance**: `CredentialGovernance` revoke/suspend/supersede, each taking
+  effect immediately on the validation page (§10.9/§17.4).
+
+### Platform / ADR
+
+- Base package renamed `com.svenruppert.flow` → `com.svenruppert.openprobatum`
+  (TR-09); multi-tenancy held behind a single central `AppTenant.ID`
+  (TR-08); development on the `00.10.00-SNAPSHOT` line, tagged `v00.10.00` at
+  finalize (TR-10). PDFBox + ZXing pinned (Apache-2.0, TR-05).
+- Bumped to **jSentinel 00.75.20** and consolidated the three parallel
+  Eclipse-Stores (framework + user directory + credential repository) into one
+  `JSentinelStoragePair` owned by `AppStorage`: a single storage tree, one
+  shutdown hook and one two-phase idempotent close. No JDK serialisation anywhere
+  — records are mapped reflectively. The standalone `application.jar` launcher's
+  `Main-Class` was corrected to the renamed package.
+
+### Hardening (entry-review remediation, 29 findings)
+
+- Fixed the inherited security findings: session-version drift baseline on login,
+  owner-only on-disk permissions for the token + credential/user stores, session
+  fixation rotation, CSP/security-header filter, concurrent-rehash lock,
+  login-timing decoy, `SessionInvalidated` audit on revoke, scrubbed setup logs,
+  lazy bootstrap wiring, injectable `AppClock`, masked session ids, and a
+  row-level own-sessions rule (§3.6/§5.4), among others.
+
+### Notes
+
+- Single instance / single offering for the slice. The learner assessment view,
+  PDF download wiring and a Credential-Manager admin UI are intentionally
+  deferred to a later version; the domain + the public validation UI ship here.
+- No live host yet: the deploy marker is the built + tagged production WAR.
+
+## 00.10.00 — grounding gear (2026-06-14)
 
 First named cut of the template. Bundles the security stack
 migration to jSentinel V00.74.00, the design-system + theming
