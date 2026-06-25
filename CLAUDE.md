@@ -118,12 +118,12 @@ Der portable Kern lebt im Skill; hier stehen nur die projektspezifischen Slots.
 **Version / Module:**
 - Schema `VMAJOR.MINOR.PATCH`, Minor in 10er-Schritten (`00.10`, `00.20`, …),
   Patch für reine Bugfixes. Hauptstand bleibt bis `V01.00.00` bei `00`.
-- Einzelmodul `open-probatum`. Entwicklungslinie **`00.10.00-SNAPSHOT`** (ADR
-  TR-10): `00.10.00` wird erst beim Finalize getaggt, sobald der Trust-Core-Fluss
-  vorliegt. Das `pom.xml` trägt aktuell noch das blanke `00.10.00` — Korrektur auf
-  `-SNAPSHOT` ist P000 beim Window-Open. Strip/Finalize beim Release-Close.
-- Basis-Paket-Rename `com.svenruppert.openprobatum` → `com.svenruppert.openprobatum`
-  (ADR TR-09) ist V00.10.00-Issue; Credential-Domäne unter `…openprobatum.credential`.
+- Einzelmodul `open-probatum`, Entwicklungslinie **`00.10.00-SNAPSHOT`** (ADR
+  TR-10, in P001 gesetzt): `00.10.00` wird erst beim Finalize getaggt, sobald der
+  Trust-Core-Fluss vorliegt. Strip/Finalize beim Release-Close.
+- Basis-Paket **`com.svenruppert.openprobatum`** (Rename aus `…flow` in P001
+  erledigt, ADR TR-09; TenantId zentral via `…openprobatum.security.AppTenant`,
+  TR-08). Credential-Domäne kommt unter `…openprobatum.credential`.
 - Nächstes Release: **V00.10.00 Trust Core** (siehe `_docs/` Versionsfahrplan;
   V00.10.00-Technikentscheidungen in `_docs/v00.10.00_Trust_Core.md`).
 
