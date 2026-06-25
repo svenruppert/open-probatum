@@ -115,7 +115,7 @@ public class SetupView extends Composite<Div>
         "1–64 chars of [A-Za-z0-9._-]"));
     passwordField.setWidthFull();
     passwordField.setHelperText(tr(K_F_PWD_HELPER,
-        "Minimum {0} characters.", BootstrapWiring.MIN_PASSWORD_LENGTH));
+        "Minimum {0} characters.", minPasswordLength()));
     confirmField.setWidthFull();
     displayNameField.setWidthFull();
     emailField.setWidthFull();
@@ -185,12 +185,12 @@ public class SetupView extends Composite<Div>
       warn(tr(K_E_MISMATCH, "Password and confirmation do not match."));
       return;
     }
-    if (password.length() < BootstrapWiring.MIN_PASSWORD_LENGTH) {
+    int minLength = minPasswordLength();
+    if (password.length() < minLength) {
       logger().warn("Setup rejected: password length={} below minimum={}",
-          password.length(), BootstrapWiring.MIN_PASSWORD_LENGTH);
+          password.length(), minLength);
       warn(tr(K_E_TOOSHORT,
-          "Password must be at least {0} characters long.",
-          BootstrapWiring.MIN_PASSWORD_LENGTH));
+          "Password must be at least {0} characters long.", minLength));
       return;
     }
     if (!PasswordPreflight.isAcceptable(password)) {
@@ -261,6 +261,11 @@ public class SetupView extends Composite<Div>
             reason == null ? "<no reason supplied>" : reason));
       }
     }
+  }
+
+  /** Single source of the minimum password length — the server-side policy. */
+  private static int minPasswordLength() {
+    return BootstrapWiring.instance().policy().minLength().orElse(1);
   }
 
   private static String blankToNull(String value) {

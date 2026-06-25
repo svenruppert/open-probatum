@@ -30,6 +30,7 @@ import com.svenruppert.jsentinel.bootstrap.FileBootstrapTokenOutput;
 import com.svenruppert.jsentinel.bootstrap.FileBootstrapTokenStore;
 import com.svenruppert.jsentinel.bootstrap.InitialAdminBootstrapService;
 import com.svenruppert.jsentinel.bootstrap.MinimumLengthPasswordPolicy;
+import com.svenruppert.jsentinel.bootstrap.PasswordPolicy;
 import com.svenruppert.jsentinel.credential.password.bouncycastle.BouncyCastleHashingServices;
 
 import java.nio.file.Path;
@@ -78,11 +79,14 @@ public final class BootstrapWiring implements HasLogger {
 
   private final BootstrapStateService stateService;
   private final InitialAdminBootstrapService bootstrapService;
+  private final PasswordPolicy passwordPolicy;
 
   private BootstrapWiring(BootstrapStateService stateService,
-                          InitialAdminBootstrapService bootstrapService) {
+                          InitialAdminBootstrapService bootstrapService,
+                          PasswordPolicy passwordPolicy) {
     this.stateService = stateService;
     this.bootstrapService = bootstrapService;
+    this.passwordPolicy = passwordPolicy;
   }
 
   public BootstrapStateService stateService() {
@@ -91,6 +95,15 @@ public final class BootstrapWiring implements HasLogger {
 
   public InitialAdminBootstrapService bootstrapService() {
     return bootstrapService;
+  }
+
+  /**
+   * The active password policy — the single source of the minimum length
+   * (via {@code policy().minLength()}), shared by the server-side check and the
+   * SetupView helper text so they cannot drift.
+   */
+  public PasswordPolicy policy() {
+    return passwordPolicy;
   }
 
   public static BootstrapWiring instance() {
@@ -127,14 +140,15 @@ public final class BootstrapWiring implements HasLogger {
     AppStoragePaths.ensureSecureDir(AppStoragePaths.frameworkStorageDir());
     AppStoragePaths.secureFile(config.tokenFilePath());
 
+    PasswordPolicy passwordPolicy = new MinimumLengthPasswordPolicy(MIN_PASSWORD_LENGTH);
     InitialAdminBootstrapService service = new InitialAdminBootstrapService(
         state, tokenStore, adminStore,
         BouncyCastleHashingServices.modern(),
-        new MinimumLengthPasswordPolicy(MIN_PASSWORD_LENGTH),
+        passwordPolicy,
         config.tokenValidity(), Clock.systemUTC());
     log.info("Initial-admin bootstrap pipeline wired: hashing=BouncyCastle/modern (Argon2id), "
         + "policy=MinimumLengthPasswordPolicy({} chars), usernamePattern=[A-Za-z0-9._-] (1–64 chars)",
         MIN_PASSWORD_LENGTH);
-    return new BootstrapWiring(state, service);
+    return new BootstrapWiring(state, service, passwordPolicy);
   }
 }
