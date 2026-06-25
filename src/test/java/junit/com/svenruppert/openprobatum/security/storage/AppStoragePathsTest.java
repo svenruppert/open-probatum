@@ -44,6 +44,9 @@ class AppStoragePathsTest {
 
   @AfterEach
   void restore() {
+    // Always clear the isolation flag — leaking it would append pid-<n> to every
+    // other test's baseDir and break their path assertions.
+    System.clearProperty(AppStoragePaths.ISOLATE_PROPERTY);
     if (previous == null) {
       System.clearProperty(AppStoragePaths.PROPERTY);
     } else {
@@ -63,6 +66,23 @@ class AppStoragePathsTest {
     assertTrue(base.isAbsolute(), "base must be absolute");
     assertEquals(tempDir.resolve("data").toAbsolutePath().normalize(), base);
     assertFalse(base.toString().contains(".."), "no .. segments must remain");
+  }
+
+  @Test
+  @DisplayName("baseDir() appends a per-process segment only when isolation is on")
+  void baseDirIsolatesPerProcess(@TempDir Path tempDir) {
+    previous = System.getProperty(AppStoragePaths.PROPERTY);
+    System.setProperty(AppStoragePaths.PROPERTY, tempDir.toString());
+
+    Path plain = AppStoragePaths.baseDir();
+    assertEquals(tempDir.toAbsolutePath().normalize(), plain, "no suffix without the flag");
+
+    System.setProperty(AppStoragePaths.ISOLATE_PROPERTY, "true");
+    Path isolated = AppStoragePaths.baseDir();
+
+    assertEquals(plain.resolve("pid-" + ProcessHandle.current().pid()), isolated,
+        "with the flag, baseDir must end in this JVM's pid segment");
+    assertTrue(isolated.startsWith(plain), "the isolated dir stays under the configured base");
   }
 
   @Test

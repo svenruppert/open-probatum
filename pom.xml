@@ -494,6 +494,20 @@
                 </dependencies>
                 <configuration>
                     <threads>2</threads>
+                    <!--
+                        PIT forks minion JVMs that do NOT inherit Surefire's
+                        systemPropertyVariables, so without this they all default
+                        app.storage.dir to the repo-root ./data and share the ONE
+                        consolidated Eclipse-Store lock (jSentinel 00.75.20). A
+                        force-killed timed-out minion then leaves a stale lock the
+                        next minion blocks on → cascade deadlock. Give every minion
+                        its own isolated, per-process store under target/ instead.
+                    -->
+                    <jvmArgs>
+                        <jvmArg>-Dapp.storage.dir=${project.build.directory}/pit-stores</jvmArg>
+                        <jvmArg>-Dapp.storage.isolate=true</jvmArg>
+                        <jvmArg>-Dapp.hibp.enabled=false</jvmArg>
+                    </jvmArgs>
                     <outputFormats>
                         <outputFormat>XML</outputFormat>
                         <outputFormat>HTML</outputFormat>

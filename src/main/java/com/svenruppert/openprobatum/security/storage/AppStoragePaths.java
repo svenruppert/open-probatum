@@ -65,6 +65,15 @@ public final class AppStoragePaths {
   /** Built-in default when nothing was configured. */
   public static final String DEFAULT = "./data";
 
+  /**
+   * When {@code true}, {@link #baseDir()} appends a per-process segment so each
+   * JVM gets its own isolated storage tree. Used only by parallel test forks
+   * (notably PITest minions) that would otherwise share — and deadlock on — the
+   * single consolidated Eclipse-Store lock. Off by default, so production and
+   * ordinary Surefire runs are unaffected.
+   */
+  public static final String ISOLATE_PROPERTY = "app.storage.isolate";
+
   private static final boolean POSIX =
       FileSystems.getDefault().supportedFileAttributeViews().contains("posix");
 
@@ -84,12 +93,17 @@ public final class AppStoragePaths {
 
   /**
    * Base directory for all app-owned storage, resolved to an absolute,
-   * normalised path.
+   * normalised path. When {@link #ISOLATE_PROPERTY} is set, a {@code pid-<n>}
+   * segment is appended so concurrent JVM forks never share a storage lock.
    */
   public static Path baseDir() {
-    return Path.of(System.getProperty(PROPERTY, DEFAULT))
+    Path base = Path.of(System.getProperty(PROPERTY, DEFAULT))
         .toAbsolutePath()
         .normalize();
+    if (Boolean.getBoolean(ISOLATE_PROPERTY)) {
+      base = base.resolve("pid-" + ProcessHandle.current().pid());
+    }
+    return base;
   }
 
   /** jSentinel framework storage — audit + session stores. */
