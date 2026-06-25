@@ -1,14 +1,22 @@
-# Core Vaadin Project Template
+# Open Probatum — Developer Academy & Credential Platform
 
-A polished Vaadin Flow 25 starter that ships with everything a serious
-internal product needs: authentication, role-based access, persistent
-storage, audit log, mutation-tested core and a design system.
+Open Probatum is an instance-based developer academy and credential
+platform with central, online verification. Learners follow structured
+learning paths, pass knowledge checks, and receive a verifiable
+credential record that third parties can validate through a single
+public verification page — the credential record is the sole source of
+truth, with no offline trust and no cryptographic signatures. Each
+installation is its own independently branded instance with its own
+issuer identity and data store.
 
-Fork it, edit `TemplateBrand.java` plus six CSS hex values, and you're
-shipping product on top of a hardened base instead of fighting
-boilerplate.
+The platform is built on a hardened Vaadin Flow 25 + jSentinel
+foundation: authentication, role-based access, persistent storage,
+audit log, a mutation-tested core and a design system. The domain layer
+— learning paths, assessments, credentials and the verification portal
+— is delivered release by release, starting with **V00.10.00 — Trust
+Core** (see the platform concept and version roadmap).
 
-## What's in the box
+## Foundation in the box
 
 | Concern | What you get | Where it lives |
 |---|---|---|
@@ -46,7 +54,7 @@ create the first admin.
 ./mvnw versions:display-dependency-updates          # dependency audit
 ```
 
-## Rebranding a fork (30 minutes)
+## Branding an instance (30 minutes)
 
 1. **`src/main/java/com/svenruppert/flow/views/ui/TemplateBrand.java`**
    — change `NAME`, `TAGLINE`, `LANDING_INTRO`, `ICON`. The wordmark,
@@ -140,8 +148,8 @@ Already wired via skills, but not pre-configured here:
 
 ## Issue tracking
 
-* [GitHub Issues](https://github.com/svenruppert/core-vaadin-project-template/issues)
-* [GitHub Projects](https://github.com/svenruppert/core-vaadin-project-template/projects)
+* [GitHub Issues](https://github.com/svenruppert/open-probatum/issues)
+* [GitHub Projects](https://github.com/svenruppert/open-probatum/projects)
 
 ## Vulnerability hunting
 

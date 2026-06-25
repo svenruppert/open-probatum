@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Vaadin Flow 25.1 web application template using Java 26, packaged as a WAR, deployed on Jetty 12.1. Uses `vaadin-core` (free components only, Hilla disabled). Parent POM is `com.svenruppert:dependencies:06.02.02` which provides plugin and dependency version management. **`pom.xml` is the authoritative version reference — see "Source of truth" at the end of this file.**
+Vaadin Flow 25.2 web application using Java 26, packaged as a WAR, deployed on Jetty 12.1. Uses `vaadin-core` (free components only, Hilla disabled). Parent POM is `com.svenruppert:dependencies:06.02.02` which provides plugin and dependency version management. **`pom.xml` is the authoritative version reference — see "Source of truth" at the end of this file.**
 
 ## Build & Run Commands
 
@@ -63,6 +63,88 @@ Vaadin Flow 25.1 web application template using Java 26, packaged as a WAR, depl
 - `_shadejar` - Builds a standalone Jetty fat-jar named `application.jar` (uses nano-vaadin-jetty 04.00.00).
 - `_mutation-gate` - Runs PIT mutation coverage + `tools/pit-gate.sh` to enforce per-package floors (build fails on regression).
 
+## Implementierungszyklus
+
+Release- und Per-Issue-Arbeit folgt dem globalen Skill **`implementation-cycle`**
+(fünf Stufen, Risiko-zuerst-Reihenfolge, Entry/Exit-Review-Gates, No-Mocks).
+Der portable Kern lebt im Skill; hier stehen nur die projektspezifischen Slots.
+
+**Tracker — ClickUp** (Space `Software-Development` / Folder `svenruppert`):
+
+| Zweck | Liste | List-ID |
+|---|---|---|
+| Plan + Per-Issue | `openprobatum` | `901524075382` |
+| Concepts | `openprobatum-concepts` | `901524075373` |
+| Features | `openprobatum-features` | `901524075387` |
+
+- **Plan-Layout:** Parent-Task `V<X.Y.Z> — Implementation Plan` + Per-Issue-Subtasks
+  `[V<X.Y.Z> P<NNN>] <title>` + Deploy-Marker-Subtask — alle in derselben Liste
+  `openprobatum`. Concept-Task pro Release in `openprobatum-concepts`.
+- **Status-Mapping** (auf dem Workflow `Open → planned → in progress → review →
+  on-hold → testing → bugfixing → release prepared → deployed → skipped → Closed`):
+  - *not started* → `Open` bzw. `planned`
+  - *in progress* → `in progress` (bei Arbeitsbeginn)
+  - *completed* (Per-Issue) → `Closed`
+  - *terminal* für Deploy-Marker + Concept-Task → `deployed`
+  - `review`/`testing`/`bugfixing`/`release prepared` stehen für manuelle Nutzung
+    bereit, sind vom Zyklus aber nicht erzwungen.
+- **Completion-Log-Mechanik:** Pro Issue ein ClickUp-**Kommentar**
+  (`clickup_create_comment`) mit Datum, Commit-Hash, was geliefert wurde,
+  Acceptance-Ergebnis. Fällt der Comment-Endpoint aus, Fallback: Abschnitt
+  `## Completion log` an `markdown_description` anhängen. Parent-Task bekommt nur
+  Status, kein Log.
+- **Review-Rating-Custom-Field:** `review-rating`, Typ `number`, id
+  `9279e414-6318-4917-a72d-aa1325c857a2` (Liste `openprobatum`). Skala ganzzahlig
+  **1–5** je Review-Issue (1 = schwerwiegende Mängel … 5 = sauber/keine Findings),
+  gesetzt von beiden Review-Gates (Entry #1, Exit #2). Verfeinerung auf 1–10 ohne
+  Feldtyp-Wechsel möglich. Setzen via MCP als numerischer String, z. B.
+  `custom_fields: [{ id: "9279e414-6318-4917-a72d-aa1325c857a2", value: "4" }]`.
+  Findings bleiben zusätzlich eigene Subtasks mit Severity im Titel/Body.
+
+**Build / Test / Acceptance:**
+- Modul-Test: `./mvnw test` (Single: `./mvnw test -Dtest=Class#method`).
+- Voller Build bei Änderung an Shared-/Parent-Dateien: `./mvnw verify`.
+- Mutation-Gate: `./mvnw -P_mutation-gate org.pitest:pitest-maven:mutationCoverage verify`
+  + `tools/pit-gate.sh` (Per-Package-Floor, Build bricht bei Regression).
+- Acceptance-Bar pro Issue: grüner Modul-Test; voller Build, wenn eine
+  geteilte/Parent-Datei berührt wurde. No-Mocks (reale Implementierungen).
+
+**Publish / Deploy (deploybare WAR-App, keine Library):**
+- Release-Close: Finalize-Commit, `-SNAPSHOT` strippen, Tag `v<X.Y.Z>` am
+  Finalize-Commit, Production-WAR bauen + validieren (`-Pproduction`), optional
+  Shadejar (`-P_shadejar`).
+- **Noch kein Live-Host.** Deploy-Marker = Artefakt gebaut & getaggt.
+
+**Version / Module:**
+- Schema `VMAJOR.MINOR.PATCH`, Minor in 10er-Schritten (`00.10`, `00.20`, …),
+  Patch für reine Bugfixes. Hauptstand bleibt bis `V01.00.00` bei `00`.
+- Einzelmodul `open-probatum`. Entwicklungslinie **`00.10.00-SNAPSHOT`** (ADR
+  TR-10): `00.10.00` wird erst beim Finalize getaggt, sobald der Trust-Core-Fluss
+  vorliegt. Das `pom.xml` trägt aktuell noch das blanke `00.10.00` — Korrektur auf
+  `-SNAPSHOT` ist P000 beim Window-Open. Strip/Finalize beim Release-Close.
+- Basis-Paket-Rename `com.svenruppert.flow` → `com.svenruppert.openprobatum`
+  (ADR TR-09) ist V00.10.00-Issue; Credential-Domäne unter `…openprobatum.credential`.
+- Nächstes Release: **V00.10.00 Trust Core** (siehe `_docs/` Versionsfahrplan;
+  V00.10.00-Technikentscheidungen in `_docs/v00.10.00_Trust_Core.md`).
+
+**Standards-Pass (§4):** `/java-standards-pass` orchestriert `/haslogger`,
+`/httpstatus`, `/mediatype`, `/result`, `/vaadin-i18n` (Vaadin-App — alle fünf
+gelten). Britisches Englisch in Quelltext, JavaDoc, README, Release Notes (ADR).
+
+**Commit / Branch:**
+- Integrationsbranch `main` direkt (keine Feature-Branches / PRs).
+- Push ist die Entscheidung des Menschen — lokal committen, „unpushed bis
+  Ansage". Tags lokal am Finalize-Commit, separat gepusht.
+- **Niemals** eine AI-Attribution- oder „Generated with"-Zeile.
+
+**Nicht verhandelbare Status-Disziplin:** Jedes Issue wechselt **bei
+Arbeitsbeginn auf `in progress`** und **erst bei Abschluss auf `Closed`** (bzw.
+`deployed` für Deploy-Marker/Concept). Kein Issue bleibt `Open`/`planned`,
+während daran gearbeitet wird, und keines springt direkt von `Open` auf
+`Closed`. Gilt für jeden Issue-Typ (Feature-Prompts, Review-Findings,
+Final-Review-Issues, Deploy-Marker). Bei gebündeltem Multi-Issue-Commit wechseln
+alle betroffenen Issues gemeinsam.
+
 ## Source of truth
 
 `pom.xml` is the authoritative version reference for: parent POM version, JDK version, Vaadin version, Jetty version, jSentinel version, nano-vaadin-jetty version. Update it first, then mirror values into `CLAUDE.md` and `AGENTS.md`. Cross-check with:
@@ -77,7 +159,7 @@ The current versions snapshot is:
 |---|---|
 | Parent (`com.svenruppert:dependencies`) | `06.02.02` |
 | JDK / `maven.compiler.release` | `26` |
-| `vaadin.version` | `25.1.1` |
-| `jetty.version` | `12.1.8` |
-| `jsentinel.version` | `00.74.00` |
+| `vaadin.version` | `25.2.0` |
+| `jetty.version` | `12.1.10` |
+| `jsentinel.version` | `00.75.20` |
 | `nano-vaadin-jetty.version` | `04.00.00` |

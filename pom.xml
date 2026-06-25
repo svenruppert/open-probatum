@@ -11,24 +11,33 @@
         <version>06.02.02</version>
     </parent>
 
-    <artifactId>flow-template</artifactId>
+    <artifactId>open-probatum</artifactId>
     <version>00.10.00</version>
     <packaging>war</packaging>
 
 
-    <inceptionYear>2023</inceptionYear>
+    <inceptionYear>2026</inceptionYear>
     <organization>
         <name>Sven Ruppert</name>
         <url>https://svenruppert.com</url>
     </organization>
 
-    <url>https://github.com/svenruppert/core-vaadin-project-template</url>
-    <name>Core Vaadin Project Template</name>
-    <description>The beginning of your OSS project</description>
+    <url>https://github.com/svenruppert/open-probatum</url>
+    <name>Open Probatum — Developer Academy &amp; Credential Platform</name>
+    <description>An instance-based developer academy and credential platform with
+        central, online verification. Learners follow structured learning paths,
+        pass knowledge checks, and receive a verifiable credential record that
+        third parties can validate through a single public verification page. The
+        credential record is the sole source of truth: trust is established only
+        via server-side online verification, with no offline trust and no
+        cryptographic signatures. Each installation is its own independently
+        branded instance with its own issuer identity and data store. Built on
+        JDK 26, Vaadin Flow, EclipseStore persistence and the jSentinel security
+        framework.</description>
     <scm>
-        <url>https://github.com/svenruppert/core-vaadin-project-template</url>
-        <connection>scm:git:https://github.com/svenruppert/core-vaadin-project-template.git</connection>
-        <developerConnection>scm:git:https://github.com/svenruppert/core-vaadin-project-template.git
+        <url>https://github.com/svenruppert/open-probatum</url>
+        <connection>scm:git:https://github.com/svenruppert/open-probatum.git</connection>
+        <developerConnection>scm:git:https://github.com/svenruppert/open-probatum.git
         </developerConnection>
         <tag>HEAD</tag>
     </scm>
@@ -45,7 +54,7 @@
     </developers>
     <issueManagement>
         <system>GitHub</system>
-        <url>https://github.com/svenruppert/core-vaadin-project-template/issues</url>
+        <url>https://github.com/svenruppert/open-probatum/issues</url>
     </issueManagement>
     <licenses>
         <license>
@@ -83,12 +92,12 @@
 
         <!--        Vaadin Flow Properties-->
         <failOnMissingWebXml>false</failOnMissingWebXml>
-        <vaadin.version>25.1.1</vaadin.version>
+        <vaadin.version>25.2.0</vaadin.version>
         <drivers.downloader.phase>pre-integration-test</drivers.downloader.phase>
-        <jetty.version>12.1.8</jetty.version>
+        <jetty.version>12.1.10</jetty.version>
         <warName>ROOT</warName>
-        <slf4j-api.version>2.0.17</slf4j-api.version>
-        <jsentinel.version>00.74.00</jsentinel.version>
+        <slf4j-api.version>2.1.0-alpha1</slf4j-api.version>
+        <jsentinel.version>00.75.20</jsentinel.version>
         <nano-vaadin-jetty.version>04.00.00</nano-vaadin-jetty.version>
     </properties>
 

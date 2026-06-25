@@ -2,7 +2,7 @@
 
 Beobachtungen aus der Anwendung von `jsentinel-vaadin` +
 `jsentinel-vaadin-persistence` + `jsentinel-vaadin-hardening` auf
-`core-vaadin-project-template`. Drei voneinander unabhängige
+`open-probatum` (vormals `core-vaadin-project-template`). Drei voneinander unabhängige
 Punkte; keiner blockierend, zwei UX, einer architektonisch.
 
 ---

@@ -4,7 +4,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 ## Project Overview
 
-Vaadin Flow 25.1 web application template using Java 26, packaged as a WAR, deployed on Jetty 12.1. Uses `vaadin-core` (free components only, Hilla disabled). Parent POM is `com.svenruppert:dependencies:06.02.02` which provides plugin and dependency version management. **`pom.xml` is the authoritative version reference — see "Source of truth" at the end of this file.**
+Vaadin Flow 25.2 web application using Java 26, packaged as a WAR, deployed on Jetty 12.1. Uses `vaadin-core` (free components only, Hilla disabled). Parent POM is `com.svenruppert:dependencies:06.02.02` which provides plugin and dependency version management. **`pom.xml` is the authoritative version reference — see "Source of truth" at the end of this file.**
 
 ## Build & Run Commands
 
@@ -77,7 +77,7 @@ The current versions snapshot is:
 |---|---|
 | Parent (`com.svenruppert:dependencies`) | `06.02.02` |
 | JDK / `maven.compiler.release` | `26` |
-| `vaadin.version` | `25.1.1` |
-| `jetty.version` | `12.1.8` |
-| `jsentinel.version` | `00.74.00` |
+| `vaadin.version` | `25.2.0` |
+| `jetty.version` | `12.1.10` |
+| `jsentinel.version` | `00.75.20` |
 | `nano-vaadin-jetty.version` | `04.00.00` |
