@@ -29,6 +29,7 @@ import com.vaadin.flow.router.Route;
 import java.time.LocalTime;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 @Route(value = PushDemoView.PATH, layout = MainLayout.class)
@@ -44,6 +45,7 @@ public class PushDemoView extends VerticalLayout implements I18nSupport {
   private final Button startButton = new Button();
 
   private ScheduledExecutorService executor;
+  private ScheduledFuture<?> task;
 
   public PushDemoView() {
     status.setText(tr(K_STATUS_IDLE, "No push yet"));
@@ -61,10 +63,17 @@ public class PushDemoView extends VerticalLayout implements I18nSupport {
     UI ui = UI.getCurrent();
 
     executor = Executors.newSingleThreadScheduledExecutor();
-    executor.scheduleAtFixedRate(() -> {
-      if (ui.isAttached()) {
-        ui.access(() -> status.setText("Server Push: " + LocalTime.now()));
+    task = executor.scheduleAtFixedRate(() -> {
+      if (!ui.isAttached()) {
+        // UI gone (e.g. delayed detach / session timeout) — stop firing
+        // immediately instead of spinning at 1 Hz until onDetach runs.
+        if (task != null) {
+          task.cancel(false);
+        }
+        executor.shutdown();
+        return;
       }
+      ui.access(() -> status.setText("Server Push: " + LocalTime.now()));
     }, 0, 1, TimeUnit.SECONDS);
   }
 
