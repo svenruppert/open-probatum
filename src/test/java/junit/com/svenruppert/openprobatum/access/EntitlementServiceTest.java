@@ -49,7 +49,7 @@ class EntitlementServiceTest {
   }
 
   private static LearningPath path() {
-    return new LearningPath("P", List.of(new Module("M", "c")));
+    return new LearningPath("P", List.of(Module.mandatory("M", "c")));
   }
 
   @Test

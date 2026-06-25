@@ -61,7 +61,7 @@ class CatalogRepositoryTest {
 
   private static Offering offering(String title) {
     return Offering.publicPath(title, "desc",
-        new LearningPath("Path", List.of(new Module("M", "content"))));
+        new LearningPath("Path", List.of(Module.mandatory("M", "content"))));
   }
 
   @Test
@@ -85,7 +85,7 @@ class CatalogRepositoryTest {
   @DisplayName("a code-gated offering survives closing + reopening the storage pair")
   void roundTripSurvivesReopen() {
     Offering coded = Offering.codePath("Gated", "desc",
-        new LearningPath("P", List.of(new Module("M", "c"))), "CODE-42");
+        new LearningPath("P", List.of(Module.mandatory("M", "c"))), "CODE-42");
     repo.save(coded);
 
     pair.close();

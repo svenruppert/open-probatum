@@ -26,19 +26,21 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 @DisplayName("Catalog — Offering / LearningPath / Module (P004)")
 class CatalogTest {
 
   private static LearningPath path() {
     return new LearningPath("Vaadin Basics",
-        List.of(new Module("Routing", "How @Route works.")));
+        List.of(Module.mandatory("Routing", "How @Route works.")));
   }
 
   @Test
@@ -55,12 +57,12 @@ class CatalogTest {
   @DisplayName("a learning path defensively copies its modules (immutable)")
   void modulesAreImmutable() {
     List<Module> mutable = new ArrayList<>();
-    mutable.add(new Module("M1", "c1"));
+    mutable.add(Module.mandatory("M1", "c1"));
     LearningPath p = new LearningPath("P", mutable);
-    mutable.add(new Module("M2", "c2")); // must not bleed into the path
+    mutable.add(Module.mandatory("M2", "c2")); // must not bleed into the path
     assertEquals(1, p.modules().size());
     assertThrows(UnsupportedOperationException.class,
-        () -> p.modules().add(new Module("M3", "c3")));
+        () -> p.modules().add(Module.mandatory("M3", "c3")));
   }
 
   @Test
@@ -72,7 +74,7 @@ class CatalogTest {
   @Test
   @DisplayName("null fields are rejected")
   void nullsRejected() {
-    assertThrows(NullPointerException.class, () -> new Module(null, "c"));
+    assertThrows(NullPointerException.class, () -> Module.mandatory(null, "c"));
     assertThrows(NullPointerException.class, () -> Offering.certificationPath(null, path()));
   }
 
@@ -108,5 +110,29 @@ class CatalogTest {
         () -> Offering.codePath("C", "d", path(), "  "));
     assertThrows(IllegalArgumentException.class,
         () -> Offering.prerequisitePath("P", "d", path(), null));
+  }
+
+  @Test
+  @DisplayName("module ids are stable per instance and distinct across modules (P006)")
+  void moduleIdsAreStableAndDistinct() {
+    Module m = Module.mandatory("Routing", "c");
+    assertEquals(m.id(), m.id());
+    assertNotEquals(m.id(), Module.mandatory("Routing", "c").id());
+    assertTrue(m.mandatory());
+    assertFalse(Module.optional("Extra", "c").mandatory());
+  }
+
+  @Test
+  @DisplayName("a path completes only when every mandatory module is done (optional never blocks)")
+  void completionCriterion() {
+    Module core = Module.mandatory("Core", "c");
+    Module bonus = Module.optional("Bonus", "c");
+    LearningPath p = new LearningPath("P", List.of(core, bonus));
+
+    assertEquals(List.of(core), p.mandatoryModules());
+    assertFalse(p.isComplete(Set.of()), "nothing done → not complete");
+    assertFalse(p.isComplete(Set.of(bonus.id())), "only the optional done → not complete");
+    assertTrue(p.isComplete(Set.of(core.id())), "the mandatory done → complete");
+    assertTrue(p.isComplete(Set.of(core.id(), bonus.id())), "all done → complete");
   }
 }

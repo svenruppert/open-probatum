@@ -17,19 +17,34 @@
 package com.svenruppert.openprobatum.catalog;
 
 import java.util.Objects;
+import java.util.UUID;
 
 /**
- * A section within a learning path (concept §8.2). Minimal for the Trust-Core
- * slice: a title and a block of human-readable content.
+ * A section within a learning path (concept §8.2). Carries a stable id (so
+ * progress can be tracked, §8.4), a title, a block of human-readable content and
+ * whether it is {@link #mandatory} — only mandatory modules gate path completion.
  *
- * @param title   the module heading
- * @param content the learning material (article text for the slice)
+ * @param id        stable module id
+ * @param title     the module heading
+ * @param content   the learning material (article text for the slice)
+ * @param mandatory whether completing this module is required to finish the path
  * @since V00.10.00
  */
-public record Module(String title, String content) {
+public record Module(UUID id, String title, String content, boolean mandatory) {
 
   public Module {
+    Objects.requireNonNull(id, "id");
     Objects.requireNonNull(title, "title");
     Objects.requireNonNull(content, "content");
+  }
+
+  /** A mandatory module with a fresh random id. */
+  public static Module mandatory(String title, String content) {
+    return new Module(UUID.randomUUID(), title, content, true);
+  }
+
+  /** An optional module with a fresh random id. */
+  public static Module optional(String title, String content) {
+    return new Module(UUID.randomUUID(), title, content, false);
   }
 }

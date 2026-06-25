@@ -66,7 +66,7 @@ class CatalogViewBrowserlessTest extends BrowserlessTest {
   }
 
   private static LearningPath path() {
-    return new LearningPath("P", List.of(new Module("Routing", "How @Route works.")));
+    return new LearningPath("P", List.of(Module.mandatory("Routing", "How @Route works.")));
   }
 
   @Test
