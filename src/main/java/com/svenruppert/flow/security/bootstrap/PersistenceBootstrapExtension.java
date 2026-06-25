@@ -33,28 +33,41 @@ import com.svenruppert.jsentinel.persistence.eclipsestore.EclipseStoreJSentinelS
  * detection). The Eclipse-Store {@code storeBacked(...)} bindings
  * override the layer-1 ring buffer on the same sub-builder.
  *
- * <p>The static initialiser eagerly opens the storage backend and
- * triggers {@link BootstrapWiring#instance()} so the bootstrap
- * token lands on stdout / the token file before the first request
- * arrives.
+ * <p>The storage backend is opened (and {@link BootstrapWiring#instance()}
+ * triggered, so the bootstrap token lands on stdout / the token file) on
+ * the first {@code contribute*} call — i.e. inside
+ * {@link BootstrapBuilder#apply}, which runs from {@code serviceInit}.
+ * Doing this lazily rather than in a {@code static} initialiser means a
+ * storage / token failure surfaces with its real cause at that call site,
+ * not as a deferred {@link ExceptionInInitializerError} on an unrelated
+ * {@link java.util.ServiceLoader} pass.
  */
 public final class PersistenceBootstrapExtension implements BootstrapExtension {
 
-  private static final EclipseStoreJSentinelStorage STORAGE;
+  private volatile EclipseStoreJSentinelStorage storage;
 
-  static {
-    STORAGE = JSentinelStorageProvider.storage();
-    BootstrapWiring.instance();
+  private EclipseStoreJSentinelStorage storage() {
+    EclipseStoreJSentinelStorage local = storage;
+    if (local != null) {
+      return local;
+    }
+    synchronized (this) {
+      if (storage == null) {
+        storage = JSentinelStorageProvider.storage();
+        BootstrapWiring.instance();
+      }
+      return storage;
+    }
   }
 
   @Override
   public void contributeAudit(AuditBootstrap a) {
-    a.storeBacked(STORAGE.auditEventStore()).logging();
+    a.storeBacked(storage().auditEventStore()).logging();
   }
 
   @Override
   public void contributeSessions(SessionBootstrap s) {
-    s.storeBacked(STORAGE.sessionStore());
+    s.storeBacked(storage().sessionStore());
   }
 
   @Override

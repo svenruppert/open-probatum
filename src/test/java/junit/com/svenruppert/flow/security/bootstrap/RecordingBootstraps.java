@@ -101,6 +101,8 @@ final class RecordingBootstraps {
     final List<PasswordHasher> hasherCalls = new ArrayList<>();
     final List<PepperService> pepperCalls = new ArrayList<>();
     final List<CredentialStore> storeCalls = new ArrayList<>();
+    /** Every hashing-affecting call in invocation order, so "last wins" is observable. */
+    final List<String> configOrder = new ArrayList<>();
     int pbkdf2Calls;
     int modernCalls;
 
@@ -108,13 +110,19 @@ final class RecordingBootstraps {
       hasherCalls.add(h); return this;
     }
     @Override public CredentialBootstrap hashing(PasswordHashingService s) {
-      hashingCalls.add(s); return this;
+      hashingCalls.add(s);
+      configOrder.add("hashing:" + s.getClass().getName());
+      return this;
     }
     @Override public CredentialBootstrap pbkdf2Defaults() {
-      pbkdf2Calls++; return this;
+      pbkdf2Calls++;
+      configOrder.add("pbkdf2");
+      return this;
     }
     @Override public CredentialBootstrap modern() {
-      modernCalls++; return this;
+      modernCalls++;
+      configOrder.add("modern");
+      return this;
     }
     @Override public CredentialBootstrap pepper(PepperService p) {
       pepperCalls.add(p); return this;
