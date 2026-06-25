@@ -99,6 +99,8 @@
         <slf4j-api.version>2.1.0-alpha1</slf4j-api.version>
         <jsentinel.version>00.75.20</jsentinel.version>
         <nano-vaadin-jetty.version>04.00.00</nano-vaadin-jetty.version>
+        <pdfbox.version>3.0.3</pdfbox.version>
+        <zxing.version>3.5.3</zxing.version>
     </properties>
 
     <repositories>
@@ -288,6 +290,23 @@
             <groupId>org.slf4j</groupId>
             <artifactId>log4j-over-slf4j</artifactId>
             <version>${slf4j-api.version}</version>
+        </dependency>
+        <!-- PDF certificate generation (Apache-2.0) — A.0/TR-05 decision. -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>${pdfbox.version}</version>
+        </dependency>
+        <!-- QR-code generation for the validation link (Apache-2.0). -->
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>core</artifactId>
+            <version>${zxing.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>javase</artifactId>
+            <version>${zxing.version}</version>
         </dependency>
         <!--
             Browserless Vaadin testing — free since Vaadin 25.1. Pulls
