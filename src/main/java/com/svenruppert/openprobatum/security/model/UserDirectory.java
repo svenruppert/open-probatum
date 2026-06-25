@@ -46,11 +46,14 @@ public interface UserDirectory {
 
   /**
    * @return {@code true} when at least one user with the
-   *         {@link AuthorizationRole#ADMIN} role exists. Used by the
+   *         {@link AuthorizationRole#PLATFORM_ADMIN} role exists. Used by the
    *         bootstrap pipeline to decide whether the system is
    *         uninitialised.
    */
   boolean hasAnyAdministrator();
+
+  /** @return {@code true} if a user with this username already exists. */
+  boolean usernameExists(String username);
 
   void addUser(String username, String plaintextPassword, AppUser user);
 

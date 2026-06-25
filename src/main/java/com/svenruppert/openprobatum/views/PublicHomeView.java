@@ -56,6 +56,7 @@ public class PublicHomeView extends Composite<VerticalLayout>
   private static final String K_EYEBROW = "home.hero.eyebrow";
   private static final String K_CTA_DASHBOARD = "home.hero.cta.openDashboard";
   private static final String K_CTA_SIGNIN = "home.hero.cta.signIn";
+  private static final String K_CTA_REGISTER = "home.hero.cta.register";
   private static final String K_CTA_ABOUT = "home.hero.cta.about";
   private static final String K_FEAT_SEC_TITLE = "home.feature.security.title";
   private static final String K_FEAT_SEC_BODY = "home.feature.security.body";
@@ -95,7 +96,11 @@ public class PublicHomeView extends Composite<VerticalLayout>
     ctaRow.setSpacing(true);
     ctaRow.setAlignItems(FlexComponent.Alignment.CENTER);
     ctaRow.getStyle().set("margin-top", "var(--lumo-space-l)");
-    ctaRow.add(buildPrimaryCta(), buildSecondaryCta());
+    ctaRow.add(buildPrimaryCta());
+    if (SubjectStores.subjectStore().currentSubject(AppUser.class).isEmpty()) {
+      ctaRow.add(buildRegisterCta());
+    }
+    ctaRow.add(buildSecondaryCta());
 
     Div inner = new Div(eyebrow, title, lede, ctaRow);
     inner.getStyle().set("display", "flex");
@@ -124,6 +129,14 @@ public class PublicHomeView extends Composite<VerticalLayout>
     signIn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_LARGE);
     signIn.setIconAfterText(true);
     return signIn;
+  }
+
+  private Button buildRegisterCta() {
+    Button register = new Button(tr(K_CTA_REGISTER, "Create account"),
+        e -> UI.getCurrent().navigate(RegistrationView.class));
+    register.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_LARGE,
+        ButtonVariant.LUMO_CONTRAST);
+    return register;
   }
 
   private Button buildSecondaryCta() {
