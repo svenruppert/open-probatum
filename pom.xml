@@ -516,7 +516,7 @@
                         directory. Tests run with app.storage.dir pointing at
                         target/test-data, so no test ever creates the
                         repo-rooted ./data/ tree. mvn clean wipes it.
-                        See com.svenruppert.flow.security.storage.AppStoragePaths.
+                        See com.svenruppert.openprobatum.security.storage.AppStoragePaths.
                     -->
                     <systemPropertyVariables>
                         <app.storage.dir>${project.build.directory}/test-data</app.storage.dir>
@@ -669,7 +669,7 @@
             -->
             <id>_shadejar</id>
             <properties>
-                <app.main.class>com.svenruppert.flow.Application</app.main.class>
+                <app.main.class>com.svenruppert.openprobatum.Application</app.main.class>
             </properties>
             <dependencies>
                 <!--
