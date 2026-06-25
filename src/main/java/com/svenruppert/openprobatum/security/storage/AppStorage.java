@@ -124,5 +124,7 @@ public final class AppStorage {
         new ConcurrentHashMap<>();
     public final Map<String, com.svenruppert.openprobatum.access.Entitlement> entitlements =
         new ConcurrentHashMap<>();
+    public final Map<String, com.svenruppert.openprobatum.progress.LearnerProgress> progress =
+        new ConcurrentHashMap<>();
   }
 }
