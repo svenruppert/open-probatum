@@ -60,8 +60,9 @@ import java.time.Clock;
  * the admin hash created here matches the format the
  * {@code PersistentUserDirectory} verifies against on login.
  *
- * <p>Delete {@code ./data/jsentinel/bootstrap.token} and any admin row
- * in {@code ./data/jsentinel/users.ser} to force a re-bootstrap.
+ * <p>Delete {@code ./data/jsentinel/bootstrap.token} and the admin row from the
+ * shared application Eclipse-Store (the user map in {@code AppStorage}) to force
+ * a re-bootstrap.
  */
 public final class BootstrapWiring implements HasLogger {
 

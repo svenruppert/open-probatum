@@ -33,12 +33,13 @@ import java.util.Set;
  * override the base via the JVM system property
  * {@code -Dapp.storage.dir=/some/path}.
  *
- * <p>Three derived locations:
+ * <p>Derived locations:
  * <ul>
- *   <li>{@link #frameworkStorageDir()} — jSentinel framework storage
- *       (audit log + session store).</li>
- *   <li>{@link #userDirectoryDir()} — the application's user
- *       directory (Eclipse-Store-backed).</li>
+ *   <li>{@link #frameworkStorageDir()} — the {@code jsentinel} subtree under the
+ *       base, securing the one-time bootstrap token. Since jSentinel 00.75.20 the
+ *       framework + application Eclipse-Stores are one {@code JSentinelStoragePair}
+ *       opened at {@link #baseDir()} (see {@code AppStorage}); no per-store
+ *       directory policy lives here any more.</li>
  *   <li>{@link #bootstrapTokenFile()} — the one-time bootstrap token
  *       written by {@code BootstrapStartup} on first start.</li>
  * </ul>
@@ -94,16 +95,6 @@ public final class AppStoragePaths {
   /** jSentinel framework storage — audit + session stores. */
   public static Path frameworkStorageDir() {
     return baseDir().resolve("jsentinel");
-  }
-
-  /** Application user directory — {@code AppUser} map. */
-  public static Path userDirectoryDir() {
-    return baseDir().resolve("app").resolve("users");
-  }
-
-  /** Application credential store — {@code Credential} map. */
-  public static Path credentialDirectoryDir() {
-    return baseDir().resolve("app").resolve("credentials");
   }
 
   /** Bootstrap token file written on first start. */

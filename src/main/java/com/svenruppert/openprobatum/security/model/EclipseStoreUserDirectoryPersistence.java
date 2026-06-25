@@ -17,130 +17,33 @@
 package com.svenruppert.openprobatum.security.model;
 
 import com.svenruppert.dependencies.core.logger.HasLogger;
-import com.svenruppert.openprobatum.security.storage.AppStoragePaths;
-import org.eclipse.store.storage.embedded.types.EmbeddedStorage;
-import org.eclipse.store.storage.embedded.types.EmbeddedStorageManager;
+import com.svenruppert.openprobatum.security.storage.AppStorage;
 
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Production-default {@link UserDirectoryPersistence}. Holds the user
- * map in a <strong>separate</strong> Eclipse-Store instance from the
- * one the jSentinel persistence module owns. Two reasons for the
- * separation:
- *
- * <ul>
- *   <li>{@code EclipseStoreJSentinelStorage} is single-rooted with
- *       its own framework-owned root type — there is no app-extensible
- *       slot to hang a user map onto.</li>
- *   <li>Two independent storages can be migrated, backed up and
- *       reset independently. A corrupt app-user store does not take
- *       down the audit log.</li>
- * </ul>
- *
- * <p>Default storage directory: {@code ./data/app/users}. Storage is
- * opened lazily on first {@link #load()} and closed via a JVM
- * shutdown hook plus an explicit {@link #close()} call.
- *
- * <p>Eclipse-Store uses its own type-mapping, not Java serialisation
- * — {@link AppUser} does <strong>not</strong> need
- * {@code implements Serializable}, and adding a field to the record
- * does not corrupt the on-disk format (Eclipse-Store generates a
- * legacy-type mapping automatically).
+ * Production-default {@link UserDirectoryPersistence}. The user map lives in the
+ * single shared application Eclipse-Store ({@link AppStorage#app()}), rooted at
+ * {@link AppStorage.AppRoot#users} — no second store, no own manager and no own
+ * shutdown hook (the {@link AppStorage} pair owns the lifecycle, jSentinel
+ * 00.75.20). Only the record is stored; Eclipse-Store maps {@link AppUser} via
+ * reflection, so no {@code Serializable} and no JDK serialisation is involved.
  */
 public final class EclipseStoreUserDirectoryPersistence
     implements UserDirectoryPersistence, HasLogger {
 
-  /**
-   * Default user-directory storage. Reads {@link AppStoragePaths#PROPERTY}
-   * so test forks can redirect this to {@code target/test-data} without
-   * touching the repo-rooted {@code ./data/} tree.
-   */
-  public static final Path DEFAULT_STORAGE_DIR =
-      AppStoragePaths.userDirectoryDir();
-
-  private final Path storageDir;
-  private final AtomicBoolean hookRegistered = new AtomicBoolean();
-  private volatile EmbeddedStorageManager manager;
-  private volatile AppUsersRoot root;
-
-  public EclipseStoreUserDirectoryPersistence() {
-    this(DEFAULT_STORAGE_DIR);
-  }
-
-  public EclipseStoreUserDirectoryPersistence(Path storageDir) {
-    this.storageDir = Objects.requireNonNull(storageDir, "storageDir");
-  }
-
   @Override
   public synchronized Map<String, StoredUser> load() {
-    ensureOpen();
-    return new HashMap<>(root.users);
+    return new HashMap<>(AppStorage.appRoot().users);
   }
 
   @Override
   public synchronized void save(Map<String, StoredUser> snapshot) {
-    ensureOpen();
-    root.users.clear();
-    root.users.putAll(snapshot);
-    manager.store(root.users);
-    logger().debug("EclipseStoreUserDirectoryPersistence: persisted {} users to {}",
-        root.users.size(), storageDir);
-  }
-
-  @Override
-  public synchronized void close() {
-    EmbeddedStorageManager local = manager;
-    if (local == null) return; // not open or already closed — idempotent
-    manager = null;
-    root = null;
-    try {
-      local.shutdown();
-      logger().info("EclipseStoreUserDirectoryPersistence: storage at {} closed", storageDir);
-    } catch (RuntimeException e) {
-      logger().warn("EclipseStoreUserDirectoryPersistence: shutdown failed for {}", storageDir, e);
-    }
-  }
-
-  private void ensureOpen() {
-    if (manager != null) return;
-    AppStoragePaths.ensureSecureDir(storageDir);
-    AppUsersRoot initial = new AppUsersRoot();
-    manager = EmbeddedStorage.start(initial, storageDir);
-    Object loaded = manager.root();
-    if (loaded instanceof AppUsersRoot existing) {
-      root = existing;
-      logger().info("EclipseStoreUserDirectoryPersistence: opened {} ({} users present)",
-          storageDir, root.users.size());
-    } else if (loaded == null) {
-      root = initial;
-      manager.setRoot(root);
-      manager.storeRoot();
-      logger().info("EclipseStoreUserDirectoryPersistence: bootstrapped fresh storage at {}", storageDir);
-    } else {
-      EmbeddedStorageManager bad = manager;
-      manager = null;
-      bad.shutdown();
-      throw new IllegalStateException(
-          "Unexpected root type in " + storageDir + ": " + loaded.getClass().getName()
-              + " — expected " + AppUsersRoot.class.getName());
-    }
-    // Register the JVM shutdown hook exactly once for this instance's
-    // lifetime, even across close()/reopen cycles, so we neither leak a
-    // hook per open nor pin every reopened instance for the JVM lifetime.
-    if (hookRegistered.compareAndSet(false, true)) {
-      Runtime.getRuntime().addShutdownHook(new Thread(this::close,
-          "app-users-storage-shutdown"));
-    }
-  }
-
-  /** Eclipse-Store root container. Public type so EclipseStore can map it. */
-  public static final class AppUsersRoot {
-    public final Map<String, StoredUser> users = new ConcurrentHashMap<>();
+    Map<String, StoredUser> users = AppStorage.appRoot().users;
+    users.clear();
+    users.putAll(snapshot);
+    AppStorage.app().store(users);
+    logger().debug("EclipseStoreUserDirectoryPersistence: persisted {} users", users.size());
   }
 }

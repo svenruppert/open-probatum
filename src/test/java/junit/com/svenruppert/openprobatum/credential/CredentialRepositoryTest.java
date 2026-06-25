@@ -20,6 +20,11 @@ import com.svenruppert.openprobatum.credential.Credential;
 import com.svenruppert.openprobatum.credential.CredentialType;
 import com.svenruppert.openprobatum.credential.EclipseStoreCredentialRepository;
 import com.svenruppert.openprobatum.credential.InMemoryCredentialRepository;
+import com.svenruppert.openprobatum.security.storage.AppStorage;
+import com.svenruppert.jsentinel.persistence.eclipsestore.JSentinelStorageFactory;
+import com.svenruppert.jsentinel.persistence.eclipsestore.JSentinelStoragePair;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -31,10 +36,29 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@DisplayName("CredentialRepository — Eclipse-Store round-trip + in-memory (P003)")
+@DisplayName("CredentialRepository — shared-pair Eclipse-Store + in-memory (P003)")
 class CredentialRepositoryTest {
 
   private static final Instant ISSUED = Instant.parse("2026-01-01T00:00:00Z");
+
+  @TempDir
+  Path tempDir;
+
+  private JSentinelStoragePair pair;
+  private EclipseStoreCredentialRepository repo;
+
+  @BeforeEach
+  void setUp() {
+    pair = JSentinelStorageFactory.openAt(tempDir);
+    AppStorage.setPair(pair);
+    repo = new EclipseStoreCredentialRepository();
+  }
+
+  @AfterEach
+  void tearDown() {
+    AppStorage.reset();
+    pair.close();
+  }
 
   private static Credential issue(String recipient) {
     return Credential.issue("Vaadin Basics", CredentialType.COMPLETION_CERTIFICATE,
@@ -42,87 +66,58 @@ class CredentialRepositoryTest {
   }
 
   @Test
-  @DisplayName("fresh Eclipse-Store storage is empty")
-  void freshIsEmpty(@TempDir Path dir) {
-    EclipseStoreCredentialRepository repo =
-        new EclipseStoreCredentialRepository(dir.resolve("creds"));
-    try {
-      assertTrue(repo.all().isEmpty());
-    } finally {
-      repo.close();
-    }
+  @DisplayName("a fresh app store is empty")
+  void freshIsEmpty() {
+    assertTrue(repo.all().isEmpty());
   }
 
   @Test
   @DisplayName("save then findById returns the same credential")
-  void saveThenFind(@TempDir Path dir) {
-    EclipseStoreCredentialRepository repo =
-        new EclipseStoreCredentialRepository(dir.resolve("creds"));
-    try {
-      Credential c = issue("Alice");
-      repo.save(c);
-      assertEquals(c, repo.findById(c.id()).orElseThrow());
-    } finally {
-      repo.close();
-    }
+  void saveThenFind() {
+    Credential c = issue("Alice");
+    repo.save(c);
+    assertEquals(c, repo.findById(c.id()).orElseThrow());
   }
 
   @Test
   @DisplayName("findById is empty for an unknown id")
-  void unknownIsEmpty(@TempDir Path dir) {
-    EclipseStoreCredentialRepository repo =
-        new EclipseStoreCredentialRepository(dir.resolve("creds"));
-    try {
-      assertTrue(repo.findById(UUID.randomUUID()).isEmpty());
-    } finally {
-      repo.close();
-    }
-  }
-
-  @Test
-  @DisplayName("a saved credential survives close + reopen on the same directory")
-  void roundTripSurvivesReopen(@TempDir Path dir) {
-    Path store = dir.resolve("creds-rt");
-    Credential c = issue("Carol");
-
-    EclipseStoreCredentialRepository r1 = new EclipseStoreCredentialRepository(store);
-    try {
-      r1.save(c);
-    } finally {
-      r1.close();
-    }
-
-    EclipseStoreCredentialRepository r2 = new EclipseStoreCredentialRepository(store);
-    try {
-      assertEquals(c, r2.findById(c.id()).orElseThrow(),
-          "the credential record must reload byte-for-byte from a fresh instance");
-    } finally {
-      r2.close();
-    }
+  void unknownIsEmpty() {
+    assertTrue(repo.findById(UUID.randomUUID()).isEmpty());
   }
 
   @Test
   @DisplayName("all() yields every stored credential")
-  void allYieldsStored(@TempDir Path dir) {
-    EclipseStoreCredentialRepository repo =
-        new EclipseStoreCredentialRepository(dir.resolve("creds"));
+  void allYieldsStored() {
+    repo.save(issue("Alice"));
+    repo.save(issue("Bob"));
+    assertEquals(2, repo.all().size());
+  }
+
+  @Test
+  @DisplayName("a saved credential survives closing + reopening the storage pair")
+  void roundTripSurvivesReopen() {
+    Credential c = issue("Carol");
+    repo.save(c);
+
+    pair.close(); // close the whole pair
+    JSentinelStoragePair reopened = JSentinelStorageFactory.openAt(tempDir);
+    AppStorage.setPair(reopened);
     try {
-      repo.save(issue("Alice"));
-      repo.save(issue("Bob"));
-      assertEquals(2, repo.all().size());
+      assertEquals(c, new EclipseStoreCredentialRepository().findById(c.id()).orElseThrow(),
+          "the credential record must reload from a fresh pair on the same directory");
     } finally {
-      repo.close();
+      reopened.close();
     }
   }
 
   @Test
   @DisplayName("in-memory repository satisfies the same contract")
   void inMemoryContract() {
-    InMemoryCredentialRepository repo = new InMemoryCredentialRepository();
+    InMemoryCredentialRepository memory = new InMemoryCredentialRepository();
     Credential c = issue("Dora");
-    repo.save(c);
-    assertEquals(c, repo.findById(c.id()).orElseThrow());
-    assertTrue(repo.findById(UUID.randomUUID()).isEmpty());
-    assertEquals(1, repo.all().size());
+    memory.save(c);
+    assertEquals(c, memory.findById(c.id()).orElseThrow());
+    assertTrue(memory.findById(UUID.randomUUID()).isEmpty());
+    assertEquals(1, memory.all().size());
   }
 }

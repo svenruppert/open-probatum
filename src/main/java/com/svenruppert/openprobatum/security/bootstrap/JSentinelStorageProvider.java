@@ -16,57 +16,33 @@
 
 package com.svenruppert.openprobatum.security.bootstrap;
 
-import com.svenruppert.openprobatum.security.storage.AppStoragePaths;
+import com.svenruppert.openprobatum.security.storage.AppStorage;
 import com.svenruppert.jsentinel.persistence.eclipsestore.EclipseStoreJSentinelStorage;
 
-import java.nio.file.Path;
-
 /**
- * Lazy singleton holder for {@link EclipseStoreJSentinelStorage}.
+ * Exposes the jSentinel framework storage to the bootstrap / session / version
+ * wiring. Since jSentinel 00.75.20 the framework store is one half of the single
+ * {@link AppStorage} pair (the other half being the application's own store), so
+ * this no longer opens a second Eclipse-Store or registers its own shutdown hook
+ * — it simply forwards to {@link AppStorage#framework()}.
  *
- * <p>The first call to {@link #storage()} opens (or creates) the
- * Eclipse-Store layer at {@code ./data/jsentinel} and registers a
- * shutdown hook so the storage is closed cleanly on JVM exit.
- *
- * <p>Tests can swap the storage via
- * {@link #setStorage(EclipseStoreJSentinelStorage)} before any
- * consumer initialises.
+ * <p>The {@link #setStorage(EclipseStoreJSentinelStorage)} seam still lets a test
+ * stub the framework storage independently of the app store.
  */
 public final class JSentinelStorageProvider {
 
-  /**
-   * Default storage directory. Reads {@link AppStoragePaths#PROPERTY}
-   * fresh on every reference, so test forks with a different value
-   * win without restarting the JVM-wide constants.
-   */
-  public static final Path DEFAULT_STORAGE_DIR =
-      AppStoragePaths.frameworkStorageDir();
-
-  private static volatile EclipseStoreJSentinelStorage current;
+  private static volatile EclipseStoreJSentinelStorage override;
 
   private JSentinelStorageProvider() {
   }
 
   public static EclipseStoreJSentinelStorage storage() {
-    EclipseStoreJSentinelStorage local = current;
-    if (local != null) return local;
-    synchronized (JSentinelStorageProvider.class) {
-      if (current == null) {
-        current = EclipseStoreJSentinelStorage.openAt(
-            AppStoragePaths.frameworkStorageDir());
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-          EclipseStoreJSentinelStorage live = current;
-          if (live != null) {
-            live.close();
-          }
-        }, "jsentinel-storage-shutdown"));
-      }
-      return current;
-    }
+    EclipseStoreJSentinelStorage local = override;
+    return local != null ? local : AppStorage.framework();
   }
 
-  /** Test seam — install a custom storage instance. */
+  /** Test seam — install a custom framework storage instance. */
   public static synchronized void setStorage(EclipseStoreJSentinelStorage replacement) {
-    current = replacement;
+    override = replacement;
   }
 }
