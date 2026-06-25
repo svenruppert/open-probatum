@@ -101,6 +101,11 @@ public final class AppStoragePaths {
     return baseDir().resolve("app").resolve("users");
   }
 
+  /** Application credential store — {@code Credential} map. */
+  public static Path credentialDirectoryDir() {
+    return baseDir().resolve("app").resolve("credentials");
+  }
+
   /** Bootstrap token file written on first start. */
   public static Path bootstrapTokenFile() {
     return frameworkStorageDir().resolve("bootstrap.token");
