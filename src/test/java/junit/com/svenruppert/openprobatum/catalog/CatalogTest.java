@@ -1,0 +1,75 @@
+/*
+ * Copyright © 2013 Sven Ruppert (sven.ruppert@gmail.com)
+ *
+ * Licensed under the EUPL, Version 1.2 (the "Licence");
+ * you may not use this file except in compliance with the Licence.
+ * You may obtain a copy of the Licence at:
+ *
+ *     https://joinup.ec.europa.eu/software/page/eupl
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the Licence is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the Licence for the specific language governing permissions and
+ * limitations under the Licence.
+ */
+
+package junit.com.svenruppert.openprobatum.catalog;
+
+import com.svenruppert.openprobatum.catalog.LearningPath;
+import com.svenruppert.openprobatum.catalog.Module;
+import com.svenruppert.openprobatum.catalog.Offering;
+import com.svenruppert.openprobatum.catalog.OfferingType;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
+@DisplayName("Catalog — Offering / LearningPath / Module (P004)")
+class CatalogTest {
+
+  private static LearningPath path() {
+    return new LearningPath("Vaadin Basics",
+        List.of(new Module("Routing", "How @Route works.")));
+  }
+
+  @Test
+  @DisplayName("certificationPath() wraps the path with type CERTIFICATION_PATH + a random id")
+  void certificationPathOffering() {
+    Offering o = Offering.certificationPath("Vaadin Certified", path());
+    assertEquals(OfferingType.CERTIFICATION_PATH, o.type());
+    assertEquals(1, o.path().modules().size());
+    assertEquals("Routing", o.path().modules().get(0).title());
+    assertNotEquals(o.id(), Offering.certificationPath("X", path()).id());
+  }
+
+  @Test
+  @DisplayName("a learning path defensively copies its modules (immutable)")
+  void modulesAreImmutable() {
+    List<Module> mutable = new ArrayList<>();
+    mutable.add(new Module("M1", "c1"));
+    LearningPath p = new LearningPath("P", mutable);
+    mutable.add(new Module("M2", "c2")); // must not bleed into the path
+    assertEquals(1, p.modules().size());
+    assertThrows(UnsupportedOperationException.class,
+        () -> p.modules().add(new Module("M3", "c3")));
+  }
+
+  @Test
+  @DisplayName("a learning path needs at least one module")
+  void emptyPathRejected() {
+    assertThrows(IllegalArgumentException.class, () -> new LearningPath("P", List.of()));
+  }
+
+  @Test
+  @DisplayName("null fields are rejected")
+  void nullsRejected() {
+    assertThrows(NullPointerException.class, () -> new Module(null, "c"));
+    assertThrows(NullPointerException.class, () -> Offering.certificationPath(null, path()));
+  }
+}
