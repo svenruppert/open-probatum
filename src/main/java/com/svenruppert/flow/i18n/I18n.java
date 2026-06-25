@@ -89,6 +89,9 @@ public final class I18n {
     if (req != null && req.getLocale() != null) {
       return req.getLocale();
     }
-    return Locale.getDefault();
+    // Default to English, NOT Locale.getDefault() — a German JVM would
+    // otherwise serve German for a non-UI lookup, the exact bug
+    // AppI18NProvider was written to defeat.
+    return Locale.ENGLISH;
   }
 }

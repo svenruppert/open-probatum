@@ -34,11 +34,6 @@ import java.text.MessageFormat;
  */
 public interface I18nSupport {
 
-  /** Translate without a fallback — only safe when the key is known to exist. */
-  default String tr(String key) {
-    return ((Component) this).getTranslation(key);
-  }
-
   /** Translate with an inline ground-truth fallback. */
   default String tr(String key, String fallback) {
     String translated = ((Component) this).getTranslation(key);
