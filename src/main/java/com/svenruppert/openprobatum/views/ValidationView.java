@@ -67,6 +67,7 @@ public class ValidationView extends Composite<VerticalLayout>
       Span throttled = new Span(tr("validate.throttled",
           "Too many validation requests. Please wait a moment and try again."));
       throttled.getElement().getThemeList().add("badge error pill");
+      throttled.getElement().setAttribute("data-result", "THROTTLED");
       root.add(throttled);
       return;
     }
@@ -101,6 +102,8 @@ public class ValidationView extends Composite<VerticalLayout>
     ValidationResult result = outcome.result();
     Span badge = new Span(tr(result.messageKey(), result.englishLabel()));
     badge.getElement().getThemeList().add("badge " + badgeTheme(result) + " pill");
+    // Stable, locale-independent marker for tooling / tests.
+    badge.getElement().setAttribute("data-result", result.name());
     root.add(badge);
 
     outcome.credentialOpt().ifPresent(c -> root.add(fields(c)));

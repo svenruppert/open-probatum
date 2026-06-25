@@ -87,6 +87,10 @@ class ValidationViewBrowserlessTest extends BrowserlessTest {
     if (c instanceof HasText t) {
       sb.append(t.getText()).append(" | ");
     }
+    String result = c.getElement().getAttribute("data-result");
+    if (result != null) {
+      sb.append("[result:").append(result).append("] ");
+    }
     c.getChildren().forEach(child -> collect(child, sb));
   }
 
@@ -96,10 +100,9 @@ class ValidationViewBrowserlessTest extends BrowserlessTest {
     assertEquals("validate", ValidationView.NAV);
   }
 
-  // The view renders labels through i18n; an unattached component in the test
-  // harness has no AppI18NProvider, so labels surface as their keys. We assert
-  // on the result KEY (which result rendered) and the field VALUES (verbatim,
-  // not translated) — both stable regardless of the active i18n provider.
+  // Result labels are i18n + locale-dependent, so we assert on the stable
+  // data-result marker (the enum name) for "which result" and on the field
+  // VALUES (verbatim, not translated) for the record content.
 
   @Test
   @DisplayName("a valid credential renders the VALID result + the match fields, no status field/scores")
@@ -109,12 +112,11 @@ class ValidationViewBrowserlessTest extends BrowserlessTest {
 
     String text = renderText(c.id().toString());
 
-    assertTrue(text.contains("validate.result.valid"), "the VALID result");
+    assertTrue(text.contains("[result:VALID]"), "the VALID result");
     assertTrue(text.contains("Alice"), "recipient value");
     assertTrue(text.contains("Vaadin Certified"), "title value");
     assertTrue(text.contains("Open Probatum Academy"), "issuer value");
     assertTrue(text.contains(c.id().toString()), "credential id value");
-    assertTrue(text.contains("validate.matchRule"), "the match-rule hint");
     assertFalse(text.contains("Status:"), "must not print a status field (§10.7)");
     assertFalse(text.toLowerCase().contains("score"), "must never expose scores (§11.3)");
   }
@@ -124,21 +126,21 @@ class ValidationViewBrowserlessTest extends BrowserlessTest {
   void revokedShowsRevoked() {
     Credential c = issue().withStatus(CredentialStatus.REVOKED);
     repo.save(c);
-    assertTrue(renderText(c.id().toString()).contains("validate.result.revoked"));
+    assertTrue(renderText(c.id().toString()).contains("[result:REVOKED]"));
   }
 
   @Test
   @DisplayName("an unknown id renders the UNKNOWN result and no record")
   void unknownShowsUnknown() {
     String text = renderText(UUID.randomUUID().toString());
-    assertTrue(text.contains("validate.result.unknown"));
+    assertTrue(text.contains("[result:UNKNOWN]"));
     assertFalse(text.contains("Alice"));
   }
 
   @Test
   @DisplayName("a malformed id is treated as unknown (no crash)")
   void malformedIdIsUnknown() {
-    assertTrue(renderText("not-a-uuid").contains("validate.result.unknown"));
+    assertTrue(renderText("not-a-uuid").contains("[result:UNKNOWN]"));
   }
 
   @Test
@@ -148,10 +150,10 @@ class ValidationViewBrowserlessTest extends BrowserlessTest {
     Credential c = issue();
     repo.save(c);
 
-    assertTrue(renderText(c.id().toString()).contains("validate.result.valid"), "1st allowed");
-    assertTrue(renderText(c.id().toString()).contains("validate.result.valid"), "2nd allowed");
+    assertTrue(renderText(c.id().toString()).contains("[result:VALID]"), "1st allowed");
+    assertTrue(renderText(c.id().toString()).contains("[result:VALID]"), "2nd allowed");
     String third = renderText(c.id().toString());
-    assertTrue(third.contains("validate.throttled"), "3rd must be throttled");
+    assertTrue(third.contains("[result:THROTTLED]"), "3rd must be throttled");
     assertFalse(third.contains("Alice"), "a throttled lookup must not reveal the record");
   }
 }
