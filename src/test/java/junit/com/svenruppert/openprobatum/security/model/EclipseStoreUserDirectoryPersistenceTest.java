@@ -76,8 +76,8 @@ class EclipseStoreUserDirectoryPersistenceTest {
   @DisplayName("save then close + reopen the pair + load yields the same entries")
   void roundTripSurvivesClose() {
     Map<String, StoredUser> snapshot = new HashMap<>();
-    snapshot.put("alice", storedUser(1L, "Alice", AuthorizationRole.ADMIN, "$argon2id$fake$alice"));
-    snapshot.put("bob", storedUser(2L, "Bob", AuthorizationRole.USER, "$argon2id$fake$bob"));
+    snapshot.put("alice", storedUser(1L, "Alice", AuthorizationRole.PLATFORM_ADMIN, "$argon2id$fake$alice"));
+    snapshot.put("bob", storedUser(2L, "Bob", AuthorizationRole.LEARNER, "$argon2id$fake$bob"));
     persistence.save(snapshot);
 
     pair.close(); // close the whole pair
@@ -88,7 +88,7 @@ class EclipseStoreUserDirectoryPersistenceTest {
       assertEquals(2, reloaded.size());
       assertEquals("$argon2id$fake$alice", reloaded.get("alice").passwordHash());
       assertEquals("$argon2id$fake$bob", reloaded.get("bob").passwordHash());
-      assertEquals(new AppUser(1L, "Alice", EnumSet.of(AuthorizationRole.ADMIN)),
+      assertEquals(new AppUser(1L, "Alice", EnumSet.of(AuthorizationRole.PLATFORM_ADMIN)),
           reloaded.get("alice").user());
     } finally {
       reopened.close();
@@ -99,13 +99,13 @@ class EclipseStoreUserDirectoryPersistenceTest {
   @DisplayName("save replaces previous content wholesale (delete by omission)")
   void saveIsReplaceNotMerge() {
     Map<String, StoredUser> first = new HashMap<>();
-    first.put("alice", storedUser(1L, "Alice", AuthorizationRole.USER, "$alice"));
-    first.put("bob", storedUser(2L, "Bob", AuthorizationRole.USER, "$bob"));
+    first.put("alice", storedUser(1L, "Alice", AuthorizationRole.LEARNER, "$alice"));
+    first.put("bob", storedUser(2L, "Bob", AuthorizationRole.LEARNER, "$bob"));
     persistence.save(first);
     assertEquals(2, persistence.load().size());
 
     Map<String, StoredUser> second = new HashMap<>();
-    second.put("carol", storedUser(3L, "Carol", AuthorizationRole.ADMIN, "$carol"));
+    second.put("carol", storedUser(3L, "Carol", AuthorizationRole.PLATFORM_ADMIN, "$carol"));
     persistence.save(second);
 
     Map<String, StoredUser> reloaded = persistence.load();
@@ -117,7 +117,7 @@ class EclipseStoreUserDirectoryPersistenceTest {
   @DisplayName("load returns a defensive copy — caller mutations do not bleed into storage")
   void loadReturnsCopy() {
     Map<String, StoredUser> snapshot = new HashMap<>();
-    snapshot.put("alice", storedUser(1L, "Alice", AuthorizationRole.USER, "$h"));
+    snapshot.put("alice", storedUser(1L, "Alice", AuthorizationRole.LEARNER, "$h"));
     persistence.save(snapshot);
 
     Map<String, StoredUser> loaded = persistence.load();

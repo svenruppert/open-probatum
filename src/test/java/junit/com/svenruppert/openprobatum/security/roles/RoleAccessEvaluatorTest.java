@@ -79,7 +79,7 @@ class RoleAccessEvaluatorTest {
 
     AccessDecision d = evaluator.evaluate(
         new AccessContext("/dashboard", PublicHomeView.class, Map.of()),
-        annotationWith(AuthorizationRole.USER));
+        annotationWith(AuthorizationRole.LEARNER));
 
     String path = describe(d);
     assertTrue(path.contains(AppLoginView.NAV),
@@ -92,11 +92,11 @@ class RoleAccessEvaluatorTest {
   @DisplayName("subject without the required role → denied, reroute to /")
   void insufficientRoleRoutedHome() {
     fake.subject = Optional.of(new AppUser(7L, "user-only",
-        EnumSet.of(AuthorizationRole.USER)));
+        EnumSet.of(AuthorizationRole.LEARNER)));
 
     AccessDecision d = evaluator.evaluate(
         new AccessContext("/audit", PublicHomeView.class, Map.of()),
-        annotationWith(AuthorizationRole.ADMIN));
+        annotationWith(AuthorizationRole.PLATFORM_ADMIN));
 
     String path = describe(d);
     assertFalse(path.contains(AppLoginView.NAV),
@@ -109,11 +109,11 @@ class RoleAccessEvaluatorTest {
   @DisplayName("subject with a required role → granted")
   void sufficientRoleGranted() {
     fake.subject = Optional.of(new AppUser(8L, "admin",
-        EnumSet.of(AuthorizationRole.ADMIN, AuthorizationRole.USER)));
+        EnumSet.of(AuthorizationRole.PLATFORM_ADMIN, AuthorizationRole.LEARNER)));
 
     AccessDecision d = evaluator.evaluate(
         new AccessContext("/audit", PublicHomeView.class, Map.of()),
-        annotationWith(AuthorizationRole.ADMIN));
+        annotationWith(AuthorizationRole.PLATFORM_ADMIN));
 
     assertSame(AccessDecision.granted().getClass(), d.getClass());
   }
@@ -122,11 +122,11 @@ class RoleAccessEvaluatorTest {
   @DisplayName("any-of semantics: subject with one of several required roles → granted")
   void anyOfRolesGranted() {
     fake.subject = Optional.of(new AppUser(9L, "user",
-        EnumSet.of(AuthorizationRole.USER)));
+        EnumSet.of(AuthorizationRole.LEARNER)));
 
     AccessDecision d = evaluator.evaluate(
         new AccessContext("/x", PublicHomeView.class, Map.of()),
-        annotationWith(AuthorizationRole.ADMIN, AuthorizationRole.USER));
+        annotationWith(AuthorizationRole.PLATFORM_ADMIN, AuthorizationRole.LEARNER));
 
     assertSame(AccessDecision.granted().getClass(), d.getClass());
   }

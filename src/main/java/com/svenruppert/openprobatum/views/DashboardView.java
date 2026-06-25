@@ -47,15 +47,15 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.LongSupplier;
 
-import static com.svenruppert.openprobatum.security.roles.AuthorizationRole.ADMIN;
-import static com.svenruppert.openprobatum.security.roles.AuthorizationRole.USER;
+import static com.svenruppert.openprobatum.security.roles.AuthorizationRole.PLATFORM_ADMIN;
+import static com.svenruppert.openprobatum.security.roles.AuthorizationRole.LEARNER;
 
 /**
  * Post-login landing page. Page header + metric-tile row + recent
- * activity. Restricted by {@code @VisibleFor(USER)}.
+ * activity. Restricted by {@code @VisibleFor(LEARNER)}.
  */
 @Route(value = DashboardView.NAV, layout = MainLayout.class)
-@VisibleFor(USER)
+@VisibleFor(LEARNER)
 public class DashboardView extends Composite<VerticalLayout>
     implements I18nSupport {
 
@@ -111,7 +111,7 @@ public class DashboardView extends Composite<VerticalLayout>
       for (AuthorizationRole role : roles) {
         Span badge = new Span(role.name());
         badge.getElement().getThemeList().add(
-            "badge " + (role == ADMIN ? "error" : "success"));
+            "badge " + (role == PLATFORM_ADMIN ? "error" : "success"));
         badges.add(badge);
       }
       header.withActions(badges);

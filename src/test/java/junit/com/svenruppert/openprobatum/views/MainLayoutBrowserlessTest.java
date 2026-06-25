@@ -63,7 +63,7 @@ class MainLayoutBrowserlessTest extends BrowserlessTest {
   @DisplayName("authenticated USER → 'Sign out' button + Public + Application sections")
   void userSeesSignOutPublicApplication() throws Exception {
     AppUser user = new AppUser(11L, "Bob",
-        EnumSet.of(AuthorizationRole.USER));
+        EnumSet.of(AuthorizationRole.LEARNER));
     SubjectStores.subjectStore().setCurrentSubject(user, AppUser.class);
 
     MainLayout layout = new MainLayout();
@@ -77,7 +77,7 @@ class MainLayoutBrowserlessTest extends BrowserlessTest {
   @DisplayName("authenticated ADMIN → all three drawer sections")
   void adminSeesAllThreeSections() throws Exception {
     AppUser admin = new AppUser(12L, "Alice",
-        EnumSet.of(AuthorizationRole.ADMIN, AuthorizationRole.USER));
+        EnumSet.of(AuthorizationRole.PLATFORM_ADMIN, AuthorizationRole.LEARNER));
     SubjectStores.subjectStore().setCurrentSubject(admin, AppUser.class);
 
     MainLayout layout = new MainLayout();
@@ -97,7 +97,7 @@ class MainLayoutBrowserlessTest extends BrowserlessTest {
     assertEquals("Sign in", authButtonText(layout));
 
     SubjectStores.subjectStore().setCurrentSubject(
-        new AppUser(13L, "Eve", EnumSet.of(AuthorizationRole.USER)), AppUser.class);
+        new AppUser(13L, "Eve", EnumSet.of(AuthorizationRole.LEARNER)), AppUser.class);
     layout.beforeEnter(null);
 
     assertEquals("Sign out", authButtonText(layout),

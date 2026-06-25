@@ -59,7 +59,7 @@ class SessionsViewBrowserlessTest extends BrowserlessTest {
     TestSupport.seedAdminAndResetBootstrap();
     SubjectStores.subjectStore().setCurrentSubject(
         new AppUser(1L, "Admin",
-            EnumSet.of(AuthorizationRole.ADMIN, AuthorizationRole.USER)),
+            EnumSet.of(AuthorizationRole.PLATFORM_ADMIN, AuthorizationRole.LEARNER)),
         AppUser.class);
     audit = new RecordingAudit();
     previousAudit = JSentinelServiceResolver.findJSentinelAuditService().orElse(null);

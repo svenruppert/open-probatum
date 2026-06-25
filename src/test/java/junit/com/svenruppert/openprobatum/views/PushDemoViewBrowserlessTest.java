@@ -40,7 +40,7 @@ class PushDemoViewBrowserlessTest extends BrowserlessTest {
   void seedUser() {
     TestSupport.seedAdminAndResetBootstrap();
     SubjectStores.subjectStore().setCurrentSubject(
-        new AppUser(55L, "PushUser", EnumSet.of(AuthorizationRole.USER)),
+        new AppUser(55L, "PushUser", EnumSet.of(AuthorizationRole.LEARNER)),
         AppUser.class);
   }
 

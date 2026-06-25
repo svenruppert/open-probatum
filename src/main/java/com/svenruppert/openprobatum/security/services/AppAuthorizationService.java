@@ -37,14 +37,19 @@ import static com.svenruppert.openprobatum.security.permissions.AppPermission.AD
 import static com.svenruppert.openprobatum.security.permissions.AppPermission.ADMIN_SESSIONS;
 import static com.svenruppert.openprobatum.security.permissions.AppPermission.APP_VIEW;
 import static com.svenruppert.openprobatum.security.permissions.AppPermission.AUDIT_READ;
+import static com.svenruppert.openprobatum.security.permissions.AppPermission.AUTHOR_CONTENT;
+import static com.svenruppert.openprobatum.security.permissions.AppPermission.CREDENTIAL_MANAGE;
 
 /**
- * Role → permission table. SPI-registered via
+ * Role → permission table (concept §5). SPI-registered via
  * {@link JSentinelAutoService @JSentinelAutoService}.
  *
  * <ul>
- *   <li>ADMIN: every permission</li>
- *   <li>USER: just app:view</li>
+ *   <li>LEARNER: {@code app:view}</li>
+ *   <li>AUTHOR: {@code app:view}, {@code author:content}</li>
+ *   <li>CREDENTIAL_MANAGER: {@code app:view}, {@code credential:manage}</li>
+ *   <li>PLATFORM_ADMIN: every permission</li>
+ *   <li>VERIFIER: {@code app:view}</li>
  * </ul>
  */
 @JSentinelAutoService(AuthorizationService.class)
@@ -52,12 +57,22 @@ public class AppAuthorizationService
     implements AuthorizationService<AppUser> {
 
   private static final RolePermissionMapping ROLE_PERMISSIONS = StaticRolePermissionMapping.builder()
-      .put(roleName(AuthorizationRole.ADMIN), Set.of(
+      .put(roleName(AuthorizationRole.LEARNER), Set.of(
+          APP_VIEW.permissionName()))
+      .put(roleName(AuthorizationRole.AUTHOR), Set.of(
+          APP_VIEW.permissionName(),
+          AUTHOR_CONTENT.permissionName()))
+      .put(roleName(AuthorizationRole.CREDENTIAL_MANAGER), Set.of(
+          APP_VIEW.permissionName(),
+          CREDENTIAL_MANAGE.permissionName()))
+      .put(roleName(AuthorizationRole.PLATFORM_ADMIN), Set.of(
           APP_VIEW.permissionName(),
           AUDIT_READ.permissionName(),
           ADMIN_SESSIONS.permissionName(),
-          ADMIN_ROLES.permissionName()))
-      .put(roleName(AuthorizationRole.USER), Set.of(
+          ADMIN_ROLES.permissionName(),
+          AUTHOR_CONTENT.permissionName(),
+          CREDENTIAL_MANAGE.permissionName()))
+      .put(roleName(AuthorizationRole.VERIFIER), Set.of(
           APP_VIEW.permissionName()))
       .build();
 

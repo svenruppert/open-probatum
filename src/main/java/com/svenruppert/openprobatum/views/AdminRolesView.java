@@ -259,7 +259,7 @@ public class AdminRolesView extends Composite<VerticalLayout>
     role.setItems(AuthorizationRole.values());
     role.setItemLabelGenerator(Enum::name);
     role.setRequiredIndicatorVisible(true);
-    role.setValue(AuthorizationRole.USER);
+    role.setValue(AuthorizationRole.LEARNER);
 
     FormLayout form = new FormLayout(username, password, displayName, role);
     dialog.add(new H3(tr(K_CR_TITLE, "Create user")), form);
@@ -281,7 +281,7 @@ public class AdminRolesView extends Composite<VerticalLayout>
       String display = displayName.getValue() == null || displayName.getValue().isBlank()
           ? u : displayName.getValue();
       AppUser created = new AppUser(nextId(), display,
-          EnumSet.of(AuthorizationRole.USER, r));
+          EnumSet.of(AuthorizationRole.LEARNER, r));
       try {
         UserDirectoryProvider.directory().addUser(u, p, created);
         success(tr(K_CR_SUCCESS, "Created user {0}.", u));

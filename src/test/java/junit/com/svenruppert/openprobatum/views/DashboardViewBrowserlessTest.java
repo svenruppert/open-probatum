@@ -59,10 +59,10 @@ class DashboardViewBrowserlessTest extends BrowserlessTest {
   }
 
   @Test
-  @DisplayName("authenticated admin sees their name in the heading + ADMIN+USER badges")
+  @DisplayName("authenticated admin sees their name in the heading + PLATFORM_ADMIN+LEARNER badges")
   void adminGetsNameAndBadges() {
     AppUser admin = new AppUser(7L, "Alice Admin",
-        EnumSet.of(AuthorizationRole.ADMIN, AuthorizationRole.USER));
+        EnumSet.of(AuthorizationRole.PLATFORM_ADMIN, AuthorizationRole.LEARNER));
     SubjectStores.subjectStore().setCurrentSubject(admin, AppUser.class);
 
     navigate(DashboardView.class);
@@ -73,31 +73,31 @@ class DashboardViewBrowserlessTest extends BrowserlessTest {
     List<String> badgeTexts = $view(Span.class).all().stream()
         .map(Span::getText)
         .collect(Collectors.toList());
-    assertTrue(badgeTexts.contains("ADMIN"));
-    assertTrue(badgeTexts.contains("USER"));
+    assertTrue(badgeTexts.contains("PLATFORM_ADMIN"));
+    assertTrue(badgeTexts.contains("LEARNER"));
   }
 
   @Test
-  @DisplayName("regular user sees only the USER badge")
+  @DisplayName("regular learner sees only the LEARNER badge")
   void regularUserGetsOneBadge() {
     AppUser user = new AppUser(8L, "Bob User",
-        EnumSet.of(AuthorizationRole.USER));
+        EnumSet.of(AuthorizationRole.LEARNER));
     SubjectStores.subjectStore().setCurrentSubject(user, AppUser.class);
 
     navigate(DashboardView.class);
 
     List<String> badgeTexts = $view(Span.class).all().stream()
         .map(Span::getText)
-        .filter(t -> "ADMIN".equals(t) || "USER".equals(t))
+        .filter(t -> "PLATFORM_ADMIN".equals(t) || "LEARNER".equals(t))
         .collect(Collectors.toList());
-    assertEquals(List.of("USER"), badgeTexts);
+    assertEquals(List.of("LEARNER"), badgeTexts);
   }
 
   @Test
   @DisplayName("hint paragraph references drawer-based navigation gating")
   void hintParagraphPresent() {
     AppUser user = new AppUser(9L, "Carol",
-        EnumSet.of(AuthorizationRole.USER));
+        EnumSet.of(AuthorizationRole.LEARNER));
     SubjectStores.subjectStore().setCurrentSubject(user, AppUser.class);
 
     navigate(DashboardView.class);

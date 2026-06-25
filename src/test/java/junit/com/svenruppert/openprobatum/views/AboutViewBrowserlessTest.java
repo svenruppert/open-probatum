@@ -43,7 +43,7 @@ class AboutViewBrowserlessTest extends BrowserlessTest {
   void seedAdminAndAuth() {
     TestSupport.seedAdminAndResetBootstrap();
     SubjectStores.subjectStore().setCurrentSubject(
-        new AppUser(33L, "Tester", EnumSet.of(AuthorizationRole.USER, AuthorizationRole.ADMIN)),
+        new AppUser(33L, "Tester", EnumSet.of(AuthorizationRole.LEARNER, AuthorizationRole.PLATFORM_ADMIN)),
         AppUser.class);
   }
 

@@ -127,7 +127,7 @@ public final class PersistentUserDirectory implements UserDirectory, HasLogger {
   @Override
   public boolean hasAnyAdministrator() {
     return byUsername.values().stream()
-        .anyMatch(stored -> stored.user().roles().contains(AuthorizationRole.ADMIN));
+        .anyMatch(stored -> stored.user().roles().contains(AuthorizationRole.PLATFORM_ADMIN));
   }
 
   @Override
@@ -247,9 +247,9 @@ public final class PersistentUserDirectory implements UserDirectory, HasLogger {
   }
 
   private static String firstRoleOf(AppUser user) {
-    if (user.roles().contains(AuthorizationRole.ADMIN)) return AuthorizationRole.ADMIN.name();
-    if (user.roles().contains(AuthorizationRole.USER)) return AuthorizationRole.USER.name();
-    return AuthorizationRole.USER.name();
+    if (user.roles().contains(AuthorizationRole.PLATFORM_ADMIN)) return AuthorizationRole.PLATFORM_ADMIN.name();
+    if (user.roles().contains(AuthorizationRole.LEARNER)) return AuthorizationRole.LEARNER.name();
+    return AuthorizationRole.LEARNER.name();
   }
 
   private static void audit(com.svenruppert.jsentinel.audit.AuditEvent event) {

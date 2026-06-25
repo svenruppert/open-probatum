@@ -99,7 +99,7 @@ class PersistentUserDirectoryTest {
   @Test
   @DisplayName("addUser persists, findByCredentials returns the user on correct password")
   void addUserThenLogin() {
-    AppUser alice = new AppUser(1L, "Alice", EnumSet.of(AuthorizationRole.USER));
+    AppUser alice = new AppUser(1L, "Alice", EnumSet.of(AuthorizationRole.LEARNER));
     directory.addUser("alice", "correct-horse-battery-staple", alice);
 
     Optional<AppUser> result = directory.findByCredentials(
@@ -112,7 +112,7 @@ class PersistentUserDirectoryTest {
   @Test
   @DisplayName("findByCredentials returns empty on wrong password (no leak via timing-style assert)")
   void wrongPasswordIsRejected() {
-    AppUser bob = new AppUser(2L, "Bob", EnumSet.of(AuthorizationRole.USER));
+    AppUser bob = new AppUser(2L, "Bob", EnumSet.of(AuthorizationRole.LEARNER));
     directory.addUser("bob", "secretsecret", bob);
 
     Optional<AppUser> result = directory.findByCredentials(
@@ -143,7 +143,7 @@ class PersistentUserDirectoryTest {
   @Test
   @DisplayName("a second directory pointed at the same persistence sees the same user")
   void secondDirectoryReloadsUsers() {
-    AppUser carol = new AppUser(3L, "Carol", EnumSet.of(AuthorizationRole.USER));
+    AppUser carol = new AppUser(3L, "Carol", EnumSet.of(AuthorizationRole.LEARNER));
     directory.addUser("carol", "trustno1-trustno1", carol);
 
     PersistentUserDirectory reloaded = new PersistentUserDirectory(
@@ -158,7 +158,7 @@ class PersistentUserDirectoryTest {
   @Test
   @DisplayName("hashed password in the persistence is NOT the plaintext")
   void hashIsNotPlaintext() {
-    AppUser dave = new AppUser(4L, "Dave", EnumSet.of(AuthorizationRole.USER));
+    AppUser dave = new AppUser(4L, "Dave", EnumSet.of(AuthorizationRole.LEARNER));
     directory.addUser("dave", "myplaintextpw", dave);
 
     Map<String, StoredUser> snapshot = persistence.load();
@@ -177,7 +177,7 @@ class PersistentUserDirectoryTest {
     String preHashed = BouncyCastleHashingServices.modern()
         .hash("verbatim-test".toCharArray()).encodedHash();
 
-    AppUser eve = new AppUser(5L, "Eve", EnumSet.of(AuthorizationRole.ADMIN));
+    AppUser eve = new AppUser(5L, "Eve", EnumSet.of(AuthorizationRole.PLATFORM_ADMIN));
     directory.registerWithHashedPassword("eve", preHashed, eve);
 
     // Round-trip through the persistence layer must keep the hash byte-identical.
@@ -197,10 +197,10 @@ class PersistentUserDirectoryTest {
     String anyHash = BouncyCastleHashingServices.modern()
         .hash("x".toCharArray()).encodedHash();
 
-    AppUser frank = new AppUser(6L, "Frank", EnumSet.of(AuthorizationRole.USER));
+    AppUser frank = new AppUser(6L, "Frank", EnumSet.of(AuthorizationRole.LEARNER));
     directory.registerWithHashedPassword("frank", anyHash, frank);
 
-    AppUser frankAgain = new AppUser(7L, "Frank2", EnumSet.of(AuthorizationRole.ADMIN));
+    AppUser frankAgain = new AppUser(7L, "Frank2", EnumSet.of(AuthorizationRole.PLATFORM_ADMIN));
     assertThrows(IllegalStateException.class,
         () -> directory.registerWithHashedPassword("frank", anyHash, frankAgain));
   }
@@ -210,25 +210,25 @@ class PersistentUserDirectoryTest {
   @Test
   @DisplayName("assignRole adds the role; revokeRole removes it; hasAnyAdministrator reacts")
   void roleMutationsArePersisted() {
-    AppUser greg = new AppUser(10L, "Greg", EnumSet.of(AuthorizationRole.USER));
+    AppUser greg = new AppUser(10L, "Greg", EnumSet.of(AuthorizationRole.LEARNER));
     directory.addUser("greg", "pw-pw-pw-pw-pw", greg);
     assertFalse(directory.hasAnyAdministrator());
 
-    directory.assignRole(10L, AuthorizationRole.ADMIN);
+    directory.assignRole(10L, AuthorizationRole.PLATFORM_ADMIN);
     assertTrue(directory.hasAnyAdministrator());
     assertTrue(directory.findById(10L).orElseThrow()
-        .roles().contains(AuthorizationRole.ADMIN));
+        .roles().contains(AuthorizationRole.PLATFORM_ADMIN));
 
-    directory.revokeRole(10L, AuthorizationRole.ADMIN);
+    directory.revokeRole(10L, AuthorizationRole.PLATFORM_ADMIN);
     assertFalse(directory.hasAnyAdministrator());
     assertFalse(directory.findById(10L).orElseThrow()
-        .roles().contains(AuthorizationRole.ADMIN));
+        .roles().contains(AuthorizationRole.PLATFORM_ADMIN));
   }
 
   @Test
   @DisplayName("deleteUser removes from both lookup maps and from persistence")
   void deleteUserRemovesEverywhere() {
-    AppUser harry = new AppUser(20L, "Harry", EnumSet.of(AuthorizationRole.USER));
+    AppUser harry = new AppUser(20L, "Harry", EnumSet.of(AuthorizationRole.LEARNER));
     directory.addUser("harry", "passwordpassword", harry);
     assertTrue(directory.findById(20L).isPresent());
 
@@ -253,11 +253,11 @@ class PersistentUserDirectoryTest {
   @DisplayName("all() yields exactly the users stored")
   void allYieldsStoredUsers() {
     directory.addUser("u1", "alpha-alpha-alpha", new AppUser(
-        100L, "U1", EnumSet.of(AuthorizationRole.USER)));
+        100L, "U1", EnumSet.of(AuthorizationRole.LEARNER)));
     directory.addUser("u2", "beta-beta-beta-beta", new AppUser(
-        101L, "U2", EnumSet.of(AuthorizationRole.USER)));
+        101L, "U2", EnumSet.of(AuthorizationRole.LEARNER)));
     directory.addUser("u3", "gamma-gamma-gamma-g", new AppUser(
-        102L, "U3", EnumSet.of(AuthorizationRole.ADMIN)));
+        102L, "U3", EnumSet.of(AuthorizationRole.PLATFORM_ADMIN)));
 
     assertEquals(3, directory.all().count());
   }
@@ -268,7 +268,7 @@ class PersistentUserDirectoryTest {
   @DisplayName("addUser publishes a UserCreated event with the username + role")
   void addUserPublishesUserCreatedEvent() {
     directory.addUser("ada", "abcdef-abcdef-1",
-        new AppUser(200L, "Ada", EnumSet.of(AuthorizationRole.ADMIN)));
+        new AppUser(200L, "Ada", EnumSet.of(AuthorizationRole.PLATFORM_ADMIN)));
 
     assertEquals(1, audit.events.size());
     AuditEvent evt = audit.events.get(0);
@@ -276,14 +276,14 @@ class PersistentUserDirectoryTest {
         "expected UserCreated, got: " + evt.getClass().getSimpleName());
     UserCreated created = (UserCreated) evt;
     assertEquals("ada", created.username());
-    assertEquals("ADMIN", created.role());
+    assertEquals("PLATFORM_ADMIN", created.role());
   }
 
   @Test
   @DisplayName("deleteUser publishes a UserDeleted event referencing the username")
   void deleteUserPublishesUserDeletedEvent() {
     directory.addUser("ben", "abcdef-abcdef-1",
-        new AppUser(201L, "Ben", EnumSet.of(AuthorizationRole.USER)));
+        new AppUser(201L, "Ben", EnumSet.of(AuthorizationRole.LEARNER)));
     audit.events.clear();
 
     directory.deleteUser(201L);
@@ -297,17 +297,17 @@ class PersistentUserDirectoryTest {
   @DisplayName("assignRole + revokeRole publish RoleAssigned / RoleRevoked")
   void roleMutationsAreAudited() {
     directory.addUser("cy", "abcdef-abcdef-1",
-        new AppUser(202L, "Cy", EnumSet.of(AuthorizationRole.USER)));
+        new AppUser(202L, "Cy", EnumSet.of(AuthorizationRole.LEARNER)));
     audit.events.clear();
 
-    directory.assignRole(202L, AuthorizationRole.ADMIN);
-    directory.revokeRole(202L, AuthorizationRole.ADMIN);
+    directory.assignRole(202L, AuthorizationRole.PLATFORM_ADMIN);
+    directory.revokeRole(202L, AuthorizationRole.PLATFORM_ADMIN);
 
     assertEquals(2, audit.events.size());
     assertTrue(audit.events.get(0) instanceof RoleAssigned ra
-        && "202".equals(ra.subjectId()) && "ADMIN".equals(ra.role()));
+        && "202".equals(ra.subjectId()) && "PLATFORM_ADMIN".equals(ra.role()));
     assertTrue(audit.events.get(1) instanceof RoleRevoked rr
-        && "202".equals(rr.subjectId()) && "ADMIN".equals(rr.role()));
+        && "202".equals(rr.subjectId()) && "PLATFORM_ADMIN".equals(rr.role()));
   }
 
   // ── Transparent rehash — kill the needsRehash conditional + persist() call ──
@@ -320,7 +320,7 @@ class PersistentUserDirectoryTest {
     // doesn't re-hash on insert.
     String pbkdf2Hash = PasswordHashingServices.defaults()
         .hash("legacy-12345".toCharArray()).encodedHash();
-    AppUser legacy = new AppUser(300L, "Legacy", EnumSet.of(AuthorizationRole.USER));
+    AppUser legacy = new AppUser(300L, "Legacy", EnumSet.of(AuthorizationRole.LEARNER));
     directory.registerWithHashedPassword("legacy", pbkdf2Hash, legacy);
     assertTrue(pbkdf2Hash.startsWith("$pbkdf2") || pbkdf2Hash.contains("pbkdf2"),
         "test fixture sanity: expected a PBKDF2 envelope, got: " + pbkdf2Hash);
@@ -349,7 +349,7 @@ class PersistentUserDirectoryTest {
     AppClock.setClock(Clock.fixed(fixed, ZoneOffset.UTC));
 
     directory.addUser("tim", "abcdef-abcdef-1",
-        new AppUser(500L, "Tim", EnumSet.of(AuthorizationRole.USER)));
+        new AppUser(500L, "Tim", EnumSet.of(AuthorizationRole.LEARNER)));
 
     assertEquals(1, audit.events.size());
     assertEquals(fixed, ((UserCreated) audit.events.get(0)).timestamp(),
@@ -366,7 +366,7 @@ class PersistentUserDirectoryTest {
     PersistentUserDirectory dir = new PersistentUserDirectory(
         new InMemoryUserDirectoryPersistence(), counting);
     dir.addUser("alice", "abcdef-abcdef-1",
-        new AppUser(1L, "Alice", EnumSet.of(AuthorizationRole.USER)));
+        new AppUser(1L, "Alice", EnumSet.of(AuthorizationRole.LEARNER)));
     counting.verifyAgainstNothingCalls.set(0);
     counting.verifyCalls.set(0);
 
@@ -386,7 +386,7 @@ class PersistentUserDirectoryTest {
     PersistentUserDirectory dir = new PersistentUserDirectory(
         new InMemoryUserDirectoryPersistence(), counting);
     dir.addUser("alice", "abcdef-abcdef-1",
-        new AppUser(1L, "Alice", EnumSet.of(AuthorizationRole.USER)));
+        new AppUser(1L, "Alice", EnumSet.of(AuthorizationRole.LEARNER)));
     counting.verifyAgainstNothingCalls.set(0);
     counting.verifyCalls.set(0);
 
@@ -402,9 +402,9 @@ class PersistentUserDirectoryTest {
   @DisplayName("deleteUser(id) removes only that id; same-name twin survives (R25)")
   void deleteByIdDoesNotAffectTwin() {
     directory.addUser("twin-a", "alpha-alpha-alpha",
-        new AppUser(40L, "Twin", EnumSet.of(AuthorizationRole.USER)));
+        new AppUser(40L, "Twin", EnumSet.of(AuthorizationRole.LEARNER)));
     directory.addUser("twin-b", "beta-beta-beta-b",
-        new AppUser(41L, "Twin", EnumSet.of(AuthorizationRole.USER)));
+        new AppUser(41L, "Twin", EnumSet.of(AuthorizationRole.LEARNER)));
 
     directory.deleteUser(40L);
 
@@ -427,14 +427,14 @@ class PersistentUserDirectoryTest {
       // the path that previously persisted outside the mutator lock.
       directory.deleteUser(60L);
       directory.registerWithHashedPassword("race", pbkdf2,
-          new AppUser(60L, "Race", EnumSet.of(AuthorizationRole.USER)));
+          new AppUser(60L, "Race", EnumSet.of(AuthorizationRole.LEARNER)));
 
       ExecutorService pool = Executors.newFixedThreadPool(2);
       try {
         Future<?> login = pool.submit(() ->
             directory.findByCredentials(new Credentials("race", "legacy-12345")));
         Future<?> assign = pool.submit(() -> {
-          directory.assignRole(60L, AuthorizationRole.ADMIN);
+          directory.assignRole(60L, AuthorizationRole.PLATFORM_ADMIN);
           return null;
         });
         login.get();
@@ -443,7 +443,7 @@ class PersistentUserDirectoryTest {
         pool.shutdownNow();
       }
 
-      assertTrue(directory.findById(60L).orElseThrow().roles().contains(AuthorizationRole.ADMIN),
+      assertTrue(directory.findById(60L).orElseThrow().roles().contains(AuthorizationRole.PLATFORM_ADMIN),
           "a role assigned concurrently with a login-rehash must not be reverted");
     }
   }

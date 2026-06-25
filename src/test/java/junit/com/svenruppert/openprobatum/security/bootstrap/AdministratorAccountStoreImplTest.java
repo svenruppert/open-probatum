@@ -63,7 +63,7 @@ class AdministratorAccountStoreImplTest {
   @DisplayName("a USER-only entry does NOT count as administrator")
   void userOnlyDoesNotCountAsAdmin() {
     directory.addUser("plain", "plainplainplain",
-        new AppUser(1L, "plain", EnumSet.of(AuthorizationRole.USER)));
+        new AppUser(1L, "plain", EnumSet.of(AuthorizationRole.LEARNER)));
     assertFalse(adapter.hasAnyAdministrator());
   }
 
@@ -81,7 +81,7 @@ class AdministratorAccountStoreImplTest {
   // ── createAdministrator side effects ───────────────────────────
 
   @Test
-  @DisplayName("createAdministrator stores ADMIN + USER roles on the new user")
+  @DisplayName("createAdministrator stores PLATFORM_ADMIN + LEARNER roles on the new user")
   void createdAdminHasAdminAndUserRoles() {
     String hash = BouncyCastleHashingServices.modern()
         .hash("12-char-password".toCharArray()).encodedHash();
@@ -90,8 +90,8 @@ class AdministratorAccountStoreImplTest {
 
     AppUser created = directory.findByCredentials(
         new Credentials("alice", "12-char-password")).orElseThrow();
-    assertTrue(created.roles().contains(AuthorizationRole.ADMIN));
-    assertTrue(created.roles().contains(AuthorizationRole.USER));
+    assertTrue(created.roles().contains(AuthorizationRole.PLATFORM_ADMIN));
+    assertTrue(created.roles().contains(AuthorizationRole.LEARNER));
     assertEquals(2, created.roles().size());
   }
 

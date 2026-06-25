@@ -62,7 +62,7 @@ public final class AdministratorAccountStoreImpl
     AppUser user = new AppUser(
         idSequence.getAndIncrement(),
         displayName,
-        EnumSet.of(AuthorizationRole.ADMIN, AuthorizationRole.USER));
+        EnumSet.of(AuthorizationRole.PLATFORM_ADMIN, AuthorizationRole.LEARNER));
     logger().debug("Persisting initial administrator: id={}, roles={}",
         user.id(), user.roles());
     // Let a persistence failure propagate untouched: since jSentinel 00.75.20,

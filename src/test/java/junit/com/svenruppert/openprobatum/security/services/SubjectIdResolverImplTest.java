@@ -36,15 +36,15 @@ class SubjectIdResolverImplTest {
   @Test
   @DisplayName("resolve uses the user's id as the SubjectId value")
   void resolveStringifiesId() {
-    AppUser u = new AppUser(42L, "alice", EnumSet.of(AuthorizationRole.USER));
+    AppUser u = new AppUser(42L, "alice", EnumSet.of(AuthorizationRole.LEARNER));
     assertEquals(SubjectId.of("42"), resolver.resolve(u));
   }
 
   @Test
   @DisplayName("resolve handles a different id distinctly (kills constant-replace mutants)")
   void resolveDistinguishesIds() {
-    AppUser a = new AppUser(1L, "a", EnumSet.of(AuthorizationRole.USER));
-    AppUser b = new AppUser(2L, "b", EnumSet.of(AuthorizationRole.USER));
+    AppUser a = new AppUser(1L, "a", EnumSet.of(AuthorizationRole.LEARNER));
+    AppUser b = new AppUser(2L, "b", EnumSet.of(AuthorizationRole.LEARNER));
     assertEquals(SubjectId.of("1"), resolver.resolve(a));
     assertEquals(SubjectId.of("2"), resolver.resolve(b));
   }
@@ -52,7 +52,7 @@ class SubjectIdResolverImplTest {
   @Test
   @DisplayName("tenantFor always returns TenantId.DEFAULT (single-tenant)")
   void tenantIsDefault() {
-    AppUser u = new AppUser(99L, "x", EnumSet.of(AuthorizationRole.ADMIN));
+    AppUser u = new AppUser(99L, "x", EnumSet.of(AuthorizationRole.PLATFORM_ADMIN));
     assertEquals(TenantId.DEFAULT, resolver.tenantFor(u));
   }
 }

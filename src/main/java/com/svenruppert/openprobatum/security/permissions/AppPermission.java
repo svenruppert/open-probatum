@@ -31,7 +31,11 @@ public enum AppPermission {
   APP_VIEW("app:view"),
   AUDIT_READ("audit:read"),
   ADMIN_SESSIONS("admin:sessions"),
-  ADMIN_ROLES("admin:roles");
+  ADMIN_ROLES("admin:roles"),
+  /** Author: create/edit catalog content (offerings, paths, modules, resources, questions). */
+  AUTHOR_CONTENT("author:content"),
+  /** Credential Manager: govern issued credentials (e.g. revoke). */
+  CREDENTIAL_MANAGE("credential:manage");
 
   private final PermissionName permissionName;
 

@@ -39,46 +39,53 @@ class AppAuthorizationServiceTest {
 
   // ── permissionsFor ─────────────────────────────────────────────
 
-  @Test
-  @DisplayName("ADMIN+USER subject gets the full four-permission set")
-  void adminGetsAllFourPermissions() {
-    AppUser admin = new AppUser(1L, "admin",
-        EnumSet.of(AuthorizationRole.ADMIN, AuthorizationRole.USER));
-
-    Set<String> perms = service.permissionsFor(admin).permissionNames().stream()
+  private Set<String> permissionsOf(AuthorizationRole... roles) {
+    AppUser u = new AppUser(1L, "u", EnumSet.copyOf(Set.of(roles)));
+    return service.permissionsFor(u).permissionNames().stream()
         .map(PermissionName::value)
         .collect(Collectors.toSet());
-
-    assertEquals(
-        Set.of("app:view", "audit:read", "admin:sessions", "admin:roles"),
-        perms);
   }
 
   @Test
-  @DisplayName("USER-only subject gets only app:view")
-  void userGetsOnlyAppView() {
-    AppUser user = new AppUser(2L, "user", EnumSet.of(AuthorizationRole.USER));
-
-    Set<String> perms = service.permissionsFor(user).permissionNames().stream()
-        .map(PermissionName::value)
-        .collect(Collectors.toSet());
-
-    assertEquals(Set.of("app:view"), perms);
+  @DisplayName("PLATFORM_ADMIN holds every permission (the superuser)")
+  void platformAdminGetsEveryPermission() {
+    assertEquals(
+        Set.of("app:view", "audit:read", "admin:sessions", "admin:roles",
+            "author:content", "credential:manage"),
+        permissionsOf(AuthorizationRole.PLATFORM_ADMIN));
   }
 
   @Test
-  @DisplayName("ADMIN-only (no USER) still gets the full four — ADMIN's set is complete on its own")
-  void adminAloneGetsFullFour() {
-    AppUser admin = new AppUser(3L, "admin-only",
-        EnumSet.of(AuthorizationRole.ADMIN));
+  @DisplayName("LEARNER gets only app:view")
+  void learnerGetsOnlyAppView() {
+    assertEquals(Set.of("app:view"), permissionsOf(AuthorizationRole.LEARNER));
+  }
 
-    Set<String> perms = service.permissionsFor(admin).permissionNames().stream()
-        .map(PermissionName::value)
-        .collect(Collectors.toSet());
+  @Test
+  @DisplayName("AUTHOR gets app:view + author:content")
+  void authorGetsContentPermission() {
+    assertEquals(Set.of("app:view", "author:content"),
+        permissionsOf(AuthorizationRole.AUTHOR));
+  }
 
-    assertEquals(
-        Set.of("app:view", "audit:read", "admin:sessions", "admin:roles"),
-        perms);
+  @Test
+  @DisplayName("CREDENTIAL_MANAGER gets app:view + credential:manage")
+  void credentialManagerGetsManagePermission() {
+    assertEquals(Set.of("app:view", "credential:manage"),
+        permissionsOf(AuthorizationRole.CREDENTIAL_MANAGER));
+  }
+
+  @Test
+  @DisplayName("VERIFIER gets only app:view")
+  void verifierGetsOnlyAppView() {
+    assertEquals(Set.of("app:view"), permissionsOf(AuthorizationRole.VERIFIER));
+  }
+
+  @Test
+  @DisplayName("permissions are the union across a multi-role subject")
+  void multiRoleUnionsPermissions() {
+    assertEquals(Set.of("app:view", "author:content", "credential:manage"),
+        permissionsOf(AuthorizationRole.AUTHOR, AuthorizationRole.CREDENTIAL_MANAGER));
   }
 
   @Test
@@ -96,7 +103,7 @@ class AppAuthorizationServiceTest {
   @DisplayName("rolesFor mirrors the subject's role enum names exactly")
   void rolesForReturnsRoleNames() {
     AppUser admin = new AppUser(5L, "admin",
-        EnumSet.of(AuthorizationRole.ADMIN, AuthorizationRole.USER));
+        EnumSet.of(AuthorizationRole.PLATFORM_ADMIN, AuthorizationRole.LEARNER));
 
     Set<String> names = admin.roles().stream()
         .map(Enum::name)
@@ -107,7 +114,7 @@ class AppAuthorizationServiceTest {
         .collect(Collectors.toSet());
 
     assertEquals(names, reported);
-    assertEquals(Set.of("ADMIN", "USER"), reported);
+    assertEquals(Set.of("PLATFORM_ADMIN", "LEARNER"), reported);
   }
 
   @Test

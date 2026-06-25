@@ -52,7 +52,7 @@ class SessionVersionResolverTest {
   }
 
   private static AppUser user(long id) {
-    return new AppUser(id, "u" + id, EnumSet.of(AuthorizationRole.USER));
+    return new AppUser(id, "u" + id, EnumSet.of(AuthorizationRole.LEARNER));
   }
 
   @Test

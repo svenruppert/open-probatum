@@ -40,7 +40,7 @@ class YoutubeViewBrowserlessTest extends BrowserlessTest {
   void seedUser() {
     TestSupport.seedAdminAndResetBootstrap();
     SubjectStores.subjectStore().setCurrentSubject(
-        new AppUser(44L, "ViewerUser", EnumSet.of(AuthorizationRole.USER)),
+        new AppUser(44L, "ViewerUser", EnumSet.of(AuthorizationRole.LEARNER)),
         AppUser.class);
   }
 

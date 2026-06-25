@@ -151,7 +151,8 @@ public class SecurityFeaturesView extends Composite<VerticalLayout>
         new FeatureCard(VaadinIcon.USER_CHECK,
             tr(K_C_ROLES_T, "Role + permission catalog"),
             tr(K_C_ROLES_B,
-                "AuthorizationRole enum (ADMIN, USER) → permission set "
+                "AuthorizationRole enum (Learner, Author, Credential "
+                    + "Manager, Platform Admin, Verifier) → permission set "
                     + "via AppAuthorizationService. Permissions are the "
                     + "granular unit; roles are convenience bundles.")),
         new FeatureCard(VaadinIcon.EYE,

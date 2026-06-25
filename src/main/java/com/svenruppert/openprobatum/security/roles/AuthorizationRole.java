@@ -17,13 +17,29 @@
 package com.svenruppert.openprobatum.security.roles;
 
 /**
- * Role catalog for the application.
+ * Role catalog for the application (concept §5). A subject holds a set of these.
  *
- * <p>The role-to-permission table lives in {@code AppAuthorizationService}.
- * Add a new role here, map it to permissions there, and reference it in
+ * <ul>
+ *   <li>{@link #LEARNER} — registers, browses the catalog, learns, practises and
+ *       owns a credential wallet (§5.1).</li>
+ *   <li>{@link #AUTHOR} — creates offerings, paths, modules, resources and
+ *       questions (§5.2).</li>
+ *   <li>{@link #CREDENTIAL_MANAGER} — governs issued credentials, e.g. revoke
+ *       (§5.5).</li>
+ *   <li>{@link #PLATFORM_ADMIN} — operates the instance; holds every permission
+ *       (§5.6).</li>
+ *   <li>{@link #VERIFIER} — an authenticated verifier; the public validation page
+ *       itself needs no account (§5.7).</li>
+ * </ul>
+ *
+ * <p>The role-to-permission table lives in {@code AppAuthorizationService}. Add a
+ * new role here, map it to permissions there, and reference it in
  * {@code @VisibleFor(...)} on views.
  */
 public enum AuthorizationRole {
-  ADMIN,
-  USER
+  LEARNER,
+  AUTHOR,
+  CREDENTIAL_MANAGER,
+  PLATFORM_ADMIN,
+  VERIFIER
 }

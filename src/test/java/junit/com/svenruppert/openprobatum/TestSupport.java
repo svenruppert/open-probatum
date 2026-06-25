@@ -65,7 +65,7 @@ public final class TestSupport {
         BouncyCastleHashingServices.modern());
     seeded.addUser("admin", "abcdef-abcdef-1",
         new AppUser(1000L, "Administrator",
-            EnumSet.of(AuthorizationRole.ADMIN, AuthorizationRole.USER)));
+            EnumSet.of(AuthorizationRole.PLATFORM_ADMIN, AuthorizationRole.LEARNER)));
     UserDirectoryProvider.setDirectory(seeded);
     resetStaticField(BootstrapWiring.class, "current", null);
     resetAtomicBoolean(JSentinelBootstrapInitListener.class, "DONE");

@@ -33,7 +33,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 @Route(value = PushDemoView.PATH, layout = MainLayout.class)
-@VisibleFor(AuthorizationRole.USER)
+@VisibleFor(AuthorizationRole.LEARNER)
 public class PushDemoView extends VerticalLayout implements I18nSupport {
 
   public static final String PATH = "pushDemo";

@@ -49,7 +49,7 @@ class SessionAccessTest {
   }
 
   private static AppUser user(long id) {
-    return new AppUser(id, "u" + id, EnumSet.of(AuthorizationRole.USER));
+    return new AppUser(id, "u" + id, EnumSet.of(AuthorizationRole.LEARNER));
   }
 
   @Test
@@ -79,7 +79,7 @@ class SessionAccessTest {
   @Test
   @DisplayName("a non-admin with a null id sees nothing (no NPE)")
   void nonAdminNullIdSeesNothing() {
-    AppUser noId = new AppUser(null, "x", EnumSet.of(AuthorizationRole.USER));
+    AppUser noId = new AppUser(null, "x", EnumSet.of(AuthorizationRole.LEARNER));
     assertTrue(SessionAccess.visibleTo(List.of(sessionFor("1")), noId, false).isEmpty());
   }
 }

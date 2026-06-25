@@ -57,7 +57,7 @@ class AppAuthenticationServiceTest {
         new InMemoryUserDirectoryPersistence(),
         BouncyCastleHashingServices.modern());
     seeded.addUser("alice", "abcdef-abcdef-1",
-        new AppUser(10L, "Alice", EnumSet.of(AuthorizationRole.USER)));
+        new AppUser(10L, "Alice", EnumSet.of(AuthorizationRole.LEARNER)));
     UserDirectoryProvider.setDirectory(seeded);
 
     policy = new RecordingPolicy();

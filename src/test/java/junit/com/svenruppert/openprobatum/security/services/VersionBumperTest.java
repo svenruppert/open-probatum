@@ -62,7 +62,7 @@ class VersionBumperTest {
   @DisplayName("user with null id → empty (no NPE)")
   void nullUserIdIsEmpty() {
     JSentinelServiceResolver.setJSentinelVersionStore(new InMemoryJSentinelVersionStore());
-    AppUser noId = new AppUser(null, "x", EnumSet.of(AuthorizationRole.USER));
+    AppUser noId = new AppUser(null, "x", EnumSet.of(AuthorizationRole.LEARNER));
     assertFalse(VersionBumper.bump(noId).isPresent());
   }
 
@@ -72,7 +72,7 @@ class VersionBumperTest {
     RecordingStore store = new RecordingStore();
     JSentinelServiceResolver.setJSentinelVersionStore(store);
 
-    AppUser u = new AppUser(77L, "alice", EnumSet.of(AuthorizationRole.USER));
+    AppUser u = new AppUser(77L, "alice", EnumSet.of(AuthorizationRole.LEARNER));
     Optional<Long> first = VersionBumper.bump(u);
 
     assertTrue(first.isPresent());
@@ -85,7 +85,7 @@ class VersionBumperTest {
   @DisplayName("two consecutive bumps on the same user yield monotonically increasing values")
   void consecutiveBumpsIncrement() {
     JSentinelServiceResolver.setJSentinelVersionStore(new RecordingStore());
-    AppUser u = new AppUser(8L, "u8", EnumSet.of(AuthorizationRole.USER));
+    AppUser u = new AppUser(8L, "u8", EnumSet.of(AuthorizationRole.LEARNER));
 
     long v1 = VersionBumper.bump(u).orElseThrow();
     long v2 = VersionBumper.bump(u).orElseThrow();
