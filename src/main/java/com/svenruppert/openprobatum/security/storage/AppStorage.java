@@ -138,5 +138,7 @@ public final class AppStorage {
     public final Map<UUID, com.svenruppert.openprobatum.lab.Lab> labs = new ConcurrentHashMap<>();
     public final Map<UUID, com.svenruppert.openprobatum.lab.LabSubmission> labSubmissions =
         new ConcurrentHashMap<>();
+    public final Map<UUID, com.svenruppert.openprobatum.bundle.Bundle> bundles =
+        new ConcurrentHashMap<>();
   }
 }
