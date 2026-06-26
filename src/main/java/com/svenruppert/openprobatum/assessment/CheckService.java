@@ -55,4 +55,11 @@ public final class CheckService {
   public int attemptCount(String learnerName, UUID assessmentId) {
     return attempts.countFor(learnerName, assessmentId);
   }
+
+  /** How many of {@code learnerName}'s attempts at the assessment passed. */
+  public long passedAttemptCount(String learnerName, UUID assessmentId) {
+    return attempts.forLearner(learnerName, assessmentId).stream()
+        .filter(Attempt::passed)
+        .count();
+  }
 }

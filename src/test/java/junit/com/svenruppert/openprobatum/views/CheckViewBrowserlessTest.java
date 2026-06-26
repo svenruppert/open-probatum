@@ -22,6 +22,11 @@ import com.svenruppert.openprobatum.assessment.AttemptRepositoryProvider;
 import com.svenruppert.openprobatum.assessment.InMemoryAssessmentRepository;
 import com.svenruppert.openprobatum.assessment.InMemoryAttemptRepository;
 import com.svenruppert.openprobatum.assessment.Question;
+import com.svenruppert.openprobatum.credential.Credential;
+import com.svenruppert.openprobatum.credential.CredentialRepositoryProvider;
+import com.svenruppert.openprobatum.credential.EffectiveStatus;
+import com.svenruppert.openprobatum.credential.InMemoryCredentialRepository;
+import com.svenruppert.openprobatum.security.AppClock;
 import com.svenruppert.openprobatum.security.model.AppUser;
 import com.svenruppert.openprobatum.security.roles.AuthorizationRole;
 import com.svenruppert.openprobatum.views.CheckView;
@@ -41,17 +46,21 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@DisplayName("CheckView — graded completion check (P011)")
+@DisplayName("CheckView — graded completion check + issuance (P011/P012)")
 class CheckViewBrowserlessTest extends BrowserlessTest {
 
   private InMemoryAssessmentRepository assessments;
+  private InMemoryCredentialRepository credentials;
 
   @BeforeEach
   void setUp() {
     assessments = new InMemoryAssessmentRepository();
+    credentials = new InMemoryCredentialRepository();
     AssessmentRepositoryProvider.setRepository(assessments);
     AttemptRepositoryProvider.setRepository(new InMemoryAttemptRepository());
+    CredentialRepositoryProvider.setRepository(credentials);
     SubjectStores.subjectStore().setCurrentSubject(
         new AppUser(1001L, "Alice", EnumSet.of(AuthorizationRole.LEARNER)), AppUser.class);
   }
@@ -60,6 +69,7 @@ class CheckViewBrowserlessTest extends BrowserlessTest {
   void tearDown() {
     AssessmentRepositoryProvider.reset();
     AttemptRepositoryProvider.reset();
+    CredentialRepositoryProvider.reset();
     SubjectStores.subjectStore().deleteCurrentSubject(AppUser.class);
   }
 
@@ -82,10 +92,16 @@ class CheckViewBrowserlessTest extends BrowserlessTest {
 
     assertEquals(List.of("PASSED"), attributes(view, "data-check-result"));
     assertEquals(List.of("1"), attributes(view, "data-attempt"));
+
+    // P012: a passing check mints exactly one VALID credential.
+    assertEquals(1, credentials.all().size());
+    Credential issued = credentials.all().iterator().next();
+    assertEquals("Quiz", issued.title());
+    assertEquals(EffectiveStatus.VALID, issued.effectiveStatusAt(AppClock.now()));
   }
 
   @Test
-  @DisplayName("a wrong submission fails but still counts as an attempt")
+  @DisplayName("a wrong submission fails, counts as an attempt, and issues no credential")
   void wrongSubmissionFails() {
     Assessment a = oneQuestion();
     CheckView view = new CheckView();
@@ -96,6 +112,25 @@ class CheckViewBrowserlessTest extends BrowserlessTest {
 
     assertEquals(List.of("FAILED"), attributes(view, "data-check-result"));
     assertEquals(List.of("1"), attributes(view, "data-attempt"));
+    assertTrue(credentials.all().isEmpty(), "a failed check issues no credential");
+  }
+
+  @Test
+  @DisplayName("passing twice does not mint a second credential")
+  void secondPassDoesNotDuplicate() {
+    Assessment a = oneQuestion();
+
+    CheckView firstView = new CheckView();
+    firstView.setParameter(null, a.id().toString());
+    first(firstView, CheckboxGroup.class).select(1);
+    first(firstView, Button.class).click();
+
+    CheckView secondView = new CheckView();
+    secondView.setParameter(null, a.id().toString());
+    first(secondView, CheckboxGroup.class).select(1);
+    first(secondView, Button.class).click();
+
+    assertEquals(1, credentials.all().size(), "re-passing must not duplicate the credential");
   }
 
   @Test

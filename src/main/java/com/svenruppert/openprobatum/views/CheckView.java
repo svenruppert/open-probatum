@@ -22,6 +22,10 @@ import com.svenruppert.openprobatum.assessment.AssessmentRepositoryProvider;
 import com.svenruppert.openprobatum.assessment.Attempt;
 import com.svenruppert.openprobatum.assessment.CheckService;
 import com.svenruppert.openprobatum.assessment.Question;
+import com.svenruppert.openprobatum.credential.CredentialRepositoryProvider;
+import com.svenruppert.openprobatum.credential.CredentialType;
+import com.svenruppert.openprobatum.credential.IssuanceService;
+import com.svenruppert.openprobatum.credential.IssuerIdentity;
 import com.svenruppert.openprobatum.i18n.I18nSupport;
 import com.svenruppert.openprobatum.security.model.AppUser;
 import com.svenruppert.openprobatum.security.roles.AuthorizationRole;
@@ -124,6 +128,12 @@ public class CheckView extends Composite<VerticalLayout>
     int count = checkService.attemptCount(learner, assessment.id());
 
     boolean passed = attempt.passed();
+    // Mint the credential only on the FIRST passing attempt (re-passing must not
+    // duplicate). issueFor itself no-ops on a failed attempt.
+    if (passed && checkService.passedAttemptCount(learner, assessment.id()) == 1) {
+      new IssuanceService(CredentialRepositoryProvider.repository(), IssuerIdentity.fromConfig())
+          .issueFor(attempt, assessment.title(), CredentialType.COMPLETION_CERTIFICATE, null);
+    }
     result.getElement().setAttribute("data-check-result", passed ? "PASSED" : "FAILED");
     result.getElement().setAttribute("data-attempt", Integer.toString(count));
     result.getElement().getThemeList().clear();
