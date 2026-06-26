@@ -2,6 +2,72 @@
 
 ## Unreleased
 
+## 00.30.00 — Authoring & Credential Governance (2026-06-26)
+
+The usable single-learner academy becomes an *operable, quality-assured* one
+(concept §23.3): questions become reusable, reviewed, versioned objects; content
+moves through an editorial lifecycle with a reviewer in the loop; and credentials
+gain evidence, a durable recipient linkage, re-issue/superseding, a full status
+page and an app-side audit trail. All V00.10.00 / V00.20.00 invariants carry over.
+
+### Question bank & assessments
+
+- **Versioned question bank** (§9.3/§9.4): questions are standalone, reusable
+  objects with mandatory explanation + learning objective, topic, difficulty,
+  tags, a lifecycle `ContentStatus` and a `lineageId` + `version` — a new version
+  is a new immutable record, so existing attempts are never falsified (§16.4).
+- **Bank operations + authoring UI**: create / tag / submit-for-review in a
+  `QuestionBankView`; only APPROVED/PUBLISHED questions are reusable.
+- **Assessments reference the bank**: an assessment embeds immutable bank-question
+  snapshots carrying their `lineageId` + `version`; a question reused across
+  assessments shares its lineage; a new bank version never mutates a captured one.
+
+### Content lifecycle & review
+
+- **Editorial lifecycle** (§16.2): `DRAFT → IN_REVIEW → APPROVED → PUBLISHED →
+  DEPRECATED → ARCHIVED` (+ `REPLACED`), validated on every transition.
+- **Offering versioning + lifecycle** (§16.2/§16.4): offerings gain
+  `lineageId` + `version` + `ContentStatus`; learners browse only PUBLISHED
+  offerings.
+- **Review process** (§16.3): a new **Reviewer** role (`author:review`) and a
+  `ReviewView` queue where a reviewer approves / rejects / publishes content an
+  author submitted; an author who also reviews **cannot approve their own
+  content** (segregation of duties, §3.6).
+
+### Credentialing
+
+- **Credential rules** (§3.7/§10.1): a `CredentialRule` declares what earns a
+  credential — an assessment passed (optional minimum score) or a learning path
+  completed — and the credential it awards.
+- **Evidence + durable recipient** (§10.6/§16.4/§17.2): a credential records its
+  issuance `Evidence` (assessment-passed / path-completed / manual award) + the
+  source version it was issued from + a **stable `recipientId`**. Wallet and
+  dashboard now filter by recipient id, not the free-form display name — closing
+  the V00.20.00 cross-user exposure.
+- **Re-issue + superseding** (§10.9): a renewal mints a fresh `VALID` successor
+  and marks the predecessor `SUPERSEDED` pointing at it; both stay traceable.
+- **Full validation page** (§11.7): every effective status renders, and a
+  superseded credential links to its successor's validation page.
+
+### Governance, audit & metrics
+
+- **App-side credential audit trail** (§17.3): every issuance and governance
+  action appends exactly one persisted `CredentialEvent`; a `CredentialAuditView`
+  lists the trail. (jSentinel audit is closed to app-defined event types, so the
+  trail is self-contained.)
+- **Visibility & own-data hardening** (§17.1/§17.2/§3.6): operational dashboard
+  tiles are admin-only; the drawer offers only permitted links; learners see only
+  their own wallet / progress.
+- **Quality metrics** (§20.2): per-assessment pass rates + average scores and the
+  question bank's status/difficulty composition, in a `MetricsView`.
+
+### Platform
+
+- Two new persisted stores in the single jSentinel-00.75.20 application store
+  (`credentialEvents`, `contentAuthors`). All user-facing strings are i18n
+  (EN + DE). Exit production-review #2 rated 4/5 — one audit-completeness gap on
+  re-issue found and fixed in-cycle.
+
 ## 00.20.00 — Einzelbenutzer-Academy (2026-06-26)
 
 The platform becomes fully usable for an individual learner (concept §23.2):
