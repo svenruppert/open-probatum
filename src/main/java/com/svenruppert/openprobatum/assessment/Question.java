@@ -16,36 +16,60 @@
 
 package com.svenruppert.openprobatum.assessment;
 
+import com.svenruppert.openprobatum.content.ContentStatus;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
 /**
- * A single question (concept §9.2, §9.4). Supports the three concept types
- * (single / multiple choice, true/false) and carries an {@code explanation}
- * shown as feedback in practice mode (§9.5).
+ * A single question as a versioned, reviewable didactic object (concept §9.2,
+ * §9.4). Beyond the answer model it carries a {@code lineageId} (the stable
+ * logical question across versions), a {@code version}, an editorial
+ * {@link ContentStatus}, an explanation shown as practice feedback, a learning
+ * objective, a topic and a {@link Difficulty}.
  *
- * @param id             stable question id
- * @param text           the question prompt
- * @param type           the question type
- * @param options        the answer options
- * @param correctIndices the indices of the correct option(s)
- * @param explanation    didactic feedback shown after answering (may be empty)
+ * <p>Each version is its own immutable record with a distinct {@link #id}, so a
+ * new version never overwrites or falsifies an existing one — attempts that
+ * referenced an earlier version stay truthful (§16.4).
+ *
+ * @param id               this version's id (unique per version)
+ * @param lineageId        the stable logical-question id shared across versions
+ * @param version          the version sequence number (≥ 1)
+ * @param status           the editorial lifecycle status
+ * @param text             the prompt
+ * @param type             the question type
+ * @param options          the answer options
+ * @param correctIndices   the indices of the correct option(s)
+ * @param explanation      didactic feedback (may be empty in DRAFT)
+ * @param learningObjective what the question assesses (may be empty in DRAFT)
+ * @param topic            the subject area (may be empty)
+ * @param difficulty       the question difficulty
  * @since V00.10.00
  */
-public record Question(UUID id, String text, QuestionType type, List<String> options,
-                       Set<Integer> correctIndices, String explanation) {
+public record Question(UUID id, UUID lineageId, int version, ContentStatus status,
+                       String text, QuestionType type, List<String> options,
+                       Set<Integer> correctIndices, String explanation,
+                       String learningObjective, String topic, Difficulty difficulty) {
 
   public Question {
     Objects.requireNonNull(id, "id");
+    Objects.requireNonNull(lineageId, "lineageId");
+    Objects.requireNonNull(status, "status");
     Objects.requireNonNull(text, "text");
     Objects.requireNonNull(type, "type");
     Objects.requireNonNull(options, "options");
     Objects.requireNonNull(correctIndices, "correctIndices");
     Objects.requireNonNull(explanation, "explanation");
+    Objects.requireNonNull(learningObjective, "learningObjective");
+    Objects.requireNonNull(topic, "topic");
+    Objects.requireNonNull(difficulty, "difficulty");
     options = List.copyOf(options);
     correctIndices = Set.copyOf(correctIndices);
+    if (version < 1) {
+      throw new IllegalArgumentException("version must be >= 1");
+    }
     if (options.isEmpty()) {
       throw new IllegalArgumentException("a question needs at least one option");
     }
@@ -62,6 +86,15 @@ public record Question(UUID id, String text, QuestionType type, List<String> opt
     }
   }
 
+  // ── factories (a fresh DRAFT v1 with its own lineage) ──────────────
+
+  private static Question draft(String text, QuestionType type, List<String> options,
+                                Set<Integer> correct, String explanation) {
+    UUID id = UUID.randomUUID();
+    return new Question(id, id, 1, ContentStatus.DRAFT, text, type, options, correct,
+        explanation, "", "", Difficulty.MEDIUM);
+  }
+
   /** A single-choice question with one correct option index. */
   public static Question singleChoice(String text, List<String> options, int correct) {
     return singleChoice(text, options, correct, "");
@@ -70,21 +103,42 @@ public record Question(UUID id, String text, QuestionType type, List<String> opt
   /** A single-choice question with feedback explanation. */
   public static Question singleChoice(String text, List<String> options, int correct,
                                       String explanation) {
-    return new Question(UUID.randomUUID(), text, QuestionType.SINGLE_CHOICE,
-        options, Set.of(correct), explanation);
+    return draft(text, QuestionType.SINGLE_CHOICE, options, Set.of(correct), explanation);
   }
 
   /** A multiple-choice question — every correct index and only those must be chosen. */
   public static Question multipleChoice(String text, List<String> options,
                                         Set<Integer> correct, String explanation) {
-    return new Question(UUID.randomUUID(), text, QuestionType.MULTIPLE_CHOICE,
-        options, correct, explanation);
+    return draft(text, QuestionType.MULTIPLE_CHOICE, options, correct, explanation);
   }
 
   /** A true/false question; {@code isTrue} selects the correct statement. */
   public static Question trueFalse(String text, boolean isTrue, String explanation) {
-    return new Question(UUID.randomUUID(), text, QuestionType.TRUE_FALSE,
-        List.of("True", "False"), Set.of(isTrue ? 0 : 1), explanation);
+    return draft(text, QuestionType.TRUE_FALSE, List.of("True", "False"),
+        Set.of(isTrue ? 0 : 1), explanation);
+  }
+
+  // ── withers (immutable lifecycle/version/metadata changes) ─────────
+
+  /** A copy with the editorial status changed. */
+  public Question withStatus(ContentStatus newStatus) {
+    return new Question(id, lineageId, version, newStatus, text, type, options, correctIndices,
+        explanation, learningObjective, topic, difficulty);
+  }
+
+  /** A copy with didactic metadata set. */
+  public Question withMetadata(String objective, String aTopic, Difficulty level) {
+    return new Question(id, lineageId, version, status, text, type, options, correctIndices,
+        explanation, objective, aTopic, level);
+  }
+
+  /**
+   * A fresh DRAFT next version of the same logical question — a new {@link #id},
+   * same {@link #lineageId}, {@code version + 1}. The prior version stays intact.
+   */
+  public Question asNewVersion() {
+    return new Question(UUID.randomUUID(), lineageId, version + 1, ContentStatus.DRAFT,
+        text, type, options, correctIndices, explanation, learningObjective, topic, difficulty);
   }
 
   /** {@code true} when {@code chosen} is exactly the set of correct options. */

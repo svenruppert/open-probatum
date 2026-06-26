@@ -18,6 +18,7 @@ package junit.com.svenruppert.openprobatum.assessment;
 
 import com.svenruppert.openprobatum.assessment.Assessment;
 import com.svenruppert.openprobatum.assessment.AssessmentResult;
+import com.svenruppert.openprobatum.assessment.Difficulty;
 import com.svenruppert.openprobatum.assessment.Question;
 import com.svenruppert.openprobatum.assessment.QuestionType;
 import org.junit.jupiter.api.DisplayName;
@@ -40,8 +41,8 @@ class AssessmentTest {
   private final Question q1 = Question.singleChoice("1+1?", List.of("1", "2", "3"), 1);
   private final Question q2 = Question.singleChoice("Sky colour?", List.of("Blue", "Green"), 0);
   private final Question q3 = Question.singleChoice("2*2?", List.of("3", "4"), 1);
-  private final Question q4 = new Question(UUID.randomUUID(), "Even numbers?",
-      QuestionType.MULTIPLE_CHOICE, List.of("1", "2", "3", "4"), Set.of(1, 3), "2 and 4 are even.");
+  private final Question q4 = Question.multipleChoice("Even numbers?",
+      List.of("1", "2", "3", "4"), Set.of(1, 3), "2 and 4 are even.");
 
   /** 4 questions, pass at 75% (3 of 4). */
   private Assessment assessment() {
@@ -117,9 +118,12 @@ class AssessmentTest {
   void invalidConstruction() {
     assertThrows(IllegalArgumentException.class,
         () -> Question.singleChoice("x", List.of("a", "b"), 5)); // index out of range
-    assertThrows(IllegalArgumentException.class,
-        () -> new Question(UUID.randomUUID(), "x", QuestionType.SINGLE_CHOICE,
-            List.of("a", "b"), Set.of(0, 1), "")); // single-choice with two correct
+    assertThrows(IllegalArgumentException.class, () -> {
+      UUID qid = UUID.randomUUID();
+      new Question(qid, qid, 1, com.svenruppert.openprobatum.content.ContentStatus.DRAFT,
+          "x", QuestionType.SINGLE_CHOICE, List.of("a", "b"), Set.of(0, 1), "", "", "",
+          Difficulty.MEDIUM); // single-choice with two correct
+    });
     assertThrows(IllegalArgumentException.class,
         () -> new Assessment(UUID.randomUUID(), "t", 1, List.of(q1), 1.5)); // bad threshold
     assertThrows(IllegalArgumentException.class,
