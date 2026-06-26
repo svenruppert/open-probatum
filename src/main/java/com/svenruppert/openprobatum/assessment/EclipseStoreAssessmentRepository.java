@@ -43,4 +43,9 @@ public final class EclipseStoreAssessmentRepository implements AssessmentReposit
   public synchronized Optional<Assessment> findById(UUID id) {
     return Optional.ofNullable(AppStorage.appRoot().assessments.get(id));
   }
+
+  @Override
+  public synchronized java.util.Collection<Assessment> all() {
+    return new java.util.ArrayList<>(AppStorage.appRoot().assessments.values());
+  }
 }

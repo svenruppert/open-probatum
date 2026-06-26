@@ -48,4 +48,15 @@ public final class InMemoryAttemptRepository implements AttemptRepository {
     }
     return mine;
   }
+
+  @Override
+  public List<Attempt> forAssessment(UUID assessmentId) {
+    List<Attempt> all = new ArrayList<>();
+    for (Attempt a : store.values()) {
+      if (a.assessmentId().equals(assessmentId)) {
+        all.add(a);
+      }
+    }
+    return all;
+  }
 }

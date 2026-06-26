@@ -32,6 +32,9 @@ public interface AttemptRepository {
   /** All attempts a learner has made at an assessment, in no guaranteed order. */
   List<Attempt> forLearner(String learnerName, UUID assessmentId);
 
+  /** All attempts at an assessment across every learner (for quality metrics, §20.2). */
+  List<Attempt> forAssessment(UUID assessmentId);
+
   /** How many attempts a learner has made at an assessment. */
   default int countFor(String learnerName, UUID assessmentId) {
     return forLearner(learnerName, assessmentId).size();

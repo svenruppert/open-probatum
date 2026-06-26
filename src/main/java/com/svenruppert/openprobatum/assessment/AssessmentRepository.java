@@ -16,6 +16,7 @@
 
 package com.svenruppert.openprobatum.assessment;
 
+import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -30,4 +31,7 @@ public interface AssessmentRepository {
   void save(Assessment assessment);
 
   Optional<Assessment> findById(UUID id);
+
+  /** Every assessment (for the quality-metrics overview, §20.2). */
+  Collection<Assessment> all();
 }

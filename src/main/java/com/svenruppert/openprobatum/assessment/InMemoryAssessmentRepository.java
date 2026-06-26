@@ -41,4 +41,9 @@ public final class InMemoryAssessmentRepository implements AssessmentRepository 
   public Optional<Assessment> findById(UUID id) {
     return Optional.ofNullable(store.get(id));
   }
+
+  @Override
+  public java.util.Collection<Assessment> all() {
+    return new java.util.ArrayList<>(store.values());
+  }
 }

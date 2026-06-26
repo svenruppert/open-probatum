@@ -50,4 +50,15 @@ public final class EclipseStoreAttemptRepository implements AttemptRepository {
     }
     return mine;
   }
+
+  @Override
+  public synchronized List<Attempt> forAssessment(UUID assessmentId) {
+    List<Attempt> all = new ArrayList<>();
+    for (Attempt a : AppStorage.appRoot().attempts.values()) {
+      if (a.assessmentId().equals(assessmentId)) {
+        all.add(a);
+      }
+    }
+    return all;
+  }
 }
