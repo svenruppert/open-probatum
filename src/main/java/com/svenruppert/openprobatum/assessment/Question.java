@@ -28,30 +28,33 @@ import java.util.UUID;
  * §9.4). Beyond the answer model it carries a {@code lineageId} (the stable
  * logical question across versions), a {@code version}, an editorial
  * {@link ContentStatus}, an explanation shown as practice feedback, a learning
- * objective, a topic and a {@link Difficulty}.
+ * objective, a topic, a {@link Difficulty} and free-form {@code tags} for the
+ * bank's categorisation (§9.3).
  *
  * <p>Each version is its own immutable record with a distinct {@link #id}, so a
  * new version never overwrites or falsifies an existing one — attempts that
  * referenced an earlier version stay truthful (§16.4).
  *
- * @param id               this version's id (unique per version)
- * @param lineageId        the stable logical-question id shared across versions
- * @param version          the version sequence number (≥ 1)
- * @param status           the editorial lifecycle status
- * @param text             the prompt
- * @param type             the question type
- * @param options          the answer options
- * @param correctIndices   the indices of the correct option(s)
- * @param explanation      didactic feedback (may be empty in DRAFT)
+ * @param id                this version's id (unique per version)
+ * @param lineageId         the stable logical-question id shared across versions
+ * @param version           the version sequence number (≥ 1)
+ * @param status            the editorial lifecycle status
+ * @param text              the prompt
+ * @param type              the question type
+ * @param options           the answer options
+ * @param correctIndices    the indices of the correct option(s)
+ * @param explanation       didactic feedback (may be empty in DRAFT)
  * @param learningObjective what the question assesses (may be empty in DRAFT)
- * @param topic            the subject area (may be empty)
- * @param difficulty       the question difficulty
+ * @param topic             the subject area (may be empty)
+ * @param difficulty        the question difficulty
+ * @param tags              free-form categorisation tags (defensively copied)
  * @since V00.10.00
  */
 public record Question(UUID id, UUID lineageId, int version, ContentStatus status,
                        String text, QuestionType type, List<String> options,
                        Set<Integer> correctIndices, String explanation,
-                       String learningObjective, String topic, Difficulty difficulty) {
+                       String learningObjective, String topic, Difficulty difficulty,
+                       Set<String> tags) {
 
   public Question {
     Objects.requireNonNull(id, "id");
@@ -65,8 +68,10 @@ public record Question(UUID id, UUID lineageId, int version, ContentStatus statu
     Objects.requireNonNull(learningObjective, "learningObjective");
     Objects.requireNonNull(topic, "topic");
     Objects.requireNonNull(difficulty, "difficulty");
+    Objects.requireNonNull(tags, "tags");
     options = List.copyOf(options);
     correctIndices = Set.copyOf(correctIndices);
+    tags = Set.copyOf(tags);
     if (version < 1) {
       throw new IllegalArgumentException("version must be >= 1");
     }
@@ -92,7 +97,7 @@ public record Question(UUID id, UUID lineageId, int version, ContentStatus statu
                                 Set<Integer> correct, String explanation) {
     UUID id = UUID.randomUUID();
     return new Question(id, id, 1, ContentStatus.DRAFT, text, type, options, correct,
-        explanation, "", "", Difficulty.MEDIUM);
+        explanation, "", "", Difficulty.MEDIUM, Set.of());
   }
 
   /** A single-choice question with one correct option index. */
@@ -123,13 +128,19 @@ public record Question(UUID id, UUID lineageId, int version, ContentStatus statu
   /** A copy with the editorial status changed. */
   public Question withStatus(ContentStatus newStatus) {
     return new Question(id, lineageId, version, newStatus, text, type, options, correctIndices,
-        explanation, learningObjective, topic, difficulty);
+        explanation, learningObjective, topic, difficulty, tags);
   }
 
   /** A copy with didactic metadata set. */
   public Question withMetadata(String objective, String aTopic, Difficulty level) {
     return new Question(id, lineageId, version, status, text, type, options, correctIndices,
-        explanation, objective, aTopic, level);
+        explanation, objective, aTopic, level, tags);
+  }
+
+  /** A copy with the given categorisation tags. */
+  public Question withTags(Set<String> newTags) {
+    return new Question(id, lineageId, version, status, text, type, options, correctIndices,
+        explanation, learningObjective, topic, difficulty, newTags);
   }
 
   /**
@@ -138,7 +149,8 @@ public record Question(UUID id, UUID lineageId, int version, ContentStatus statu
    */
   public Question asNewVersion() {
     return new Question(UUID.randomUUID(), lineageId, version + 1, ContentStatus.DRAFT,
-        text, type, options, correctIndices, explanation, learningObjective, topic, difficulty);
+        text, type, options, correctIndices, explanation, learningObjective, topic, difficulty,
+        tags);
   }
 
   /** {@code true} when {@code chosen} is exactly the set of correct options. */

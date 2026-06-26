@@ -122,7 +122,7 @@ class AssessmentTest {
       UUID qid = UUID.randomUUID();
       new Question(qid, qid, 1, com.svenruppert.openprobatum.content.ContentStatus.DRAFT,
           "x", QuestionType.SINGLE_CHOICE, List.of("a", "b"), Set.of(0, 1), "", "", "",
-          Difficulty.MEDIUM); // single-choice with two correct
+          Difficulty.MEDIUM, Set.of()); // single-choice with two correct
     });
     assertThrows(IllegalArgumentException.class,
         () -> new Assessment(UUID.randomUUID(), "t", 1, List.of(q1), 1.5)); // bad threshold
