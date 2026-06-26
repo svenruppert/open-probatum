@@ -48,6 +48,8 @@ public record Evidence(Type type, UUID sourceId, int sourceVersion) {
     LEARNING_PATH_COMPLETED,
     /** A specific lab version's practical submission was verified by an assessor. */
     PRACTICAL_LAB_VERIFIED,
+    /** A specific bundle version was completed (every member offering's path done). */
+    BUNDLE_COMPLETED,
     /** A manual award by a credential manager, with no machine source. */
     MANUAL_AWARD
   }
@@ -75,6 +77,11 @@ public record Evidence(Type type, UUID sourceId, int sourceVersion) {
   /** Evidence that {@code labId}'s practical submission (at {@code version}) was verified. */
   public static Evidence labVerified(UUID labId, int version) {
     return new Evidence(Type.PRACTICAL_LAB_VERIFIED, labId, version);
+  }
+
+  /** Evidence that {@code bundleId}'s offerings (at {@code version}) were all completed. */
+  public static Evidence bundleCompleted(UUID bundleId, int version) {
+    return new Evidence(Type.BUNDLE_COMPLETED, bundleId, version);
   }
 
   /** Evidence for a manual credential-manager award (no machine source). */

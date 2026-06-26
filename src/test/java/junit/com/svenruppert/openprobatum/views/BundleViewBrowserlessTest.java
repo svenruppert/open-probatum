@@ -63,6 +63,13 @@ class BundleViewBrowserlessTest extends BrowserlessTest {
     BundleRepositoryProvider.setRepository(bundles);
     CatalogRepositoryProvider.setRepository(catalog);
     EntitlementRepositoryProvider.setRepository(new InMemoryEntitlementRepository());
+    // The claim-eligibility check reads progress + credentials — keep both in memory.
+    com.svenruppert.openprobatum.progress.ProgressRepositoryProvider.setRepository(
+        new com.svenruppert.openprobatum.progress.InMemoryProgressRepository());
+    com.svenruppert.openprobatum.credential.CredentialRepositoryProvider.setRepository(
+        new com.svenruppert.openprobatum.credential.InMemoryCredentialRepository());
+    com.svenruppert.openprobatum.credential.CredentialEventRepositoryProvider.setRepository(
+        new com.svenruppert.openprobatum.credential.InMemoryCredentialEventRepository());
     gated = Offering.codePath("Gated", "d",
         new LearningPath("P", List.of(Module.mandatory("M", "c"))), "SECRET");
     catalog.save(gated);
@@ -75,6 +82,9 @@ class BundleViewBrowserlessTest extends BrowserlessTest {
     BundleRepositoryProvider.reset();
     CatalogRepositoryProvider.reset();
     EntitlementRepositoryProvider.reset();
+    com.svenruppert.openprobatum.progress.ProgressRepositoryProvider.reset();
+    com.svenruppert.openprobatum.credential.CredentialRepositoryProvider.reset();
+    com.svenruppert.openprobatum.credential.CredentialEventRepositoryProvider.reset();
     SubjectStores.subjectStore().deleteCurrentSubject(AppUser.class);
   }
 

@@ -22,6 +22,7 @@ import com.svenruppert.openprobatum.security.AppClock;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Issues a credential when an attempt passes (concept §3.7, §10.x). The passed
@@ -124,6 +125,39 @@ public final class IssuanceService implements HasLogger {
     logger().info("Issued credential {} to '{}' (id={}, evidence: lab {} v{} verified)",
         credential.id(), submission.learnerName(), submission.recipientId(),
         submission.labId(), submission.labVersion());
+    return Optional.of(credential);
+  }
+
+  /**
+   * Issues and persists a {@code VALID} credential for a <em>completed</em> bundle
+   * (concept §10.6), carrying {@link Evidence} that the bundle version's offerings
+   * were all completed + the learner's stable recipient id. Emits one
+   * {@code ISSUED} audit event. The caller (BundleCompletionService) guards
+   * completion + already-issued + the atomic claim edge.
+   *
+   * @param bundleId      the completed bundle version
+   * @param bundleVersion the bundle version (§16.4)
+   * @param recipientId   the learner's stable id
+   * @param learnerName   the learner's display name
+   * @param title         the credential title
+   * @param type          the credential type
+   * @param expiresAt     optional expiry; {@code null} for no expiry
+   */
+  public Optional<Credential> issueForBundle(UUID bundleId, int bundleVersion, Long recipientId,
+                                             String learnerName, String title, CredentialType type,
+                                             java.time.Instant expiresAt) {
+    Objects.requireNonNull(bundleId, "bundleId");
+    Objects.requireNonNull(title, "title");
+    Objects.requireNonNull(type, "type");
+    Evidence evidence = Evidence.bundleCompleted(bundleId, bundleVersion);
+    Credential credential = Credential.issue(title, type, recipientId, learnerName,
+        issuer.name(), AppClock.now(), expiresAt, evidence);
+    repository.save(credential);
+    CredentialEventRepositoryProvider.repository().append(CredentialEvent.of(
+        credential.id(), CredentialEvent.Action.ISSUED, "system",
+        "bundle " + bundleId + " v" + bundleVersion + " completed"));
+    logger().info("Issued credential {} to '{}' (id={}, evidence: bundle {} v{} completed)",
+        credential.id(), learnerName, recipientId, bundleId, bundleVersion);
     return Optional.of(credential);
   }
 }

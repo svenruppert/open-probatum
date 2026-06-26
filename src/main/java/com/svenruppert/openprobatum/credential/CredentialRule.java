@@ -57,7 +57,9 @@ public record CredentialRule(UUID id, RuleType type, UUID targetId, double minSc
     /** A specific offering's learning path is completed. */
     PATH_COMPLETED,
     /** A specific lab's practical submission is verified by an assessor. */
-    LAB_VERIFIED
+    LAB_VERIFIED,
+    /** Every member offering of a specific bundle is completed. */
+    BUNDLE_COMPLETED
   }
 
   public CredentialRule {
@@ -93,6 +95,17 @@ public record CredentialRule(UUID id, RuleType type, UUID targetId, double minSc
                                            String credentialTitle, CredentialType awards) {
     return new CredentialRule(UUID.randomUUID(), RuleType.LAB_VERIFIED,
         labId, 0.0, credentialTitle, awards);
+  }
+
+  /**
+   * A rule earned by completing every member offering of {@code bundleId}.
+   * Satisfaction is an aggregate over the bundle's members, so it is evaluated by
+   * {@code BundleCompletionService} rather than a single-object {@code isSatisfiedBy}.
+   */
+  public static CredentialRule bundleCompleted(UUID bundleId,
+                                               String credentialTitle, CredentialType awards) {
+    return new CredentialRule(UUID.randomUUID(), RuleType.BUNDLE_COMPLETED,
+        bundleId, 0.0, credentialTitle, awards);
   }
 
   /**

@@ -112,6 +112,22 @@ public class BundleView extends Composite<VerticalLayout> implements I18nSupport
     join.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
     join.getElement().setAttribute("data-action", "join");
     card.add(join);
+
+    // When every member path is complete and not yet claimed, offer the credential.
+    var completion = new com.svenruppert.openprobatum.bundle.BundleCompletionService();
+    if (me != null && completion.isComplete(me, bundle) && !completion.alreadyClaimed(me, bundle)) {
+      Button claim = new Button(tr("bundles.action.claim", "Claim credential"), e -> {
+        AppUser user = currentUser();
+        if (user != null) {
+          new com.svenruppert.openprobatum.bundle.BundleCompletionService()
+              .claim(user, bundle, bundle.title());
+        }
+        render();
+      });
+      claim.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
+      claim.getElement().setAttribute("data-action", "claim");
+      card.add(claim);
+    }
     return card;
   }
 
