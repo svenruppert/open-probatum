@@ -160,4 +160,36 @@ public final class IssuanceService implements HasLogger {
         credential.id(), learnerName, recipientId, bundleId, bundleVersion);
     return Optional.of(credential);
   }
+
+  /**
+   * Issues and persists a {@code VALID} credential for an <em>attended</em>
+   * workshop (concept §10.6), carrying {@link Evidence} that the workshop version
+   * was attended + the learner's stable recipient id. Emits one {@code ISSUED}
+   * audit event. The caller (the attendance flow) guards the atomic attend edge.
+   *
+   * @param workshopId      the attended workshop version
+   * @param workshopVersion the workshop version (§16.4)
+   * @param recipientId     the learner's stable id
+   * @param learnerName     the learner's display name
+   * @param title           the credential title
+   * @param type            the credential type
+   * @param expiresAt       optional expiry; {@code null} for no expiry
+   */
+  public Optional<Credential> issueForWorkshop(UUID workshopId, int workshopVersion, Long recipientId,
+                                               String learnerName, String title, CredentialType type,
+                                               java.time.Instant expiresAt) {
+    Objects.requireNonNull(workshopId, "workshopId");
+    Objects.requireNonNull(title, "title");
+    Objects.requireNonNull(type, "type");
+    Evidence evidence = Evidence.workshopAttended(workshopId, workshopVersion);
+    Credential credential = Credential.issue(title, type, recipientId, learnerName,
+        issuer.name(), AppClock.now(), expiresAt, evidence);
+    repository.save(credential);
+    CredentialEventRepositoryProvider.repository().append(CredentialEvent.of(
+        credential.id(), CredentialEvent.Action.ISSUED, "system",
+        "workshop " + workshopId + " v" + workshopVersion + " attended"));
+    logger().info("Issued credential {} to '{}' (id={}, evidence: workshop {} v{} attended)",
+        credential.id(), learnerName, recipientId, workshopId, workshopVersion);
+    return Optional.of(credential);
+  }
 }

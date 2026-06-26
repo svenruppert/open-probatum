@@ -92,6 +92,20 @@ class WorkshopEnrolmentServiceTest {
   }
 
   @Test
+  @DisplayName("recordAttendance fires only on the ENROLLED→ATTENDED edge (idempotent)")
+  void attendanceEdge() {
+    var e = service.enrol(workshop.id(), 1L, "Ada").orElseThrow();
+    assertEquals(EnrolmentStatus.ATTENDED,
+        service.recordAttendance(e.id(), 9L).orElseThrow().status());
+    // Re-recording a now-ATTENDED enrolment does nothing (no double-mint upstream).
+    assertTrue(service.recordAttendance(e.id(), 9L).isEmpty());
+    assertTrue(service.markNoShow(e.id(), 9L).isEmpty());
+
+    var bob = service.enrol(workshop.id(), 2L, "Bob").orElseThrow();
+    assertEquals(EnrolmentStatus.NO_SHOW, service.markNoShow(bob.id(), 9L).orElseThrow().status());
+  }
+
+  @Test
   @DisplayName("concurrent enrolments never exceed capacity (no overbooking)")
   void noOverbooking() throws InterruptedException {
     Workshop big = Workshop.draft("Big", "d", START, END, 5, "Sven")

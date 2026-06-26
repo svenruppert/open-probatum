@@ -59,7 +59,9 @@ public record CredentialRule(UUID id, RuleType type, UUID targetId, double minSc
     /** A specific lab's practical submission is verified by an assessor. */
     LAB_VERIFIED,
     /** Every member offering of a specific bundle is completed. */
-    BUNDLE_COMPLETED
+    BUNDLE_COMPLETED,
+    /** A specific workshop is attended. */
+    WORKSHOP_ATTENDED
   }
 
   public CredentialRule {
@@ -106,6 +108,13 @@ public record CredentialRule(UUID id, RuleType type, UUID targetId, double minSc
                                                String credentialTitle, CredentialType awards) {
     return new CredentialRule(UUID.randomUUID(), RuleType.BUNDLE_COMPLETED,
         bundleId, 0.0, credentialTitle, awards);
+  }
+
+  /** A rule earned by attending {@code workshopId}. */
+  public static CredentialRule workshopAttended(UUID workshopId,
+                                                String credentialTitle, CredentialType awards) {
+    return new CredentialRule(UUID.randomUUID(), RuleType.WORKSHOP_ATTENDED,
+        workshopId, 0.0, credentialTitle, awards);
   }
 
   /**

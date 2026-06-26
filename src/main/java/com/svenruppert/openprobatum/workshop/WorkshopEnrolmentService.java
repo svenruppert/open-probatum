@@ -78,6 +78,37 @@ public final class WorkshopEnrolmentService implements HasLogger {
     }
   }
 
+  /**
+   * Records attendance for an ENROLLED enrolment on behalf of {@code instructorId}
+   * — the ENROLLED→ATTENDED edge (idempotent: a non-ENROLLED enrolment yields
+   * empty, so re-recording never re-fires and never double-mints the certificate).
+   * The view mints the workshop credential only on the non-empty result.
+   */
+  public Optional<WorkshopEnrolment> recordAttendance(UUID enrolmentId, Long instructorId) {
+    return decide(enrolmentId, WorkshopEnrolment::attended, "attended", instructorId);
+  }
+
+  /** Marks an ENROLLED enrolment a NO_SHOW (same idempotent edge as attendance). */
+  public Optional<WorkshopEnrolment> markNoShow(UUID enrolmentId, Long instructorId) {
+    return decide(enrolmentId, WorkshopEnrolment::noShow, "no-show", instructorId);
+  }
+
+  private Optional<WorkshopEnrolment> decide(UUID enrolmentId,
+                                             java.util.function.UnaryOperator<WorkshopEnrolment> verdict,
+                                             String action, Long instructorId) {
+    Objects.requireNonNull(enrolmentId, "enrolmentId");
+    synchronized (SEAT_LOCK) {
+      return enrolments.findById(enrolmentId)
+          .filter(WorkshopEnrolment::isActive)
+          .map(e -> {
+            WorkshopEnrolment decided = verdict.apply(e);
+            enrolments.save(decided);
+            logger().info("Enrolment {} {} by instructor {}", enrolmentId, action, instructorId);
+            return decided;
+          });
+    }
+  }
+
   /** Cancels the learner's own active seat, freeing it. Empty when not the learner's / not active. */
   public Optional<WorkshopEnrolment> cancel(UUID enrolmentId, Long recipientId) {
     Objects.requireNonNull(enrolmentId, "enrolmentId");

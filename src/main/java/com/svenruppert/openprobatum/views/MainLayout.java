@@ -85,6 +85,7 @@ public class MainLayout extends AppLayout
   private static final String K_NAV_BUNDLES = "nav.bundles";
   private static final String K_NAV_WORKSHOPS = "nav.workshops";
   private static final String K_NAV_ASSESS = "nav.assess";
+  private static final String K_NAV_ATTENDANCE = "nav.attendance";
   private static final String K_NAV_METRICS = "nav.metrics";
   private static final String K_NAV_ABOUT = "nav.about";
   private static final String K_NAV_YOUTUBE = "nav.youtube";
@@ -194,6 +195,8 @@ public class MainLayout extends AppLayout
             ReviewView.class, "author:review", grants),
         item(tr(K_NAV_ASSESS, "Assessment queue"), VaadinIcon.CLIPBOARD_CHECK,
             AssessmentQueueView.class, "lab:assess", grants),
+        item(tr(K_NAV_ATTENDANCE, "Attendance"), VaadinIcon.CLIPBOARD_USER,
+            WorkshopAttendanceView.class, "workshop:run", grants),
         item(tr(K_NAV_METRICS, "Quality metrics"), VaadinIcon.CHART,
             MetricsView.class, "author:content", grants),
         item(tr(K_NAV_PUSHDEMO, "Push demo"), VaadinIcon.BELL,
