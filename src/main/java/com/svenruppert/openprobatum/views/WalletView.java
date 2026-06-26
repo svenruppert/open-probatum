@@ -66,7 +66,6 @@ public class WalletView extends Composite<VerticalLayout> implements I18nSupport
       DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneOffset.UTC);
 
   private final CredentialRepository credentials = CredentialRepositoryProvider.repository();
-  private final IssuerIdentity issuer = IssuerIdentity.fromConfig();
 
   public WalletView() {
     VerticalLayout root = getContent();
@@ -90,7 +89,7 @@ public class WalletView extends Composite<VerticalLayout> implements I18nSupport
 
   private Div card(Credential credential) {
     EffectiveStatus status = credential.effectiveStatusAt(AppClock.now());
-    String validationUrl = issuer.validationUrl(credential.id());
+    String validationUrl = IssuerIdentity.fromConfig().validationUrl(credential.id());
 
     Div card = new Div();
     card.addClassName(TemplateBrand.CSS_HERO_SURFACE);

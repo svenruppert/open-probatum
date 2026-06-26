@@ -57,7 +57,6 @@ public class GovernanceView extends Composite<VerticalLayout> implements I18nSup
   public static final String NAV = "governance";
 
   private final CredentialRepository repository = CredentialRepositoryProvider.repository();
-  private final CredentialGovernance governance = new CredentialGovernance(repository);
 
   public GovernanceView() {
     render();
@@ -99,15 +98,15 @@ public class GovernanceView extends Composite<VerticalLayout> implements I18nSup
     HorizontalLayout actions = new HorizontalLayout();
     if (stored == CredentialStatus.SUSPENDED) {
       actions.add(action(tr("governance.reinstate", "Reinstate"),
-          () -> governance.reinstate(credential.id()), false));
+          () -> new CredentialGovernance(repository).reinstate(credential.id()), false));
     }
     if (stored == CredentialStatus.VALID) {
       actions.add(action(tr("governance.suspend", "Suspend"),
-          () -> governance.suspend(credential.id()), false));
+          () -> new CredentialGovernance(repository).suspend(credential.id()), false));
     }
     if (stored != CredentialStatus.REVOKED) {
       actions.add(action(tr("governance.revoke", "Revoke"),
-          () -> governance.revoke(credential.id()), true));
+          () -> new CredentialGovernance(repository).revoke(credential.id()), true));
     }
 
     card.add(title, statusBadge, actions);

@@ -69,7 +69,6 @@ public class CheckView extends Composite<VerticalLayout>
   public static final String NAV = "check";
 
   private final AssessmentRepository assessments = AssessmentRepositoryProvider.repository();
-  private final CheckService checkService = new CheckService();
   private final Map<UUID, CheckboxGroup<Integer>> answers = new LinkedHashMap<>();
 
   @Override
@@ -124,6 +123,7 @@ public class CheckView extends Composite<VerticalLayout>
     answers.forEach((qid, group) -> given.put(qid, group.getSelectedItems()));
 
     String learner = currentLearnerName();
+    CheckService checkService = new CheckService();
     CheckService.SubmitOutcome outcome = checkService.submit(learner, assessment, given);
     Attempt attempt = outcome.attempt();
     int count = checkService.attemptCount(learner, assessment.id());

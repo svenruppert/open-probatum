@@ -73,15 +73,8 @@ public class RegistrationView extends Composite<Div> implements I18nSupport {
   private final PasswordField confirmField = new PasswordField();
   private final TextField displayNameField = new TextField();
   private final Span status = new Span();
-  private final RegistrationService service;
 
   public RegistrationView() {
-    this(new RegistrationService());
-  }
-
-  RegistrationView(RegistrationService service) {
-    this.service = service;
-
     usernameField.setLabel(tr(K_F_USER, "Username"));
     usernameField.setWidthFull();
     passwordField.setLabel(tr(K_F_PWD, "Password"));
@@ -137,7 +130,8 @@ public class RegistrationView extends Composite<Div> implements I18nSupport {
       return;
     }
 
-    RegistrationResult result = service.register(username, password, displayNameField.getValue());
+    RegistrationResult result =
+        new RegistrationService().register(username, password, displayNameField.getValue());
     switch (result) {
       case RegistrationResult.Success ignored -> {
         showStatus("SUCCESS", tr(K_SUCCESS, "Account created. Please sign in."));

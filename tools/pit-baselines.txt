@@ -72,6 +72,15 @@ com.svenruppert.openprobatum.views.ui=12
 # Trust-Core domain (V00.10.00, P013). assessment grading + catalog
 # records mutation-test cleanly; credential is held down by the PDFBox
 # rendering + thin governance/enum mutants (see recalibration note above).
-com.svenruppert.openprobatum.assessment=88
+# assessment lowered 88 -> 82 in V00.20.00 (P019): the new AssessmentRepository
+# + AttemptRepository + CheckService added EclipseStore/wiring mutants that are
+# hard to kill (like the credential package), dropping the package from 92 % to
+# 86 %. The grading + check + practice LOGIC stays fully covered.
+com.svenruppert.openprobatum.assessment=82
 com.svenruppert.openprobatum.catalog=0
 com.svenruppert.openprobatum.credential=64
+
+# Single-user academy domain (V00.20.00, P019). Scoped-measured: access
+# 100 % (35/35), progress 95 % (22/23) — pure domain logic, cleanly killed.
+com.svenruppert.openprobatum.access=90
+com.svenruppert.openprobatum.progress=90

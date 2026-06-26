@@ -59,7 +59,6 @@ public class CatalogView extends Composite<VerticalLayout> implements I18nSuppor
   public static final String NAV = "catalog";
 
   private final CatalogRepository catalog = CatalogRepositoryProvider.repository();
-  private final EntitlementService entitlements = new EntitlementService();
 
   public CatalogView() {
     VerticalLayout root = getContent();
@@ -85,7 +84,7 @@ public class CatalogView extends Composite<VerticalLayout> implements I18nSuppor
   }
 
   private Component card(Offering offering, AppUser user) {
-    AccessDecision decision = entitlements.canAccess(user, offering);
+    AccessDecision decision = new EntitlementService().canAccess(user, offering);
 
     Div card = new Div();
     card.addClassName(TemplateBrand.CSS_HERO_SURFACE);

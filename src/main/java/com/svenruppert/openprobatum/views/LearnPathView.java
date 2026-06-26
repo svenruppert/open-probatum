@@ -64,8 +64,6 @@ public class LearnPathView extends Composite<VerticalLayout>
   public static final String NAV = "learn";
 
   private final CatalogRepository catalog = CatalogRepositoryProvider.repository();
-  private final EntitlementService entitlements = new EntitlementService();
-  private final ProgressService progress = new ProgressService();
 
   @Override
   public void setParameter(BeforeEvent event, @OptionalParameter String id) {
@@ -84,7 +82,7 @@ public class LearnPathView extends Composite<VerticalLayout>
 
   private void render(VerticalLayout root, Offering offering) {
     AppUser user = currentUser();
-    if (!entitlements.canAccess(user, offering).isGranted()) {
+    if (!new EntitlementService().canAccess(user, offering).isGranted()) {
       Span denied = new Span(tr("learn.denied", "You do not have access to this offering yet."));
       denied.getElement().setAttribute("data-learn-result", "DENIED");
       denied.getElement().getThemeList().add("badge error pill");
@@ -96,14 +94,14 @@ public class LearnPathView extends Composite<VerticalLayout>
     root.add(progressBar(user, offering));
 
     Long userId = user == null ? null : user.id();
-    Set<UUID> done = progress.completedModules(userId, offering.id());
+    Set<UUID> done = new ProgressService().completedModules(userId, offering.id());
     for (Module module : offering.path().modules()) {
       root.add(moduleSection(offering, module, done.contains(module.id()), root));
     }
   }
 
   private ProgressBar progressBar(AppUser user, Offering offering) {
-    int percent = progress.percentComplete(user == null ? null : user.id(), offering);
+    int percent = new ProgressService().percentComplete(user == null ? null : user.id(), offering);
     ProgressBar bar = new ProgressBar(0, 100, percent);
     bar.getElement().setAttribute("data-percent", Integer.toString(percent));
     return bar;
@@ -129,7 +127,7 @@ public class LearnPathView extends Composite<VerticalLayout>
     } else {
       AppUser user = currentUser();
       Button mark = new Button(tr("learn.module.complete", "Mark complete"), e -> {
-        progress.markModuleComplete(user == null ? null : user.id(), offering.id(), module.id());
+        new ProgressService().markModuleComplete(user == null ? null : user.id(), offering.id(), module.id());
         setParameter(null, offering.id().toString()); // re-render with updated progress
       });
       mark.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);

@@ -63,7 +63,6 @@ public class OfferingView extends Composite<VerticalLayout>
   public static final String NAV = "offering";
 
   private final CatalogRepository catalog = CatalogRepositoryProvider.repository();
-  private final EntitlementService entitlements = new EntitlementService();
 
   @Override
   public void setParameter(BeforeEvent event, @OptionalParameter String id) {
@@ -95,7 +94,7 @@ public class OfferingView extends Composite<VerticalLayout>
 
   private VerticalLayout gate(VerticalLayout root, Offering offering) {
     AppUser user = currentUser();
-    AccessDecision decision = entitlements.canAccess(user, offering);
+    AccessDecision decision = new EntitlementService().canAccess(user, offering);
 
     VerticalLayout box = new VerticalLayout();
     box.setPadding(false);
@@ -131,7 +130,7 @@ public class OfferingView extends Composite<VerticalLayout>
     error.setVisible(false);
 
     Button redeem = new Button(tr("offering.code.redeem", "Unlock"), e -> {
-      if (entitlements.redeemCode(user, offering, code.getValue())) {
+      if (new EntitlementService().redeemCode(user, offering, code.getValue())) {
         setParameter(null, offering.id().toString()); // re-render → GRANTED
       } else {
         error.setText(tr("offering.code.invalid", "That code is not valid."));
