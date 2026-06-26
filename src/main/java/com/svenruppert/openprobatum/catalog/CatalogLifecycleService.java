@@ -68,6 +68,21 @@ public final class CatalogLifecycleService implements HasLogger {
     return transition(id, ContentStatus.APPROVED);
   }
 
+  /**
+   * Approves an offering on behalf of {@code approverId}, enforcing segregation
+   * of duties (§3.6/§17.2): a reviewer may not approve content they authored.
+   * Throws {@link IllegalStateException} on a self-approval attempt.
+   */
+  public Optional<Offering> approve(UUID id, Long approverId) {
+    repository.findById(id).ifPresent(o -> {
+      if (com.svenruppert.openprobatum.content.ContentAuthorshipProvider.registry()
+          .isAuthor(o.lineageId(), approverId)) {
+        throw new IllegalStateException("an author cannot approve their own content");
+      }
+    });
+    return approve(id);
+  }
+
   public Optional<Offering> rejectToDraft(UUID id) {
     return transition(id, ContentStatus.DRAFT);
   }

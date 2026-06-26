@@ -114,6 +114,9 @@ public class AuthorView extends Composite<VerticalLayout> implements I18nSupport
     // The offering starts as a DRAFT and is submitted for review (§16.3); a
     // reviewer approves + publishes it before learners can reach it.
     new com.svenruppert.openprobatum.catalog.CatalogLifecycleService().submitForReview(offering.id());
+    // Record authorship (§17.2) for the segregation-of-duties rule on review.
+    com.svenruppert.openprobatum.content.ContentAuthorshipProvider.registry()
+        .recordAuthor(offering.lineageId(), currentAuthorId());
 
     showStatus("CREATED", tr("author.success",
         "Offering ''{0}'' created and submitted for review.", t));
@@ -145,5 +148,12 @@ public class AuthorView extends Composite<VerticalLayout> implements I18nSupport
 
   private static String value(TextArea field) {
     return field.getValue() == null ? "" : field.getValue().trim();
+  }
+
+  private static Long currentAuthorId() {
+    return com.svenruppert.jsentinel.authorization.api.SubjectStores.subjectStore()
+        .currentSubject(com.svenruppert.openprobatum.security.model.AppUser.class)
+        .map(com.svenruppert.openprobatum.security.model.AppUser::id)
+        .orElse(null);
   }
 }

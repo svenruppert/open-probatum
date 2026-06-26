@@ -107,6 +107,17 @@ class DashboardLearnerStatsTest extends BrowserlessTest {
     assertEquals(List.of("0"), attributes(view, "data-stat-inprogress"));
   }
 
+  @Test
+  @DisplayName("a learner never sees the admin operational tiles (LOW-2, §17.1)")
+  void learnerHasNoAdminMetrics() {
+    // alice (the current subject) is a LEARNER — the ops metrics row is hidden.
+    DashboardView view = new DashboardView();
+    assertEquals(List.of(), attributes(view, "data-admin-metrics"),
+        "the users/sessions/audit tiles must not render for a learner");
+    // The learner's own stats are still shown.
+    assertEquals(List.of("0"), attributes(view, "data-stat-credentials"));
+  }
+
   private static List<String> attributes(Component root, String name) {
     List<String> values = new ArrayList<>();
     collect(root, name, values);

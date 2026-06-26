@@ -17,6 +17,7 @@
 package com.svenruppert.openprobatum.assessment;
 
 import com.svenruppert.openprobatum.content.ContentStatus;
+import com.svenruppert.openprobatum.content.ContentAuthorshipProvider;
 import com.svenruppert.dependencies.core.logger.HasLogger;
 
 import java.util.List;
@@ -92,6 +93,20 @@ public final class QuestionBankService implements HasLogger {
 
   public Optional<Question> approve(UUID id) {
     return transition(id, ContentStatus.APPROVED);
+  }
+
+  /**
+   * Approves a question on behalf of {@code approverId}, enforcing segregation of
+   * duties (§3.6/§17.2): a reviewer may not approve content they authored. Throws
+   * {@link IllegalStateException} on a self-approval attempt.
+   */
+  public Optional<Question> approve(UUID id, Long approverId) {
+    repository.findById(id).ifPresent(q -> {
+      if (ContentAuthorshipProvider.registry().isAuthor(q.lineageId(), approverId)) {
+        throw new IllegalStateException("an author cannot approve their own content");
+      }
+    });
+    return approve(id);
   }
 
   public Optional<Question> rejectToDraft(UUID id) {

@@ -90,7 +90,7 @@ public class ReviewView extends Composite<VerticalLayout> implements I18nSupport
     QuestionBankService service = new QuestionBankService();
     Div card = card("data-question", q.id(), q.text() + "  (v" + q.version() + ")", q.status());
     card.add(actions(q.status(),
-        () -> reRender(service.approve(q.id())),
+        () -> guarded(() -> service.approve(q.id(), currentReviewerId()), card),
         () -> reRender(service.rejectToDraft(q.id())),
         () -> reRender(service.publish(q.id()))));
     return card;
@@ -100,7 +100,7 @@ public class ReviewView extends Composite<VerticalLayout> implements I18nSupport
     CatalogLifecycleService service = new CatalogLifecycleService();
     Div card = card("data-offering", o.id(), o.title() + "  (v" + o.version() + ")", o.status());
     card.add(actions(o.status(),
-        () -> reRender(service.approve(o.id())),
+        () -> guarded(() -> service.approve(o.id(), currentReviewerId()), card),
         () -> reRender(service.rejectToDraft(o.id())),
         () -> reRender(service.publish(o.id()))));
     return card;
@@ -109,6 +109,31 @@ public class ReviewView extends Composite<VerticalLayout> implements I18nSupport
   /** Re-renders the queue after a transition (the result is consumed for clarity). */
   private void reRender(Object ignored) {
     render();
+  }
+
+  /**
+   * Runs an approval that may be refused by the segregation-of-duties rule
+   * (a reviewer approving their own content, §3.6). On refusal the row shows an
+   * inline error instead of crashing; on success the queue re-renders.
+   */
+  private void guarded(Runnable approve, Div card) {
+    try {
+      approve.run();
+      render();
+    } catch (IllegalStateException refused) {
+      Span error = new Span(tr("review.error.selfApprove",
+          "You cannot approve content you authored."));
+      error.getElement().setAttribute("data-error", "SELF_APPROVAL");
+      error.getElement().getThemeList().add("badge error pill");
+      card.add(error);
+    }
+  }
+
+  private static Long currentReviewerId() {
+    return com.svenruppert.jsentinel.authorization.api.SubjectStores.subjectStore()
+        .currentSubject(com.svenruppert.openprobatum.security.model.AppUser.class)
+        .map(com.svenruppert.openprobatum.security.model.AppUser::id)
+        .orElse(null);
   }
 
   private Div card(String idAttr, UUID id, String heading, ContentStatus status) {

@@ -101,8 +101,12 @@ public class DashboardView extends Composite<VerticalLayout>
 
     root.add(buildHeader(displayName, roles));
     root.add(buildLearnerRow(userId));
-    root.add(buildMetricsRow());
-    root.add(buildRecentActivityCard());
+    // LOW-2 (§17.1): the operational tiles (users / sessions / audit) and the
+    // audit-activity card are admin-only — a learner never sees them.
+    if (roles.contains(PLATFORM_ADMIN)) {
+      root.add(buildMetricsRow());
+      root.add(buildRecentActivityCard());
+    }
   }
 
   // ── Learner row (§18) ──────────────────────────────────────────
@@ -201,6 +205,7 @@ public class DashboardView extends Composite<VerticalLayout>
             tr(K_TILE_DRIFT_HINT, "Phase-4c JSentinelVersion store wired")));
     row.setFlexWrap(FlexLayout.FlexWrap.WRAP);
     row.getStyle().set("gap", "var(--lumo-space-l)");
+    row.getElement().setAttribute("data-admin-metrics", "true");
     row.getChildren().forEach(c ->
         c.getElement().getStyle().set("flex", "1 1 200px"));
     return row;

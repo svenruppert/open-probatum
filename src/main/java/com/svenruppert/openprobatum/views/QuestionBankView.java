@@ -116,6 +116,10 @@ public class QuestionBankView extends Composite<VerticalLayout> implements I18nS
         .withMetadata(value(objective), "", com.svenruppert.openprobatum.assessment.Difficulty.MEDIUM)
         .withTags(java.util.Set.copyOf(splitCsv(value(tags))));
     new QuestionBankService().create(q);
+    // Record authorship (§17.2) so the review surface can enforce segregation of
+    // duties — a reviewer may not approve content they authored.
+    com.svenruppert.openprobatum.content.ContentAuthorshipProvider.registry()
+        .recordAuthor(q.lineageId(), currentAuthorId());
     showStatus("CREATED", tr("questions.success", "Question created as a draft."));
     clear();
     render();
@@ -193,5 +197,12 @@ public class QuestionBankView extends Composite<VerticalLayout> implements I18nS
 
   private static String value(TextField field) {
     return field.getValue() == null ? "" : field.getValue().trim();
+  }
+
+  private static Long currentAuthorId() {
+    return com.svenruppert.jsentinel.authorization.api.SubjectStores.subjectStore()
+        .currentSubject(com.svenruppert.openprobatum.security.model.AppUser.class)
+        .map(com.svenruppert.openprobatum.security.model.AppUser::id)
+        .orElse(null);
   }
 }
