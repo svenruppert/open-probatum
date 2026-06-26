@@ -111,8 +111,12 @@ public class AuthorView extends Composite<VerticalLayout> implements I18nSupport
       default -> Offering.publicPath(t, desc, path);
     };
     catalog.save(offering);
+    // The offering starts as a DRAFT and is submitted for review (§16.3); a
+    // reviewer approves + publishes it before learners can reach it.
+    new com.svenruppert.openprobatum.catalog.CatalogLifecycleService().submitForReview(offering.id());
 
-    showStatus("CREATED", tr("author.success", "Offering ''{0}'' created.", t));
+    showStatus("CREATED", tr("author.success",
+        "Offering ''{0}'' created and submitted for review.", t));
     status.getElement().setAttribute("data-offering-id", offering.id().toString());
     clearForm();
   }

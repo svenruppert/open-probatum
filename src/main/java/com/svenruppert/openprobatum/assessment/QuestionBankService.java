@@ -110,6 +110,13 @@ public final class QuestionBankService implements HasLogger {
     return transition(id, ContentStatus.ARCHIVED);
   }
 
+  /** Questions awaiting a reviewer's verdict (IN_REVIEW) or ready to publish (APPROVED). */
+  public List<Question> pendingReview() {
+    return repository.all().stream()
+        .filter(q -> q.status() == ContentStatus.IN_REVIEW || q.status() == ContentStatus.APPROVED)
+        .toList();
+  }
+
   /** Questions usable when authoring an assessment — APPROVED or PUBLISHED, never archived. */
   public List<Question> reusable() {
     return repository.all().stream()

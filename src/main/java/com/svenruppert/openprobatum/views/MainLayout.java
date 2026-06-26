@@ -77,6 +77,7 @@ public class MainLayout extends AppLayout
   private static final String K_NAV_WALLET = "nav.wallet";
   private static final String K_NAV_AUTHOR = "nav.author";
   private static final String K_NAV_QUESTIONS = "nav.questions";
+  private static final String K_NAV_REVIEW = "nav.review";
   private static final String K_NAV_ABOUT = "nav.about";
   private static final String K_NAV_YOUTUBE = "nav.youtube";
   private static final String K_NAV_PUSHDEMO = "nav.pushDemo";
@@ -168,6 +169,8 @@ public class MainLayout extends AppLayout
             AuthorView.class, "author:content", grants),
         item(tr(K_NAV_QUESTIONS, "Question bank"), VaadinIcon.QUESTION,
             QuestionBankView.class, "author:content", grants),
+        item(tr(K_NAV_REVIEW, "Review queue"), VaadinIcon.CHECK_SQUARE_O,
+            ReviewView.class, "author:review", grants),
         item(tr(K_NAV_PUSHDEMO, "Push demo"), VaadinIcon.BELL,
             PushDemoView.class, "app:view", grants));
     if (app != null) container.add(app);
