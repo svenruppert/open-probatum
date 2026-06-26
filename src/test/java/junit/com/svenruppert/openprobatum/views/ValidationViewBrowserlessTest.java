@@ -94,6 +94,16 @@ class ValidationViewBrowserlessTest extends BrowserlessTest {
     c.getChildren().forEach(child -> collect(child, sb));
   }
 
+  /** First value of attribute {@code name} found in the component tree, or {@code null}. */
+  private static String attr(Component c, String name) {
+    String v = c.getElement().getAttribute(name);
+    if (v != null) {
+      return v;
+    }
+    return c.getChildren().map(child -> attr(child, name))
+        .filter(java.util.Objects::nonNull).findFirst().orElse(null);
+  }
+
   @Test
   @DisplayName("NAV constant is 'validate'")
   void navConstant() {
@@ -143,6 +153,45 @@ class ValidationViewBrowserlessTest extends BrowserlessTest {
     Credential c = issue().withStatus(CredentialStatus.REVOKED);
     repo.save(c);
     assertTrue(renderText(c.id().toString()).contains("[result:REVOKED]"));
+  }
+
+  @Test
+  @DisplayName("a suspended credential renders the SUSPENDED result")
+  void suspendedShowsSuspended() {
+    Credential c = issue().withStatus(CredentialStatus.SUSPENDED);
+    repo.save(c);
+    assertTrue(renderText(c.id().toString()).contains("[result:SUSPENDED]"));
+  }
+
+  @Test
+  @DisplayName("an expired credential renders the EXPIRED result")
+  void expiredShowsExpired() {
+    // Expiry well in the past relative to AppClock.now() → effective EXPIRED.
+    Credential c = Credential.issue("Vaadin Certified", CredentialType.COMPLETION_CERTIFICATE,
+        "Alice", "Open Probatum Academy", Instant.parse("2020-01-01T00:00:00Z"),
+        Instant.parse("2021-01-01T00:00:00Z"));
+    repo.save(c);
+    assertTrue(renderText(c.id().toString()).contains("[result:EXPIRED]"));
+  }
+
+  @Test
+  @DisplayName("a superseded credential renders SUPERSEDED + a clickable link to its successor (P010/§11.7)")
+  void supersededShowsLinkToSuccessor() {
+    Credential successor = issue();
+    repo.save(successor);
+    Credential predecessor = issue().supersededByCredential(successor.id());
+    repo.save(predecessor);
+
+    ValidationView view = new ValidationView();
+    view.setParameter(null, predecessor.id().toString());
+
+    StringBuilder sb = new StringBuilder();
+    collect(view.getContent(), sb);
+    assertTrue(sb.toString().contains("[result:SUPERSEDED]"), "the SUPERSEDED result");
+
+    String linkTarget = attr(view.getContent(), "data-superseded-by");
+    assertEquals(successor.id().toString(), linkTarget,
+        "the page links to the successor credential");
   }
 
   @Test

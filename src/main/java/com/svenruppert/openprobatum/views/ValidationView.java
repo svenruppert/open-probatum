@@ -25,6 +25,7 @@ import com.svenruppert.openprobatum.credential.ValidationResult;
 import com.svenruppert.openprobatum.i18n.I18nSupport;
 import com.svenruppert.openprobatum.security.AppClock;
 import com.vaadin.flow.component.Composite;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
@@ -131,8 +132,9 @@ public class ValidationView extends Composite<VerticalLayout>
     c.expiry().ifPresent(e ->
         box.add(field("validate.field.expiry", "Expires on", VALIDATION_DATE.format(e))));
     box.add(field("validate.field.id", "Credential ID", c.id().toString()));
-    c.superseder().ifPresent(ref ->
-        box.add(field("validate.field.supersededBy", "Replaced by", ref.toString())));
+    // A superseded credential links to its successor's validation page (§11.7),
+    // so a verifier can follow the chain to the current credential.
+    c.superseder().ifPresent(ref -> box.add(supersededLink(ref)));
     return box;
   }
 
@@ -140,6 +142,15 @@ public class ValidationView extends Composite<VerticalLayout>
     Span span = new Span(tr(key, label) + ": " + value);
     span.getStyle().set("display", "block");
     return span;
+  }
+
+  private Span supersededLink(UUID successorId) {
+    Span line = new Span(tr("validate.field.supersededBy", "Replaced by") + ": ");
+    line.getStyle().set("display", "block");
+    Anchor link = new Anchor(NAV + "/" + successorId, successorId.toString());
+    link.getElement().setAttribute("data-superseded-by", successorId.toString());
+    line.add(link);
+    return line;
   }
 
   private Paragraph matchRuleHint() {
