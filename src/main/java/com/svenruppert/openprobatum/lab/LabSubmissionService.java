@@ -33,6 +33,16 @@ import java.util.UUID;
  */
 public final class LabSubmissionService implements HasLogger {
 
+  /**
+   * A process-wide lock for the verdict edge. The service is created per call, so
+   * an instance {@code synchronized} would lock nothing across threads; verifying
+   * a submission and minting its credential must be exactly-once even when two
+   * assessors work the shared queue concurrently, so the SUBMITTED→decided
+   * compare-and-set is serialised on this shared monitor. The view mints only on
+   * the non-empty result, so exactly one assessor wins the edge — no double-mint.
+   */
+  private static final Object DECISION_LOCK = new Object();
+
   private final LabRepository labs;
   private final LabSubmissionRepository submissions;
 
@@ -73,12 +83,12 @@ public final class LabSubmissionService implements HasLogger {
    * assessor may not have authored the lab. Returns the verified submission, or
    * empty when the id is unknown or already decided.
    */
-  public synchronized Optional<LabSubmission> verify(UUID id, Long assessorId, String feedback) {
+  public Optional<LabSubmission> verify(UUID id, Long assessorId, String feedback) {
     return decide(id, assessorId, s -> s.verified(feedback), "verified");
   }
 
   /** Rejects a SUBMITTED submission with feedback (same SoD + idempotency as verify). */
-  public synchronized Optional<LabSubmission> reject(UUID id, Long assessorId, String feedback) {
+  public Optional<LabSubmission> reject(UUID id, Long assessorId, String feedback) {
     return decide(id, assessorId, s -> s.rejected(feedback), "rejected");
   }
 
@@ -86,18 +96,27 @@ public final class LabSubmissionService implements HasLogger {
                                          java.util.function.UnaryOperator<LabSubmission> decision,
                                          String action) {
     Objects.requireNonNull(id, "id");
-    return submissions.findById(id)
-        .filter(s -> s.status() == SubmissionStatus.SUBMITTED)
-        .map(s -> {
-          guardSelfAssessment(s, assessorId);
-          LabSubmission decided = decision.apply(s);
-          submissions.save(decided);
-          logger().info("Lab submission {} {} by assessor {}", id, action, assessorId);
-          return decided;
-        });
+    // Serialise the read-decide-write on the shared monitor so the
+    // SUBMITTED→decided edge fires for exactly one caller (see DECISION_LOCK).
+    synchronized (DECISION_LOCK) {
+      return submissions.findById(id)
+          .filter(s -> s.status() == SubmissionStatus.SUBMITTED)
+          .map(s -> {
+            guardSelfAssessment(s, assessorId);
+            LabSubmission decided = decision.apply(s);
+            submissions.save(decided);
+            logger().info("Lab submission {} {} by assessor {}", id, action, assessorId);
+            return decided;
+          });
+    }
   }
 
-  /** Refuses an assessor verifying a submission to a lab they authored (§3.6/§17.2). */
+  /**
+   * Refuses an assessor verifying a submission to a lab they authored (§3.6/§17.2).
+   * Fail-open when the lab record is absent or the assessor id is unknown — SoD
+   * cannot be enforced against an unknown author; lab versions are immutable and
+   * assessors are authenticated, so this is by necessity, not a gap.
+   */
   private void guardSelfAssessment(LabSubmission submission, Long assessorId) {
     labs.findById(submission.labId()).ifPresent(lab -> {
       if (ContentAuthorshipProvider.registry().isAuthor(lab.lineageId(), assessorId)) {

@@ -135,7 +135,14 @@ public class LabView extends Composite<VerticalLayout> implements I18nSupport {
           "Select a lab and describe what you did."));
       return;
     }
-    var submission = new LabSubmissionService().submit(lab.id(), currentLearnerId(),
+    Long learnerId = currentLearnerId();
+    if (learnerId == null) {
+      // No identified learner (no subject) — a submission must belong to one.
+      showStatus("INVALID", tr("labs.error.unavailable",
+          "That lab is no longer available for submission."));
+      return;
+    }
+    var submission = new LabSubmissionService().submit(lab.id(), learnerId,
         currentLearnerName(), text, artefactLink.getValue());
     if (submission.isEmpty()) {
       showStatus("INVALID", tr("labs.error.unavailable",

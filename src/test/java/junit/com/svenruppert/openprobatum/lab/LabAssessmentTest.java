@@ -109,4 +109,36 @@ class LabAssessmentTest {
     assertTrue(service.reject(s.id(), ASSESSOR, "no").isEmpty());
     assertEquals(SubmissionStatus.VERIFIED, submissions.findById(s.id()).orElseThrow().status());
   }
+
+  @Test
+  @DisplayName("concurrent assessors verifying the same submission win the edge exactly once (H1)")
+  void concurrentVerifyFiresOnce() throws InterruptedException {
+    LabSubmission s = submitted();
+    int threads = 16;
+    var pool = java.util.concurrent.Executors.newFixedThreadPool(threads);
+    var start = new java.util.concurrent.CountDownLatch(1);
+    var done = new java.util.concurrent.CountDownLatch(threads);
+    var wins = new java.util.concurrent.atomic.AtomicInteger();
+    for (int i = 0; i < threads; i++) {
+      pool.execute(() -> {
+        try {
+          start.await();
+          // Each thread uses its own service instance, as the view does per click.
+          if (new LabSubmissionService(labs, submissions).verify(s.id(), ASSESSOR, "ok").isPresent()) {
+            wins.incrementAndGet();
+          }
+        } catch (InterruptedException ignored) {
+          Thread.currentThread().interrupt();
+        } finally {
+          done.countDown();
+        }
+      });
+    }
+    start.countDown();
+    assertTrue(done.await(5, java.util.concurrent.TimeUnit.SECONDS), "all threads finished");
+    pool.shutdownNow();
+
+    assertEquals(1, wins.get(), "exactly one assessor wins the SUBMITTED→VERIFIED edge");
+    assertEquals(SubmissionStatus.VERIFIED, submissions.findById(s.id()).orElseThrow().status());
+  }
 }
