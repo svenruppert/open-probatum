@@ -91,4 +91,39 @@ public final class IssuanceService implements HasLogger {
         attempt.assessmentId(), attempt.assessmentVersion());
     return Optional.of(credential);
   }
+
+  /**
+   * Issues and persists a {@code VALID} credential for a <em>verified</em> lab
+   * submission (concept §10.6/§16.3), carrying {@link Evidence} that the lab
+   * version's practical submission was verified + the submission's stable
+   * recipient id. Emits one {@code ISSUED} audit event. Returns empty (and
+   * persists nothing) when the submission is not verified.
+   *
+   * @param submission the verified lab submission (the evidence)
+   * @param title      the credential title
+   * @param type       the credential type
+   * @param expiresAt  optional expiry; {@code null} for no expiry
+   */
+  public Optional<Credential> issueForLab(com.svenruppert.openprobatum.lab.LabSubmission submission,
+                                          String title, CredentialType type,
+                                          java.time.Instant expiresAt) {
+    Objects.requireNonNull(submission, "submission");
+    Objects.requireNonNull(title, "title");
+    Objects.requireNonNull(type, "type");
+    if (!submission.isVerified()) {
+      logger().debug("No credential issued — submission {} is not verified", submission.id());
+      return Optional.empty();
+    }
+    Evidence evidence = Evidence.labVerified(submission.labId(), submission.labVersion());
+    Credential credential = Credential.issue(title, type, submission.recipientId(),
+        submission.learnerName(), issuer.name(), AppClock.now(), expiresAt, evidence);
+    repository.save(credential);
+    CredentialEventRepositoryProvider.repository().append(CredentialEvent.of(
+        credential.id(), CredentialEvent.Action.ISSUED, "system",
+        "lab " + submission.labId() + " v" + submission.labVersion() + " verified"));
+    logger().info("Issued credential {} to '{}' (id={}, evidence: lab {} v{} verified)",
+        credential.id(), submission.learnerName(), submission.recipientId(),
+        submission.labId(), submission.labVersion());
+    return Optional.of(credential);
+  }
 }

@@ -98,8 +98,7 @@ public class AssessmentQueueView extends Composite<VerticalLayout> implements I1
     feedback.getElement().setAttribute("data-feedback-input", submission.id().toString());
 
     Button verify = new Button(tr("assess.action.verify", "Verify"),
-        e -> decide(() -> new LabSubmissionService()
-            .verify(submission.id(), currentAssessorId(), feedback.getValue()), card));
+        e -> verifyAndIssue(submission, feedback.getValue(), card));
     verify.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_SMALL);
     verify.getElement().setAttribute("data-action", "verify");
 
@@ -111,6 +110,35 @@ public class AssessmentQueueView extends Composite<VerticalLayout> implements I1
 
     card.add(feedback, new Div(verify, reject));
     return card;
+  }
+
+  /**
+   * Verifies a submission and, on the real SUBMITTED→VERIFIED edge only, mints the
+   * practical-lab credential. Because {@code verify} returns the submission only
+   * on that edge (empty once decided), re-verifying never double-mints (§10.x).
+   * A self-assessment attempt shows an inline notice instead of minting.
+   */
+  private void verifyAndIssue(LabSubmission submission, String feedback, Div card) {
+    try {
+      new LabSubmissionService().verify(submission.id(), currentAssessorId(), feedback)
+          .ifPresent(this::issueCredentialFor);
+      render();
+    } catch (IllegalStateException refused) {
+      inlineError(card, "assess.error.selfAssess",
+          "You cannot assess a submission to a lab you authored.", "SELF_ASSESS");
+    }
+  }
+
+  /** Mints the practical-lab credential for a freshly verified submission (§10.6). */
+  private void issueCredentialFor(LabSubmission verified) {
+    String title = LabRepositoryProvider.repository().findById(verified.labId())
+        .map(com.svenruppert.openprobatum.lab.Lab::title)
+        .orElse(tr("assess.credential.default", "Practical lab"));
+    new com.svenruppert.openprobatum.credential.IssuanceService(
+        com.svenruppert.openprobatum.credential.CredentialRepositoryProvider.repository(),
+        com.svenruppert.openprobatum.credential.IssuerIdentity.fromConfig())
+        .issueForLab(verified, title,
+            com.svenruppert.openprobatum.credential.CredentialType.PRACTITIONER_CREDENTIAL, null);
   }
 
   /**

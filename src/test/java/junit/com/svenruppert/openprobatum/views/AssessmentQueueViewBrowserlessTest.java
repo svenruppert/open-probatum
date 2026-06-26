@@ -19,6 +19,12 @@ package junit.com.svenruppert.openprobatum.views;
 import com.svenruppert.openprobatum.content.ContentAuthorshipProvider;
 import com.svenruppert.openprobatum.content.ContentStatus;
 import com.svenruppert.openprobatum.content.InMemoryContentAuthorship;
+import com.svenruppert.openprobatum.credential.Credential;
+import com.svenruppert.openprobatum.credential.CredentialEventRepositoryProvider;
+import com.svenruppert.openprobatum.credential.CredentialRepositoryProvider;
+import com.svenruppert.openprobatum.credential.Evidence;
+import com.svenruppert.openprobatum.credential.InMemoryCredentialEventRepository;
+import com.svenruppert.openprobatum.credential.InMemoryCredentialRepository;
 import com.svenruppert.openprobatum.lab.InMemoryLabRepository;
 import com.svenruppert.openprobatum.lab.InMemoryLabSubmissionRepository;
 import com.svenruppert.openprobatum.lab.Lab;
@@ -51,6 +57,7 @@ class AssessmentQueueViewBrowserlessTest extends BrowserlessTest {
   private InMemoryLabRepository labs;
   private InMemoryLabSubmissionRepository submissions;
   private InMemoryContentAuthorship authorship;
+  private InMemoryCredentialRepository credentials;
   private Lab lab;
 
   @BeforeEach
@@ -58,9 +65,13 @@ class AssessmentQueueViewBrowserlessTest extends BrowserlessTest {
     labs = new InMemoryLabRepository();
     submissions = new InMemoryLabSubmissionRepository();
     authorship = new InMemoryContentAuthorship();
+    credentials = new InMemoryCredentialRepository();
     LabRepositoryProvider.setRepository(labs);
     LabSubmissionRepositoryProvider.setRepository(submissions);
     ContentAuthorshipProvider.setRegistry(authorship);
+    // Verifying mints a credential + appends an audit event — keep both in memory.
+    CredentialRepositoryProvider.setRepository(credentials);
+    CredentialEventRepositoryProvider.setRepository(new InMemoryCredentialEventRepository());
 
     lab = Lab.draft("Deploy", "Deploy the app").withStatus(ContentStatus.PUBLISHED);
     labs.save(lab);
@@ -74,6 +85,8 @@ class AssessmentQueueViewBrowserlessTest extends BrowserlessTest {
     LabRepositoryProvider.reset();
     LabSubmissionRepositoryProvider.reset();
     ContentAuthorshipProvider.reset();
+    CredentialRepositoryProvider.reset();
+    CredentialEventRepositoryProvider.reset();
     SubjectStores.subjectStore().deleteCurrentSubject(AppUser.class);
   }
 
@@ -89,14 +102,32 @@ class AssessmentQueueViewBrowserlessTest extends BrowserlessTest {
   }
 
   @Test
-  @DisplayName("a pending submission appears and the assessor verifies it")
-  void verifies() {
+  @DisplayName("verifying a submission mints exactly one practical-lab credential (P008)")
+  void verifyMintsCredential() {
     LabSubmission s = pendingSubmission();
     AssessmentQueueView view = new AssessmentQueueView();
     assertEquals(List.of(s.id().toString()), attributes(view, "data-submission"));
 
     click(view, "verify");
+
     assertEquals(SubmissionStatus.VERIFIED, submissions.findById(s.id()).orElseThrow().status());
+    assertEquals(1, credentials.all().size(), "exactly one credential minted");
+    Credential c = credentials.all().iterator().next();
+    assertEquals(Evidence.Type.PRACTICAL_LAB_VERIFIED, c.evidence().type());
+    assertEquals(lab.id(), c.evidence().sourceId(), "evidence points at the lab");
+    assertEquals(lab.version(), c.sourceVersion());
+    assertEquals(5005L, c.recipientId(), "bound to the learner's stable id");
+    assertTrue(c.isHeldBy(5005L));
+  }
+
+  @Test
+  @DisplayName("a self-assessing author mints nothing")
+  void selfAssessMintsNothing() {
+    pendingSubmission();
+    assessorIs(1001L); // the author
+    AssessmentQueueView view = new AssessmentQueueView();
+    click(view, "verify");
+    assertTrue(credentials.all().isEmpty(), "no credential on a refused self-assessment");
   }
 
   @Test
