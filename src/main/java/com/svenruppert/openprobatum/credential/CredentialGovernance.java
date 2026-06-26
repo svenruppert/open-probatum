@@ -43,23 +43,27 @@ public final class CredentialGovernance implements HasLogger {
 
   /** Revokes a credential ({@code VALID/...} → {@code REVOKED}). */
   public Optional<Credential> revoke(UUID id) {
-    return transition(id, c -> c.withStatus(CredentialStatus.REVOKED), "revoked");
+    return transition(id, c -> c.withStatus(CredentialStatus.REVOKED),
+        CredentialEvent.Action.REVOKED, "");
   }
 
   /** Suspends a credential (temporary deactivation). */
   public Optional<Credential> suspend(UUID id) {
-    return transition(id, c -> c.withStatus(CredentialStatus.SUSPENDED), "suspended");
+    return transition(id, c -> c.withStatus(CredentialStatus.SUSPENDED),
+        CredentialEvent.Action.SUSPENDED, "");
   }
 
   /** Reinstates a suspended credential back to {@code VALID}. */
   public Optional<Credential> reinstate(UUID id) {
-    return transition(id, c -> c.withStatus(CredentialStatus.VALID), "reinstated");
+    return transition(id, c -> c.withStatus(CredentialStatus.VALID),
+        CredentialEvent.Action.REINSTATED, "");
   }
 
   /** Marks a credential {@code SUPERSEDED}, pointing at the replacing credential. */
   public Optional<Credential> supersede(UUID id, UUID replacementId) {
     Objects.requireNonNull(replacementId, "replacementId");
-    return transition(id, c -> c.supersededByCredential(replacementId), "superseded");
+    return transition(id, c -> c.supersededByCredential(replacementId),
+        CredentialEvent.Action.SUPERSEDED, "by " + replacementId);
   }
 
   /**
@@ -79,17 +83,29 @@ public final class CredentialGovernance implements HasLogger {
       repository.save(successor);
       repository.save(predecessor.supersededByCredential(successor.id()));
       logger().info("Credential {} reissued as {}", predecessorId, successor.id());
+      appendEvent(predecessorId, CredentialEvent.Action.REISSUED, "as " + successor.id());
       return successor;
     });
   }
 
-  private Optional<Credential> transition(UUID id, UnaryOperator<Credential> change, String action) {
+  private Optional<Credential> transition(UUID id, UnaryOperator<Credential> change,
+                                          CredentialEvent.Action action, String detail) {
     Objects.requireNonNull(id, "id");
     return repository.findById(id).map(current -> {
       Credential updated = change.apply(current);
       repository.save(updated);
       logger().info("Credential {} {}", id, action);
+      appendEvent(id, action, detail);
       return updated;
     });
   }
+
+  /** Appends one audit-trail event for a governance action (§17.3). */
+  private void appendEvent(UUID credentialId, CredentialEvent.Action action, String detail) {
+    CredentialEventRepositoryProvider.repository().append(
+        CredentialEvent.of(credentialId, action, ACTOR, detail));
+  }
+
+  /** The coarse actor recorded for governance actions in this slice. */
+  private static final String ACTOR = "credential-manager";
 }

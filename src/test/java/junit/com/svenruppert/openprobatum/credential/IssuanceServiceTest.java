@@ -51,12 +51,16 @@ class IssuanceServiceTest {
   void setUp() {
     AppClock.setClock(Clock.fixed(FIXED, ZoneOffset.UTC));
     repository = new InMemoryCredentialRepository();
+    // Keep the audit-trail side effect in memory (do not touch the file store).
+    com.svenruppert.openprobatum.credential.CredentialEventRepositoryProvider.setRepository(
+        new com.svenruppert.openprobatum.credential.InMemoryCredentialEventRepository());
     service = new IssuanceService(repository, new IssuerIdentity("Test Academy", "http://x/validate"));
   }
 
   @AfterEach
   void tearDown() {
     AppClock.reset();
+    com.svenruppert.openprobatum.credential.CredentialEventRepositoryProvider.reset();
   }
 
   private static Attempt attempt(boolean passed) {

@@ -42,6 +42,18 @@ class CredentialGovernanceTest {
   private final CredentialGovernance governance = new CredentialGovernance(repo);
   private final CredentialValidator validator = new CredentialValidator(repo);
 
+  @org.junit.jupiter.api.BeforeEach
+  void pinAuditTrail() {
+    // Keep the governance audit-trail side effect in memory (no file store).
+    com.svenruppert.openprobatum.credential.CredentialEventRepositoryProvider.setRepository(
+        new com.svenruppert.openprobatum.credential.InMemoryCredentialEventRepository());
+  }
+
+  @org.junit.jupiter.api.AfterEach
+  void resetAuditTrail() {
+    com.svenruppert.openprobatum.credential.CredentialEventRepositoryProvider.reset();
+  }
+
   private Credential issued() {
     Credential c = Credential.issue("Vaadin Certified", CredentialType.COMPLETION_CERTIFICATE,
         "Alice", "Academy", Instant.parse("2026-01-01T00:00:00Z"), null);

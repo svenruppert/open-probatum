@@ -82,6 +82,10 @@ public final class IssuanceService implements HasLogger {
     Credential credential = Credential.issue(title, type, recipientId, attempt.learnerName(),
         issuer.name(), AppClock.now(), expiresAt, evidence);
     repository.save(credential);
+    // App-side audit trail (§17.3): one ISSUED event per issuance.
+    CredentialEventRepositoryProvider.repository().append(CredentialEvent.of(
+        credential.id(), CredentialEvent.Action.ISSUED, "system",
+        "assessment " + attempt.assessmentId() + " v" + attempt.assessmentVersion() + " passed"));
     logger().info("Issued credential {} to '{}' (id={}, evidence: assessment {} v{} passed)",
         credential.id(), attempt.learnerName(), recipientId,
         attempt.assessmentId(), attempt.assessmentVersion());

@@ -46,11 +46,15 @@ class GovernanceViewBrowserlessTest extends BrowserlessTest {
   void setUp() {
     credentials = new InMemoryCredentialRepository();
     CredentialRepositoryProvider.setRepository(credentials);
+    // Keep the governance audit-trail side effect in memory (no file store).
+    com.svenruppert.openprobatum.credential.CredentialEventRepositoryProvider.setRepository(
+        new com.svenruppert.openprobatum.credential.InMemoryCredentialEventRepository());
   }
 
   @AfterEach
   void tearDown() {
     CredentialRepositoryProvider.reset();
+    com.svenruppert.openprobatum.credential.CredentialEventRepositoryProvider.reset();
   }
 
   private Credential save(CredentialStatus status) {

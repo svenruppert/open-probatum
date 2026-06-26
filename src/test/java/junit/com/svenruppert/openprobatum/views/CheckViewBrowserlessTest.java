@@ -61,6 +61,9 @@ class CheckViewBrowserlessTest extends BrowserlessTest {
     AssessmentRepositoryProvider.setRepository(assessments);
     AttemptRepositoryProvider.setRepository(new InMemoryAttemptRepository());
     CredentialRepositoryProvider.setRepository(credentials);
+    // Keep the issuance audit-trail side effect in memory (no file store).
+    com.svenruppert.openprobatum.credential.CredentialEventRepositoryProvider.setRepository(
+        new com.svenruppert.openprobatum.credential.InMemoryCredentialEventRepository());
     SubjectStores.subjectStore().setCurrentSubject(
         new AppUser(1001L, "Alice", EnumSet.of(AuthorizationRole.LEARNER)), AppUser.class);
   }
@@ -70,6 +73,7 @@ class CheckViewBrowserlessTest extends BrowserlessTest {
     AssessmentRepositoryProvider.reset();
     AttemptRepositoryProvider.reset();
     CredentialRepositoryProvider.reset();
+    com.svenruppert.openprobatum.credential.CredentialEventRepositoryProvider.reset();
     SubjectStores.subjectStore().deleteCurrentSubject(AppUser.class);
   }
 
