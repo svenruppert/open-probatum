@@ -55,6 +55,12 @@ public final class BundleCompletionService implements HasLogger {
   private final CredentialRepository credentials;
   private final IssuanceService issuance;
 
+  /**
+   * For the exactly-once guarantee, {@code credentials} (read by
+   * {@link #alreadyClaimed}) and {@code issuance}'s repository (which writes the
+   * minted credential) MUST be the same store — the no-arg constructor wires both
+   * to {@code CredentialRepositoryProvider.repository()}.
+   */
   public BundleCompletionService(CatalogRepository catalog, ProgressService progress,
                                  CredentialRepository credentials, IssuanceService issuance) {
     this.catalog = Objects.requireNonNull(catalog, "catalog");
@@ -84,7 +90,12 @@ public final class BundleCompletionService implements HasLogger {
     return true;
   }
 
-  /** Whether a bundle completion credential for this (learner, bundle) already exists. */
+  /**
+   * Whether a bundle completion credential for this (learner, bundle) already
+   * exists. Keyed on the bundle <em>version</em> id ({@code bundle.id()}), matching
+   * the version model: a new published version is a new bundle and may be claimed
+   * separately, exactly as a new assessment/lab version is a distinct credential.
+   */
   public boolean alreadyClaimed(Long learnerId, Bundle bundle) {
     return credentials.all().stream().anyMatch(c ->
         c.isHeldBy(learnerId)

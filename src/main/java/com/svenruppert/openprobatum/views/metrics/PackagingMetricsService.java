@@ -72,7 +72,9 @@ public final class PackagingMetricsService {
    * @param enrolled       seats taken (not cancelled)
    * @param attended       how many attended
    * @param capacity       the seat capacity
-   * @param fillRate       {@code enrolled / capacity} in {@code [0, 1]}
+   * @param fillRate       {@code enrolled / capacity}, clamped to {@code [0, 1]}
+   *                       (a freed seat can be re-enrolled, so raw enrolled may
+   *                       exceed capacity over a session; the rate is capped)
    * @param attendanceRate {@code attended / enrolled} in {@code [0, 1]} (0 when none enrolled)
    */
   public record WorkshopMetrics(UUID workshopId, String title, int enrolled, int attended,
@@ -106,7 +108,9 @@ public final class PackagingMetricsService {
     List<WorkshopEnrolment> all = enrolments.forWorkshop(workshop.id());
     int enrolled = (int) all.stream().filter(e -> e.status() != EnrolmentStatus.CANCELLED).count();
     int attended = (int) all.stream().filter(WorkshopEnrolment::isAttended).count();
-    double fillRate = workshop.capacity() == 0 ? 0.0 : (double) enrolled / workshop.capacity();
+    // Clamp fill to [0, 1] — a seat freed by ATTENDED/NO_SHOW can be re-enrolled,
+    // so raw enrolled may exceed capacity over a session (exit-review M1).
+    double fillRate = Math.min(1.0, (double) enrolled / workshop.capacity());
     double attendanceRate = enrolled == 0 ? 0.0 : (double) attended / enrolled;
     return new WorkshopMetrics(workshop.id(), workshop.title(), enrolled, attended,
         workshop.capacity(), fillRate, attendanceRate);

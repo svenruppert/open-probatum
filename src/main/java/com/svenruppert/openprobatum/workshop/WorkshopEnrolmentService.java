@@ -83,6 +83,10 @@ public final class WorkshopEnrolmentService implements HasLogger {
    * — the ENROLLED→ATTENDED edge (idempotent: a non-ENROLLED enrolment yields
    * empty, so re-recording never re-fires and never double-mints the certificate).
    * The view mints the workshop credential only on the non-empty result.
+   *
+   * <p>{@code instructorId} is recorded for audit but not checked against the
+   * workshop's instructor: any holder of {@code workshop:run} may record
+   * attendance, consistent with the shared staff-role model used elsewhere.
    */
   public Optional<WorkshopEnrolment> recordAttendance(UUID enrolmentId, Long instructorId) {
     return decide(enrolmentId, WorkshopEnrolment::attended, "attended", instructorId);

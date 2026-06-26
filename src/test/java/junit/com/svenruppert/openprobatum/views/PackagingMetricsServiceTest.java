@@ -86,6 +86,21 @@ class PackagingMetricsServiceTest {
   }
 
   @Test
+  @DisplayName("fill rate is clamped to 100% when a freed seat is re-enrolled (exit-review M1)")
+  void fillRateClamped() {
+    Workshop w = Workshop.draft("Tiny", "d",
+        Instant.parse("2026-09-01T09:00:00Z"), Instant.parse("2026-09-01T17:00:00Z"), 1, "Sven");
+    workshops.save(w);
+    // capacity 1, but an attended seat + a re-enrolment → 2 non-cancelled enrolments.
+    enrolments.save(WorkshopEnrolment.enrol(w.id(), 1L, "Ada").attended());
+    enrolments.save(WorkshopEnrolment.enrol(w.id(), 2L, "Bob"));
+
+    var m = metrics.allWorkshopMetrics().get(0);
+    assertEquals(2, m.enrolled());
+    assertEquals(1.0, m.fillRate(), 1e-9, "rate is capped at 1.0, not 2.0");
+  }
+
+  @Test
   @DisplayName("a workshop with no enrolments reports zero rates, not a divide-by-zero")
   void workshopNoEnrolments() {
     Workshop w = Workshop.draft("Empty", "d",
