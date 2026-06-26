@@ -42,14 +42,16 @@ public final class InMemoryCredentialEventRepository implements CredentialEventR
   public List<CredentialEvent> findByCredential(UUID credentialId) {
     return store.values().stream()
         .filter(e -> e.credentialId().equals(credentialId))
-        .sorted(Comparator.comparing(CredentialEvent::timestamp).reversed())
+        .sorted(Comparator.comparing(CredentialEvent::timestamp)
+            .thenComparing(e -> e.id().toString()).reversed())
         .toList();
   }
 
   @Override
   public List<CredentialEvent> all() {
     return store.values().stream()
-        .sorted(Comparator.comparing(CredentialEvent::timestamp).reversed())
+        .sorted(Comparator.comparing(CredentialEvent::timestamp)
+            .thenComparing(e -> e.id().toString()).reversed())
         .toList();
   }
 }

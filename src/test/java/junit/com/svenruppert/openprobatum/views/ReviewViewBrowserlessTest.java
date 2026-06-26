@@ -110,6 +110,24 @@ class ReviewViewBrowserlessTest extends BrowserlessTest {
   }
 
   @Test
+  @DisplayName("a stale publish (already moved on by another reviewer) shows a notice, not a crash (M-2)")
+  void stalePublishIsGuarded() {
+    Question q = submittedQuestion();
+    QuestionBankService bank = new QuestionBankService();
+    bank.approve(q.id());
+
+    // The reviewer's queue is rendered while the item is APPROVED (publish shown).
+    ReviewView view = new ReviewView();
+    // Another reviewer publishes it first → the card is now stale.
+    bank.publish(q.id());
+
+    // Clicking the stale Publish button must not throw; it shows a STALE notice.
+    click(view, "publish");
+    assertEquals(List.of("STALE"), attributes(view, "data-error"));
+    assertEquals(ContentStatus.PUBLISHED, questions.findById(q.id()).orElseThrow().status());
+  }
+
+  @Test
   @DisplayName("a reviewer approves + publishes a submitted offering; it becomes learner-visible")
   void publishOffering() {
     Offering o = Offering.publicPath("Course", "d", path());

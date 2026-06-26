@@ -109,9 +109,14 @@ class CredentialEventTrailTest {
         events.findByCredential(c.id()).get(0).action());
 
     Credential predecessor = issue();
-    governance.reissue(predecessor.id(), null);
+    Credential successor = governance.reissue(predecessor.id(), null).orElseThrow();
     assertEquals(CredentialEvent.Action.REISSUED,
         events.findByCredential(predecessor.id()).get(0).action());
+    // The successor is a fully valid credential — it must carry its own ISSUED
+    // provenance, not an empty trail (exit-review H-1).
+    List<CredentialEvent> successorTrail = events.findByCredential(successor.id());
+    assertEquals(1, successorTrail.size(), "the reissued successor has its own trail");
+    assertEquals(CredentialEvent.Action.ISSUED, successorTrail.get(0).action());
   }
 
   @Test

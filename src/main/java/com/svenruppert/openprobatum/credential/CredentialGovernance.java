@@ -83,7 +83,10 @@ public final class CredentialGovernance implements HasLogger {
       repository.save(successor);
       repository.save(predecessor.supersededByCredential(successor.id()));
       logger().info("Credential {} reissued as {}", predecessorId, successor.id());
+      // The operation touches two credentials, so each gets its own trail entry:
+      // the predecessor is REISSUED, the successor is ISSUED (its provenance, §17.3).
       appendEvent(predecessorId, CredentialEvent.Action.REISSUED, "as " + successor.id());
+      appendEvent(successor.id(), CredentialEvent.Action.ISSUED, "reissued from " + predecessorId);
       return successor;
     });
   }

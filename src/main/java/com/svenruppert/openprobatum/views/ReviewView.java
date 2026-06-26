@@ -90,9 +90,9 @@ public class ReviewView extends Composite<VerticalLayout> implements I18nSupport
     QuestionBankService service = new QuestionBankService();
     Div card = card("data-question", q.id(), q.text() + "  (v" + q.version() + ")", q.status());
     card.add(actions(q.status(),
-        () -> guarded(() -> service.approve(q.id(), currentReviewerId()), card),
-        () -> reRender(service.rejectToDraft(q.id())),
-        () -> reRender(service.publish(q.id()))));
+        () -> guardedApprove(() -> service.approve(q.id(), currentReviewerId()), card),
+        () -> guardedTransition(() -> service.rejectToDraft(q.id()), card),
+        () -> guardedTransition(() -> service.publish(q.id()), card)));
     return card;
   }
 
@@ -100,15 +100,10 @@ public class ReviewView extends Composite<VerticalLayout> implements I18nSupport
     CatalogLifecycleService service = new CatalogLifecycleService();
     Div card = card("data-offering", o.id(), o.title() + "  (v" + o.version() + ")", o.status());
     card.add(actions(o.status(),
-        () -> guarded(() -> service.approve(o.id(), currentReviewerId()), card),
-        () -> reRender(service.rejectToDraft(o.id())),
-        () -> reRender(service.publish(o.id()))));
+        () -> guardedApprove(() -> service.approve(o.id(), currentReviewerId()), card),
+        () -> guardedTransition(() -> service.rejectToDraft(o.id()), card),
+        () -> guardedTransition(() -> service.publish(o.id()), card)));
     return card;
-  }
-
-  /** Re-renders the queue after a transition (the result is consumed for clarity). */
-  private void reRender(Object ignored) {
-    render();
   }
 
   /**
@@ -116,17 +111,36 @@ public class ReviewView extends Composite<VerticalLayout> implements I18nSupport
    * (a reviewer approving their own content, §3.6). On refusal the row shows an
    * inline error instead of crashing; on success the queue re-renders.
    */
-  private void guarded(Runnable approve, Div card) {
+  private void guardedApprove(Runnable approve, Div card) {
     try {
       approve.run();
       render();
     } catch (IllegalStateException refused) {
-      Span error = new Span(tr("review.error.selfApprove",
-          "You cannot approve content you authored."));
-      error.getElement().setAttribute("data-error", "SELF_APPROVAL");
-      error.getElement().getThemeList().add("badge error pill");
-      card.add(error);
+      inlineError(card, "review.error.selfApprove",
+          "You cannot approve content you authored.", "SELF_APPROVAL");
     }
+  }
+
+  /**
+   * Runs a reject/publish transition that another reviewer may have already moved
+   * past (a stale card in a concurrent queue, §16.3). An illegal transition shows
+   * an inline notice and re-renders the now-current queue instead of crashing.
+   */
+  private void guardedTransition(Runnable transition, Div card) {
+    try {
+      transition.run();
+      render();
+    } catch (IllegalStateException stale) {
+      inlineError(card, "review.error.stale",
+          "This item was already moved on by another reviewer.", "STALE");
+    }
+  }
+
+  private void inlineError(Div card, String key, String fallback, String marker) {
+    Span error = new Span(tr(key, fallback));
+    error.getElement().setAttribute("data-error", marker);
+    error.getElement().getThemeList().add("badge error pill");
+    card.add(error);
   }
 
   private static Long currentReviewerId() {

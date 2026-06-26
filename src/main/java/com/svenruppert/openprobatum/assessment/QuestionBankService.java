@@ -99,6 +99,12 @@ public final class QuestionBankService implements HasLogger {
    * Approves a question on behalf of {@code approverId}, enforcing segregation of
    * duties (§3.6/§17.2): a reviewer may not approve content they authored. Throws
    * {@link IllegalStateException} on a self-approval attempt.
+   *
+   * <p>The check is fail-open when the question's author is unknown (no authorship
+   * recorded, or {@code approverId} is {@code null}) — segregation of duties cannot
+   * be enforced against an unknown author. This is by necessity, not a gap: the
+   * authoring surfaces always record the signed-in author at creation, so any
+   * question created through the application carries an author to check against.
    */
   public Optional<Question> approve(UUID id, Long approverId) {
     repository.findById(id).ifPresent(q -> {

@@ -46,14 +46,16 @@ public final class EclipseStoreCredentialEventRepository implements CredentialEv
   public synchronized List<CredentialEvent> findByCredential(UUID credentialId) {
     return AppStorage.appRoot().credentialEvents.values().stream()
         .filter(e -> e.credentialId().equals(credentialId))
-        .sorted(Comparator.comparing(CredentialEvent::timestamp).reversed())
+        .sorted(Comparator.comparing(CredentialEvent::timestamp)
+            .thenComparing(e -> e.id().toString()).reversed())
         .toList();
   }
 
   @Override
   public synchronized List<CredentialEvent> all() {
     return AppStorage.appRoot().credentialEvents.values().stream()
-        .sorted(Comparator.comparing(CredentialEvent::timestamp).reversed())
+        .sorted(Comparator.comparing(CredentialEvent::timestamp)
+            .thenComparing(e -> e.id().toString()).reversed())
         .toList();
   }
 }
