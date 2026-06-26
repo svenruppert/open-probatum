@@ -29,6 +29,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -78,6 +79,17 @@ class RegistrationServiceTest {
 
     assertInstanceOf(RegistrationResult.UsernameTaken.class, second);
     assertEquals("Carol", directory.findById(1001L).map(AppUser::name).orElse(null));
+  }
+
+  @Test
+  @DisplayName("a duplicate DISPLAY name is rejected — the recipient key must be unique (HIGH-1)")
+  void duplicateDisplayNameRejected() {
+    service.register("alice", STRONG, "Alice Smith");
+    // A different username but the same display name must be refused, otherwise
+    // the two learners would match each other's credentials/wallet.
+    RegistrationResult clash = service.register("alice2", STRONG, "Alice Smith");
+    assertInstanceOf(RegistrationResult.NameTaken.class, clash);
+    assertFalse(directory.usernameExists("alice2"), "nothing persisted for the clashing name");
   }
 
   @Test

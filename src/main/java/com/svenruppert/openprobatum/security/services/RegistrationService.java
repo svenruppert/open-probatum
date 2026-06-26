@@ -73,12 +73,17 @@ public final class RegistrationService implements HasLogger {
     if (directory.usernameExists(username)) {
       return new RegistrationResult.UsernameTaken();
     }
+    // The display name is the credential recipient key — it must be unique so one
+    // learner's wallet/credentials can never match another's (exit-review HIGH-1).
+    String name = (displayName == null || displayName.isBlank()) ? username : displayName;
+    if (directory.displayNameExists(name)) {
+      return new RegistrationResult.NameTaken();
+    }
     if (!PasswordPreflight.isAcceptable(password)) {
       return new RegistrationResult.WeakPassword(
           "password appears on a breach/blocklist");
     }
     long id = directory.all().mapToLong(AppUser::id).max().orElse(ID_FLOOR) + 1;
-    String name = (displayName == null || displayName.isBlank()) ? username : displayName;
     AppUser user = new AppUser(id, name, EnumSet.of(AuthorizationRole.LEARNER));
     directory.addUser(username, password, user);
     logger().info("Registered new learner: id={}, username={}", id, username);

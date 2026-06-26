@@ -136,6 +136,12 @@ public final class PersistentUserDirectory implements UserDirectory, HasLogger {
   }
 
   @Override
+  public synchronized boolean displayNameExists(String displayName) {
+    return displayName != null && byUsername.values().stream()
+        .anyMatch(stored -> displayName.equals(stored.user().name()));
+  }
+
+  @Override
   public synchronized void addUser(String username, String plaintextPassword, AppUser user) {
     Objects.requireNonNull(username);
     Objects.requireNonNull(plaintextPassword);

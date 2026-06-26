@@ -64,6 +64,7 @@ public class RegistrationView extends Composite<Div> implements I18nSupport {
   private static final String K_E_REQUIRED = "register.error.required";
   private static final String K_E_MISMATCH = "register.error.mismatch";
   private static final String K_E_TAKEN = "register.error.usernameTaken";
+  private static final String K_E_NAME_TAKEN = "register.error.nameTaken";
   private static final String K_E_WEAK = "register.error.weakPassword";
   private static final String K_SUCCESS = "register.success";
 
@@ -146,6 +147,11 @@ public class RegistrationView extends Composite<Div> implements I18nSupport {
         usernameField.setInvalid(true);
         usernameField.setErrorMessage(tr(K_E_TAKEN, "That username is already taken."));
         showStatus("USERNAME_TAKEN", tr(K_E_TAKEN, "That username is already taken."));
+      }
+      case RegistrationResult.NameTaken ignored -> {
+        displayNameField.setInvalid(true);
+        displayNameField.setErrorMessage(tr(K_E_NAME_TAKEN, "That display name is already taken."));
+        showStatus("NAME_TAKEN", tr(K_E_NAME_TAKEN, "That display name is already taken."));
       }
       case RegistrationResult.WeakPassword ignored -> {
         passwordField.setInvalid(true);

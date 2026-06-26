@@ -124,13 +124,15 @@ public class CheckView extends Composite<VerticalLayout>
     answers.forEach((qid, group) -> given.put(qid, group.getSelectedItems()));
 
     String learner = currentLearnerName();
-    Attempt attempt = checkService.submit(learner, assessment, given);
+    CheckService.SubmitOutcome outcome = checkService.submit(learner, assessment, given);
+    Attempt attempt = outcome.attempt();
     int count = checkService.attemptCount(learner, assessment.id());
 
     boolean passed = attempt.passed();
-    // Mint the credential only on the FIRST passing attempt (re-passing must not
-    // duplicate). issueFor itself no-ops on a failed attempt.
-    if (passed && checkService.passedAttemptCount(learner, assessment.id()) == 1) {
+    // Mint the credential only on the FIRST passing attempt — the decision is made
+    // atomically inside CheckService.submit, so re-passing never duplicates and
+    // there is no double-mint race. issueFor itself no-ops on a failed attempt.
+    if (outcome.firstPass()) {
       new IssuanceService(CredentialRepositoryProvider.repository(), IssuerIdentity.fromConfig())
           .issueFor(attempt, assessment.title(), CredentialType.COMPLETION_CERTIFICATE, null);
     }

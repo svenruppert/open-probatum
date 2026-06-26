@@ -34,6 +34,14 @@ public sealed interface RegistrationResult {
   record UsernameTaken() implements RegistrationResult {
   }
 
+  /**
+   * The display name is already taken. The display name is the credential
+   * recipient key, so it must be unique (otherwise a learner could match another
+   * learner's wallet/credentials).
+   */
+  record NameTaken() implements RegistrationResult {
+  }
+
   /** The password failed the policy / preflight (too short, blocklisted, breached). */
   record WeakPassword(String reason) implements RegistrationResult {
   }

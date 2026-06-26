@@ -40,15 +40,31 @@ public final class CheckService {
     this(AttemptRepositoryProvider.repository());
   }
 
-  /** Grades {@code answers}, records the attempt for {@code learnerName}, returns it. */
-  public synchronized Attempt submit(String learnerName, Assessment assessment,
-                                     Map<UUID, Set<Integer>> answers) {
+  /**
+   * The outcome of a submitted check: the recorded {@code attempt}, and whether
+   * it is the learner's <em>first</em> passing attempt — the atomic signal the
+   * caller uses to issue a credential exactly once.
+   */
+  public record SubmitOutcome(Attempt attempt, boolean firstPass) {
+  }
+
+  /**
+   * Grades {@code answers}, records the attempt for {@code learnerName}, and
+   * decides — atomically, under this method's lock — whether it is the first
+   * passing attempt. Computing {@code firstPass} inside the same synchronized
+   * block as the save closes the issuance double-mint race (no TOCTOU between
+   * "did it pass first?" and recording the attempt).
+   */
+  public synchronized SubmitOutcome submit(String learnerName, Assessment assessment,
+                                           Map<UUID, Set<Integer>> answers) {
     Objects.requireNonNull(learnerName, "learnerName");
     Objects.requireNonNull(assessment, "assessment");
     AssessmentResult result = assessment.grade(answers);
     Attempt attempt = Attempt.record(learnerName, assessment, result);
     attempts.save(attempt);
-    return attempt;
+    boolean firstPass = attempt.passed()
+        && passedAttemptCount(learnerName, assessment.id()) == 1;
+    return new SubmitOutcome(attempt, firstPass);
   }
 
   /** How many times {@code learnerName} has attempted the assessment. */

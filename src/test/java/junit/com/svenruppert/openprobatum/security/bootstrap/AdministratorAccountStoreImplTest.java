@@ -209,6 +209,9 @@ class AdministratorAccountStoreImplTest {
     @Override public boolean usernameExists(String username) {
       return false;
     }
+    @Override public boolean displayNameExists(String displayName) {
+      return false;
+    }
     @Override public void addUser(String u, String p, AppUser user) {
     }
     @Override public void registerWithHashedPassword(String u, String h, AppUser user) {

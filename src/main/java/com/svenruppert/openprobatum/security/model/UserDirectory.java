@@ -55,6 +55,13 @@ public interface UserDirectory {
   /** @return {@code true} if a user with this username already exists. */
   boolean usernameExists(String username);
 
+  /**
+   * @return {@code true} if a user with this display name already exists. The
+   *         display name is the credential recipient key, so it must be unique to
+   *         keep one learner's wallet / credentials from matching another's.
+   */
+  boolean displayNameExists(String displayName);
+
   void addUser(String username, String plaintextPassword, AppUser user);
 
   /**

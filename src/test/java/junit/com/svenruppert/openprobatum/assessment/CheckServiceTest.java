@@ -59,11 +59,13 @@ class CheckServiceTest {
   @Test
   @DisplayName("all-correct answers pass; a wrong answer fails the threshold")
   void gradingReflectsThreshold() {
-    Attempt pass = service.submit("alice", assessment, answers(1, 1));
+    CheckService.SubmitOutcome passOutcome = service.submit("alice", assessment, answers(1, 1));
+    Attempt pass = passOutcome.attempt();
     assertTrue(pass.passed());
+    assertTrue(passOutcome.firstPass(), "the first passing attempt is the issuance signal");
     assertEquals(2, pass.result().correct());
 
-    Attempt fail = service.submit("alice", assessment, answers(1, 0));
+    Attempt fail = service.submit("alice", assessment, answers(1, 0)).attempt();
     assertFalse(fail.passed());
     assertEquals(1, fail.result().correct());
   }
@@ -83,9 +85,17 @@ class CheckServiceTest {
   }
 
   @Test
+  @DisplayName("only the first passing attempt signals firstPass (the issuance dedup)")
+  void firstPassSignalledOnce() {
+    assertTrue(service.submit("alice", assessment, answers(1, 1)).firstPass(), "1st pass");
+    assertFalse(service.submit("alice", assessment, answers(1, 1)).firstPass(), "2nd pass");
+    assertFalse(service.submit("alice", assessment, answers(1, 0)).firstPass(), "a fail never signals");
+  }
+
+  @Test
   @DisplayName("the recorded attempt carries the assessment id + version")
   void attemptCarriesAssessmentRef() {
-    Attempt a = service.submit("alice", assessment, answers(1, 1));
+    Attempt a = service.submit("alice", assessment, answers(1, 1)).attempt();
     assertEquals(assessment.id(), a.assessmentId());
     assertEquals(assessment.version(), a.assessmentVersion());
     assertEquals(1, repo.forLearner("alice", assessment.id()).size());

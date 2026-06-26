@@ -101,6 +101,7 @@ public class AdminRolesView extends Composite<VerticalLayout>
   private static final String K_CR_E_WEAK = "roles.create.error.weakPassword";
   private static final String K_CR_SUCCESS = "roles.create.success";
   private static final String K_CR_E_FAIL = "roles.create.error.failed";
+  private static final String K_CR_E_TAKEN = "roles.create.error.taken";
   private static final String K_EMPTY_TITLE = "roles.empty.title";
   private static final String K_EMPTY_BODY = "roles.empty.body";
   private static final String K_UNIT_USERS = "roles.unit.users";
@@ -280,6 +281,13 @@ public class AdminRolesView extends Composite<VerticalLayout>
       }
       String display = displayName.getValue() == null || displayName.getValue().isBlank()
           ? u : displayName.getValue();
+      // The display name is the credential recipient key — it must be unique
+      // (exit-review HIGH-1), and addUser silently overwrites on a username clash.
+      if (UserDirectoryProvider.directory().usernameExists(u)
+          || UserDirectoryProvider.directory().displayNameExists(display)) {
+        warn(tr(K_CR_E_TAKEN, "That username or display name is already taken."));
+        return;
+      }
       AppUser created = new AppUser(nextId(), display,
           EnumSet.of(AuthorizationRole.LEARNER, r));
       try {
