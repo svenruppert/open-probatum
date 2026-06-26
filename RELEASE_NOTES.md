@@ -2,6 +2,59 @@
 
 ## Unreleased
 
+## 00.20.00 — Einzelbenutzer-Academy (2026-06-26)
+
+The platform becomes fully usable for an individual learner (concept §23.2):
+register, find an offering, work a learning path, practise, pass a completion
+check and manage the earned credential — all on top of the V00.10.00 trust flow,
+whose invariants (trust model, id, three-layer status, role-based visibility,
+privacy, rate limiting) carry over unchanged.
+
+### Roles & onboarding
+
+- **Five-role model** (§5): `Learner`, `Author`, `CredentialManager`,
+  `PlatformAdmin`, `Verifier`, each mapped to a permission set in
+  `AppAuthorizationService` (the bootstrap admin holds PlatformAdmin + Learner).
+- **Self-registration** (§5.1): a public `/register` flow onboards a visitor as a
+  Learner via the shared user directory + Argon2id + password preflight.
+
+### Catalog, access & learning
+
+- **Academy catalog** (§7): offerings with visibility `PUBLIC` / `REGISTERED` /
+  `CODE` / `PREREQUISITE`, browsable with their per-learner access state.
+- **Entitlements** (§12): `EntitlementService.canAccess` resolves access; code
+  redemption + manual/prerequisite grants unlock gated offerings.
+- **Learning experience** (§8): learning paths with mandatory/optional modules
+  and a completion criterion; typed learning resources (article, video, download,
+  link, checklist); per-learner progress with a live progress bar.
+
+### Assessment, credentialing & wallet
+
+- **Practice mode** (§9.5): answer questions with immediate feedback +
+  explanations and **no** credential.
+- **Completion check** (§9.6): a graded check with a pass threshold + counted
+  attempts; the first passing attempt mints a `VALID` credential via the
+  V00.10.00 issuance (re-passing does not duplicate).
+- **Badge** (§10.8): a standalone, shareable representation referencing the same
+  record as the certificate.
+- **Credential wallet** (§19): the learner's credentials with effective status,
+  expiry, QR code, PDF certificate download and the public validation link; a
+  **dashboard** (§18) tile row for credentials earned + paths in progress.
+
+### Authoring & governance
+
+- **Minimal authoring** (§16.1): an Author creates a complete offering (title,
+  description, visibility, module) without a developer.
+- **Governance** (§10.9/§17.4): a Credential Manager revokes / suspends /
+  reinstates issued credentials, effective immediately on the validation page.
+
+### Platform
+
+- Persistence consolidated in the single jSentinel-00.75.20 application store
+  (users, credentials, offerings, entitlements, progress, assessments, attempts).
+  All user-facing strings are i18n (EN + DE); the new domain mutation-tests
+  cleanly (access 100 %, progress 95 %).
+
 ## 00.10.00 — Trust Core (2026-06-25)
 
 The first domain-level vertical slice (concept §23.1): the trust flow proven
