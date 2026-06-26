@@ -82,6 +82,7 @@ public class MainLayout extends AppLayout
   private static final String K_NAV_AUDIT = "nav.audit";
   private static final String K_NAV_SESSIONS = "nav.sessions";
   private static final String K_NAV_ROLES = "nav.roles";
+  private static final String K_NAV_GOVERNANCE = "nav.governance";
   private static final String K_SIGN_IN = "common.signIn";
   private static final String K_SIGN_OUT = "common.signOut";
 
@@ -175,7 +176,9 @@ public class MainLayout extends AppLayout
         item(tr(K_NAV_SESSIONS, "Active sessions"), VaadinIcon.USERS,
             SessionsView.class, "admin:sessions", grants),
         item(tr(K_NAV_ROLES, "Role administration"), VaadinIcon.SHIELD,
-            AdminRolesView.class, "admin:roles", grants));
+            AdminRolesView.class, "admin:roles", grants),
+        item(tr(K_NAV_GOVERNANCE, "Credential governance"), VaadinIcon.DIPLOMA,
+            GovernanceView.class, "credential:manage", grants));
     if (admin != null) container.add(admin);
 
     return container;
