@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>open-probatum</artifactId>
-    <version>00.40.00-SNAPSHOT</version>
+    <version>00.40.00</version>
     <packaging>war</packaging>
 
 

@@ -2,6 +2,59 @@
 
 ## Unreleased
 
+## 00.40.00 — Labs & Practical Evidence (2026-06-26)
+
+The credential model grows from *theory-only* to *theory + practice* (concept
+§23.4, drafted this cycle). A **Lab** is an authored, versioned, reviewed
+practical task; a learner submits practical evidence against a published lab; a
+Reviewer acting as assessor verifies or rejects it; and a verified submission
+mints a credential carrying **practical-lab evidence** — closing the loop the
+V00.30.00 `Evidence` abstraction was built to anticipate. All V00.10–V00.30
+invariants carry over.
+
+### Labs
+
+- **Lab as versioned content** (§9.x): a practical task with instructions, a
+  learning objective, difficulty, explicit acceptance criteria and tags — a
+  versioned content object (`lineageId` + `version`) under the §16.2
+  `ContentStatus` lifecycle, authored and reviewed exactly like a bank question
+  (reuses `ContentAuthorship` + the review queue).
+- **Lab authoring** (`LabBankView`) + the editorial lifecycle (`LabService`):
+  create → submit for review → approve → publish; an author cannot approve their
+  own lab.
+
+### Practical evidence
+
+- **Submission** (§16.3): a learner submits a write-up + an optional artefact link
+  against a *published* lab (`LabView`); the submission pins the lab version
+  (§16.4), so a later lab version never falsifies it. A learner sees only their
+  own submissions.
+- **Assessment**: a Reviewer/assessor (`lab:assess`) verifies or rejects
+  submissions with feedback (`AssessmentQueueView`); an author cannot assess
+  submissions to a lab they authored (segregation of duties, §3.6). The
+  verify edge is serialised so two assessors never double-decide.
+
+### Credentialing from practice
+
+- **Practical-lab credential** (§10.6): a verified submission mints a credential
+  carrying `PRACTICAL_LAB_VERIFIED` evidence (lab id + version) + the learner's
+  stable recipient id, exactly once on the verify edge — recorded in the §17.3
+  audit trail and shown in the wallet and on the validation page unchanged. A new
+  `CredentialRule.LAB_VERIFIED` declares what earns it.
+
+### Metrics
+
+- **Lab quality metrics** (§20.2): per-lab submission count + verify/reject rates
+  in the `MetricsView`.
+
+### Platform
+
+- Two new persisted stores in the single jSentinel-00.75.20 application store
+  (`labs`, `labSubmissions`); a new `lab:assess` permission on the Reviewer role
+  (the six-role model is unchanged). All user-facing strings are i18n (EN + DE).
+  Exit production-review #2 rated 4/5 — one concurrency double-mint found and
+  fixed in-cycle.
+
 ## 00.30.00 — Authoring & Credential Governance (2026-06-26)
 
 The usable single-learner academy becomes an *operable, quality-assured* one
