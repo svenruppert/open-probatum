@@ -103,3 +103,14 @@ com.svenruppert.openprobatum.content=90
 # 47→48 %); existing floors left conservative per the "raise only after sustained
 # coverage" rule. Floor 3 below measured.
 com.svenruppert.openprobatum.lab=75
+
+# Workshops & Bundles domain (V00.50.00, P012). Full-gate measured: bundle 72 %,
+# workshop 74 % (Bundle/Workshop/enrolment records + lifecycle + the atomic
+# claim/enrol/attendance edges kill cleanly; the EclipseStore repositories add the
+# usual hard-to-kill store-wiring mutants), views.metrics 86 % (PackagingMetrics is
+# pure aggregation). The V00.50.00 additions held every existing floor and nudged
+# overall 48→49 %; existing floors left conservative per the "raise only after
+# sustained coverage" rule. Floors 3 below measured.
+com.svenruppert.openprobatum.bundle=69
+com.svenruppert.openprobatum.workshop=71
+com.svenruppert.openprobatum.views.metrics=83
