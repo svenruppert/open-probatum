@@ -98,6 +98,9 @@ class CheckViewBrowserlessTest extends BrowserlessTest {
     Credential issued = credentials.all().iterator().next();
     assertEquals("Quiz", issued.title());
     assertEquals(EffectiveStatus.VALID, issued.effectiveStatusAt(AppClock.now()));
+    // P008: the credential is bound to the signed-in learner's stable id, not just the name.
+    assertEquals(1001L, issued.recipientId(), "the credential carries the learner's id");
+    assertTrue(issued.isHeldBy(1001L));
   }
 
   @Test

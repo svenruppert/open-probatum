@@ -134,7 +134,8 @@ public class CheckView extends Composite<VerticalLayout>
     // there is no double-mint race. issueFor itself no-ops on a failed attempt.
     if (outcome.firstPass()) {
       new IssuanceService(CredentialRepositoryProvider.repository(), IssuerIdentity.fromConfig())
-          .issueFor(attempt, assessment.title(), CredentialType.COMPLETION_CERTIFICATE, null);
+          .issueFor(attempt, currentLearnerId(), assessment.title(),
+              CredentialType.COMPLETION_CERTIFICATE, null);
     }
     result.getElement().setAttribute("data-check-result", passed ? "PASSED" : "FAILED");
     result.getElement().setAttribute("data-attempt", Integer.toString(count));
@@ -152,6 +153,13 @@ public class CheckView extends Composite<VerticalLayout>
     return SubjectStores.subjectStore().currentSubject(AppUser.class)
         .map(AppUser::name)
         .orElse("anonymous");
+  }
+
+  /** The signed-in learner's stable id — the durable key on the issued credential (§17.2). */
+  private static Long currentLearnerId() {
+    return SubjectStores.subjectStore().currentSubject(AppUser.class)
+        .map(AppUser::id)
+        .orElse(null);
   }
 
   private static Optional<UUID> parse(String id) {

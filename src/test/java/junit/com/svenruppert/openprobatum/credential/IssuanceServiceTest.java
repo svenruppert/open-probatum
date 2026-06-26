@@ -81,6 +81,22 @@ class IssuanceServiceTest {
   }
 
   @Test
+  @DisplayName("an issued credential carries its recipient id + assessment-passed evidence + source version (P008)")
+  void carriesRecipientIdAndEvidence() {
+    Attempt a = new Attempt(UUID.randomUUID(), "Alice", UUID.randomUUID(), 3,
+        new AssessmentResult(4, 4, 1.0, true), FIXED);
+    Credential c = service.issueFor(
+        a, 1001L, "Vaadin Certified", CredentialType.COMPLETION_CERTIFICATE, null).orElseThrow();
+
+    assertEquals(1001L, c.recipientId(), "the stable recipient id is recorded");
+    assertTrue(c.isHeldBy(1001L));
+    assertEquals(com.svenruppert.openprobatum.credential.Evidence.Type.ASSESSMENT_PASSED,
+        c.evidence().type());
+    assertEquals(a.assessmentId(), c.evidence().sourceId(), "evidence points at the assessment");
+    assertEquals(3, c.sourceVersion(), "the source version (§16.4) is captured");
+  }
+
+  @Test
   @DisplayName("a failed attempt issues nothing and persists nothing")
   void failIssuesNothing() {
     assertTrue(service.issueFor(

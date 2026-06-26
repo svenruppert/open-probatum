@@ -72,9 +72,11 @@ public class WalletView extends Composite<VerticalLayout> implements I18nSupport
     root.add(new PageHeader(tr("wallet.heading", "My credentials"),
         tr("wallet.subtitle", "Your earned credentials — status, certificate and validation link.")));
 
-    String me = currentLearnerName();
+    // Filter by the stable recipient id, never the free-form display name
+    // (the durable fix for the V00.20.00 cross-user exposure, §3.6/§17.2).
+    Long me = currentLearnerId();
     var mine = credentials.all().stream()
-        .filter(c -> c.recipientName().equals(me))
+        .filter(c -> c.isHeldBy(me))
         .sorted(Comparator.comparing(Credential::issuedAt).reversed())
         .toList();
 
@@ -129,9 +131,9 @@ public class WalletView extends Composite<VerticalLayout> implements I18nSupport
     return card;
   }
 
-  private static String currentLearnerName() {
+  private static Long currentLearnerId() {
     return SubjectStores.subjectStore().currentSubject(AppUser.class)
-        .map(AppUser::name)
-        .orElse("");
+        .map(AppUser::id)
+        .orElse(null);
   }
 }

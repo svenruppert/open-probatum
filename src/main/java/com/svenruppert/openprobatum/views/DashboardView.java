@@ -100,16 +100,17 @@ public class DashboardView extends Composite<VerticalLayout>
     root.setAlignItems(FlexComponent.Alignment.STRETCH);
 
     root.add(buildHeader(displayName, roles));
-    root.add(buildLearnerRow(displayName, userId));
+    root.add(buildLearnerRow(userId));
     root.add(buildMetricsRow());
     root.add(buildRecentActivityCard());
   }
 
   // ── Learner row (§18) ──────────────────────────────────────────
 
-  private FlexLayout buildLearnerRow(String name, Long userId) {
+  private FlexLayout buildLearnerRow(Long userId) {
+    // Count by the stable recipient id, never the display name (§3.6/§17.2).
     long earned = safeCount(() -> CredentialRepositoryProvider.repository().all().stream()
-        .filter(c -> c.recipientName().equals(name))
+        .filter(c -> c.isHeldBy(userId))
         .count());
     long inProgress = safeCount(() -> {
       ProgressService progress = new ProgressService();

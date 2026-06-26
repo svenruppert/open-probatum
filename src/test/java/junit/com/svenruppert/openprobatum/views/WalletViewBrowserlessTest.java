@@ -58,20 +58,24 @@ class WalletViewBrowserlessTest extends BrowserlessTest {
     SubjectStores.subjectStore().deleteCurrentSubject(AppUser.class);
   }
 
-  private static Credential forRecipient(String name) {
+  private static Credential forRecipient(Long id, String name) {
     return Credential.issue("Vaadin Certified", CredentialType.COMPLETION_CERTIFICATE,
-        name, "Open Probatum Academy", Instant.parse("2026-01-01T00:00:00Z"), null);
+        id, name, "Open Probatum Academy", Instant.parse("2026-01-01T00:00:00Z"),
+        null, com.svenruppert.openprobatum.credential.Evidence.manualAward());
   }
 
   @Test
   @DisplayName("the wallet shows only the current learner's credentials, with status + QR + PDF + share")
   void showsOwnCredentials() {
-    credentials.save(forRecipient("Alice"));
-    credentials.save(forRecipient("Bob")); // must not appear
+    credentials.save(forRecipient(1001L, "Alice"));
+    credentials.save(forRecipient(2002L, "Bob")); // must not appear — different id
+    // The HIGH-1 regression: a different learner who happens to share the display
+    // name must NOT leak into Alice's wallet (id is the key, not the name).
+    credentials.save(forRecipient(3003L, "Alice"));
 
     WalletView view = new WalletView();
 
-    assertEquals(1, attributes(view, "data-credential").size(), "only Alice's credential");
+    assertEquals(1, attributes(view, "data-credential").size(), "only Alice's own credential");
     assertEquals(List.of("VALID"), attributes(view, "data-status"));
     assertEquals(List.of("true"), attributes(view, "data-qr"));
     assertEquals(List.of("true"), attributes(view, "data-pdf"));
@@ -82,7 +86,7 @@ class WalletViewBrowserlessTest extends BrowserlessTest {
   @Test
   @DisplayName("a learner with no credentials sees the empty state")
   void emptyWallet() {
-    credentials.save(forRecipient("Bob")); // someone else's
+    credentials.save(forRecipient(2002L, "Bob")); // someone else's
     WalletView view = new WalletView();
     assertTrue(attributes(view, "data-credential").isEmpty());
   }

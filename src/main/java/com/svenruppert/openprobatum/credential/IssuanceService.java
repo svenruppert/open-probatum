@@ -53,6 +53,24 @@ public final class IssuanceService implements HasLogger {
    */
   public Optional<Credential> issueFor(Attempt attempt, String title,
                                        CredentialType type, java.time.Instant expiresAt) {
+    return issueFor(attempt, null, title, type, expiresAt);
+  }
+
+  /**
+   * Issues and persists a {@code VALID} credential for a <em>passed</em>
+   * attempt, bound to the recipient's stable {@code recipientId} (the durable
+   * wallet/dashboard key, §17.2) and carrying {@link Evidence} that the
+   * assessment version was passed (§10.6/§16.4). Returns empty (and persists
+   * nothing) when the attempt did not pass.
+   *
+   * @param attempt     the graded attempt (the evidence)
+   * @param recipientId the stable id of the recipient, or {@code null} if unknown
+   * @param title       the credential title
+   * @param type        the credential type
+   * @param expiresAt   optional expiry; {@code null} for no expiry
+   */
+  public Optional<Credential> issueFor(Attempt attempt, Long recipientId, String title,
+                                       CredentialType type, java.time.Instant expiresAt) {
     Objects.requireNonNull(attempt, "attempt");
     Objects.requireNonNull(title, "title");
     Objects.requireNonNull(type, "type");
@@ -60,11 +78,12 @@ public final class IssuanceService implements HasLogger {
       logger().debug("No credential issued — attempt {} did not pass", attempt.id());
       return Optional.empty();
     }
-    Credential credential = Credential.issue(title, type, attempt.learnerName(),
-        issuer.name(), AppClock.now(), expiresAt);
+    Evidence evidence = Evidence.assessmentPassed(attempt.assessmentId(), attempt.assessmentVersion());
+    Credential credential = Credential.issue(title, type, recipientId, attempt.learnerName(),
+        issuer.name(), AppClock.now(), expiresAt, evidence);
     repository.save(credential);
-    logger().info("Issued credential {} to '{}' (evidence: assessment {} v{} passed)",
-        credential.id(), attempt.learnerName(),
+    logger().info("Issued credential {} to '{}' (id={}, evidence: assessment {} v{} passed)",
+        credential.id(), attempt.learnerName(), recipientId,
         attempt.assessmentId(), attempt.assessmentVersion());
     return Optional.of(credential);
   }

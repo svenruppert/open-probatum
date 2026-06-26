@@ -43,6 +43,9 @@ import java.util.UUID;
  * @param status       stored lifecycle status (level 1)
  * @param supersededBy the replacing credential's id when {@code SUPERSEDED},
  *                     otherwise {@code null}
+ * @param recipientId  the stable id of the recipient (the durable wallet/dashboard
+ *                     key, §17.2); {@code null} for legacy / manual awards
+ * @param evidence     the basis the credential was issued on (§10.6)
  * @since V00.10.00
  */
 public record Credential(
@@ -54,7 +57,9 @@ public record Credential(
     Instant issuedAt,
     Instant expiresAt,
     CredentialStatus status,
-    UUID supersededBy) {
+    UUID supersededBy,
+    Long recipientId,
+    Evidence evidence) {
 
   public Credential {
     Objects.requireNonNull(id, "id");
@@ -64,19 +69,54 @@ public record Credential(
     Objects.requireNonNull(issuer, "issuer");
     Objects.requireNonNull(issuedAt, "issuedAt");
     Objects.requireNonNull(status, "status");
+    Objects.requireNonNull(evidence, "evidence");
   }
 
   /**
-   * Issues a new {@code VALID} credential with a random, non-enumerable
-   * UUIDv4 identifier (concept §10.4).
+   * Issues a new {@code VALID} credential bound to a stable {@code recipientId}
+   * (the durable recipient linkage — §3.6/§17.2) with its issuance
+   * {@link Evidence} (§10.6) and a random, non-enumerable UUIDv4 identifier
+   * (concept §10.4).
+   *
+   * @param recipientId the stable id of the recipient (the wallet/dashboard key)
+   * @param evidence    the basis the credential was issued on
+   * @param expiresAt   optional expiry; {@code null} for no expiry
+   */
+  public static Credential issue(String title, CredentialType type,
+                                 Long recipientId, String recipientName, String issuer,
+                                 Instant issuedAt, Instant expiresAt, Evidence evidence) {
+    return new Credential(UUID.randomUUID(), title, type, recipientName,
+        issuer, issuedAt, expiresAt, CredentialStatus.VALID, null, recipientId, evidence);
+  }
+
+  /**
+   * Issues a {@code VALID} credential with no machine recipient id and a
+   * {@link Evidence#manualAward() manual-award} basis. Retained for callers and
+   * legacy data that predate the durable recipient linkage (§17.2); prefer
+   * {@link #issue(String, CredentialType, Long, String, String, Instant, Instant, Evidence)}.
    *
    * @param expiresAt optional expiry; {@code null} for no expiry
    */
   public static Credential issue(String title, CredentialType type,
                                  String recipientName, String issuer,
                                  Instant issuedAt, Instant expiresAt) {
-    return new Credential(UUID.randomUUID(), title, type, recipientName,
-        issuer, issuedAt, expiresAt, CredentialStatus.VALID, null);
+    return issue(title, type, null, recipientName, issuer, issuedAt, expiresAt,
+        Evidence.manualAward());
+  }
+
+  /** The optional stable recipient id (the durable wallet/dashboard key). */
+  public Optional<Long> recipient() {
+    return Optional.ofNullable(recipientId);
+  }
+
+  /** The version of the source content the credential was issued against (§16.4). */
+  public int sourceVersion() {
+    return evidence.sourceVersion();
+  }
+
+  /** Whether this credential belongs to the learner with id {@code userId}. */
+  public boolean isHeldBy(Long userId) {
+    return recipientId != null && recipientId.equals(userId);
   }
 
   /** The optional expiry date. */
@@ -111,7 +151,7 @@ public record Credential(
   public Credential withStatus(CredentialStatus newStatus) {
     return new Credential(id, title, type, recipientName, issuer,
         issuedAt, expiresAt, Objects.requireNonNull(newStatus, "newStatus"),
-        supersededBy);
+        supersededBy, recipientId, evidence);
   }
 
   /**
@@ -121,6 +161,6 @@ public record Credential(
   public Credential supersededByCredential(UUID replacement) {
     return new Credential(id, title, type, recipientName, issuer,
         issuedAt, expiresAt, CredentialStatus.SUPERSEDED,
-        Objects.requireNonNull(replacement, "replacement"));
+        Objects.requireNonNull(replacement, "replacement"), recipientId, evidence);
   }
 }

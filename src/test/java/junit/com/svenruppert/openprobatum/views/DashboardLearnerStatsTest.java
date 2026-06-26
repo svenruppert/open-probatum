@@ -77,9 +77,13 @@ class DashboardLearnerStatsTest extends BrowserlessTest {
   @DisplayName("the dashboard counts the learner's credentials + in-progress paths")
   void countsLearnerStats() {
     credentials.save(Credential.issue("Vaadin Certified", CredentialType.COMPLETION_CERTIFICATE,
-        "Alice", "Open Probatum Academy", Instant.parse("2026-01-01T00:00:00Z"), null));
+        alice.id(), "Alice", "Open Probatum Academy",
+        Instant.parse("2026-01-01T00:00:00Z"), null,
+        com.svenruppert.openprobatum.credential.Evidence.manualAward()));
     credentials.save(Credential.issue("Other", CredentialType.COMPLETION_CERTIFICATE,
-        "Bob", "Open Probatum Academy", Instant.parse("2026-01-01T00:00:00Z"), null));
+        2002L, "Bob", "Open Probatum Academy",
+        Instant.parse("2026-01-01T00:00:00Z"), null,
+        com.svenruppert.openprobatum.credential.Evidence.manualAward()));
 
     Module core1 = Module.mandatory("Core 1", "c");
     Module core2 = Module.mandatory("Core 2", "c");

@@ -77,7 +77,8 @@ class CredentialPdfTest {
   void renderDoesNotMutate() {
     Credential c = credential();
     Credential snapshot = new Credential(c.id(), c.title(), c.type(), c.recipientName(),
-        c.issuer(), c.issuedAt(), c.expiresAt(), c.status(), c.supersededBy());
+        c.issuer(), c.issuedAt(), c.expiresAt(), c.status(), c.supersededBy(),
+        c.recipientId(), c.evidence());
     CredentialPdf.render(c, "http://host/validate/x", null, Instant.now());
     CredentialPdf.render(c, "http://host/validate/x", null, Instant.now());
     assertEquals(snapshot, c, "the record is untouched by PDF generation");
