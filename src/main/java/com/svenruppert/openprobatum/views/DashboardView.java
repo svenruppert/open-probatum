@@ -23,6 +23,9 @@ import com.svenruppert.openprobatum.security.roles.AuthorizationRole;
 import com.svenruppert.openprobatum.security.roles.VisibleFor;
 import com.svenruppert.openprobatum.security.services.SessionStoreProvider;
 import com.svenruppert.openprobatum.views.ui.EmptyState;
+import com.svenruppert.openprobatum.catalog.CatalogRepositoryProvider;
+import com.svenruppert.openprobatum.credential.CredentialRepositoryProvider;
+import com.svenruppert.openprobatum.progress.ProgressService;
 import com.svenruppert.openprobatum.views.ui.MetricTile;
 import com.svenruppert.openprobatum.views.ui.PageHeader;
 import com.svenruppert.openprobatum.views.ui.TemplateBrand;
@@ -64,6 +67,10 @@ public class DashboardView extends Composite<VerticalLayout>
   // i18n keys
   private static final String K_WELCOME = "dashboard.heading.welcome";
   private static final String K_SUBTITLE = "dashboard.subtitle";
+  private static final String K_TILE_CRED_LABEL = "dashboard.tile.credentials.label";
+  private static final String K_TILE_CRED_HINT = "dashboard.tile.credentials.hint";
+  private static final String K_TILE_PROG_LABEL = "dashboard.tile.inprogress.label";
+  private static final String K_TILE_PROG_HINT = "dashboard.tile.inprogress.hint";
   private static final String K_TILE_USERS_LABEL = "dashboard.tile.users.label";
   private static final String K_TILE_USERS_HINT_SINGULAR = "dashboard.tile.users.hint.singular";
   private static final String K_TILE_USERS_HINT_PLURAL = "dashboard.tile.users.hint.plural";
@@ -83,6 +90,7 @@ public class DashboardView extends Composite<VerticalLayout>
     Optional<AppUser> result = SubjectStores.subjectStore()
         .currentSubject(AppUser.class);
     String displayName = result.map(AppUser::name).orElse("Guest");
+    Long userId = result.map(AppUser::id).orElse(null);
     Set<AuthorizationRole> roles = result.map(AppUser::roles).orElse(Set.of());
 
     VerticalLayout root = getContent();
@@ -92,8 +100,45 @@ public class DashboardView extends Composite<VerticalLayout>
     root.setAlignItems(FlexComponent.Alignment.STRETCH);
 
     root.add(buildHeader(displayName, roles));
+    root.add(buildLearnerRow(displayName, userId));
     root.add(buildMetricsRow());
     root.add(buildRecentActivityCard());
+  }
+
+  // ── Learner row (§18) ──────────────────────────────────────────
+
+  private FlexLayout buildLearnerRow(String name, Long userId) {
+    long earned = safeCount(() -> CredentialRepositoryProvider.repository().all().stream()
+        .filter(c -> c.recipientName().equals(name))
+        .count());
+    long inProgress = safeCount(() -> {
+      ProgressService progress = new ProgressService();
+      return CatalogRepositoryProvider.repository().all().stream()
+          .filter(o -> {
+            int p = progress.percentComplete(userId, o);
+            return p > 0 && p < 100;
+          })
+          .count();
+    });
+
+    MetricTile credentials = new MetricTile(VaadinIcon.DIPLOMA,
+        tr(K_TILE_CRED_LABEL, "Credentials earned"),
+        String.valueOf(earned),
+        tr(K_TILE_CRED_HINT, "In your wallet"));
+    credentials.getElement().setAttribute("data-stat-credentials", String.valueOf(earned));
+
+    MetricTile progressTile = new MetricTile(VaadinIcon.OPEN_BOOK,
+        tr(K_TILE_PROG_LABEL, "Paths in progress"),
+        String.valueOf(inProgress),
+        tr(K_TILE_PROG_HINT, "Keep going"));
+    progressTile.getElement().setAttribute("data-stat-inprogress", String.valueOf(inProgress));
+
+    FlexLayout row = new FlexLayout(credentials, progressTile);
+    row.setFlexWrap(FlexLayout.FlexWrap.WRAP);
+    row.getStyle().set("gap", "var(--lumo-space-l)");
+    row.getChildren().forEach(c ->
+        c.getElement().getStyle().set("flex", "1 1 200px"));
+    return row;
   }
 
   // ── Header ─────────────────────────────────────────────────────
