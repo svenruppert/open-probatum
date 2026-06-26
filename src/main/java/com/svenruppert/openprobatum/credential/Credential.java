@@ -163,4 +163,20 @@ public record Credential(
         issuedAt, expiresAt, CredentialStatus.SUPERSEDED,
         Objects.requireNonNull(replacement, "replacement"), recipientId, evidence);
   }
+
+  /**
+   * A fresh {@code VALID} successor of this credential — a renewal (concept
+   * §10.9): a new random id, the same recipient (name + id), title, type, issuer
+   * and {@link Evidence}, but a new issue date and expiry. The predecessor record
+   * is untouched and stays traceable; the caller marks it
+   * {@link #supersededByCredential(UUID) superseded} by the returned successor.
+   *
+   * @param newIssuedAt  the successor's business issue date
+   * @param newExpiresAt the successor's optional expiry; {@code null} for none
+   */
+  public Credential renew(Instant newIssuedAt, Instant newExpiresAt) {
+    return new Credential(UUID.randomUUID(), title, type, recipientName, issuer,
+        Objects.requireNonNull(newIssuedAt, "newIssuedAt"), newExpiresAt,
+        CredentialStatus.VALID, null, recipientId, evidence);
+  }
 }

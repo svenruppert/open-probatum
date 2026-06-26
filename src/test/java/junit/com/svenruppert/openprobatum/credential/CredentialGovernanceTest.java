@@ -87,9 +87,36 @@ class CredentialGovernanceTest {
   }
 
   @Test
+  @DisplayName("re-issue mints a VALID successor and supersedes the predecessor; both stay findable (P009)")
+  void reissueRenews() {
+    Credential predecessor = Credential.issue("Vaadin Certified",
+        CredentialType.COMPLETION_CERTIFICATE, 1001L, "Alice", "Academy",
+        Instant.parse("2026-01-01T00:00:00Z"), Instant.parse("2027-01-01T00:00:00Z"),
+        com.svenruppert.openprobatum.credential.Evidence.manualAward());
+    repo.save(predecessor);
+
+    Instant newExpiry = Instant.parse("2028-01-01T00:00:00Z");
+    Credential successor = governance.reissue(predecessor.id(), newExpiry).orElseThrow();
+
+    // The successor is a fresh VALID credential carrying the same recipient + new expiry.
+    assertEquals(CredentialStatus.VALID, successor.status());
+    assertTrue(successor.id() != predecessor.id() && !successor.id().equals(predecessor.id()));
+    assertEquals(1001L, successor.recipientId(), "the recipient id carries over");
+    assertEquals(newExpiry, successor.expiry().orElseThrow());
+
+    // The predecessor is now SUPERSEDED, pointing at the successor — and still findable.
+    Credential reloadedPredecessor = repo.findById(predecessor.id()).orElseThrow();
+    assertEquals(CredentialStatus.SUPERSEDED, reloadedPredecessor.status());
+    assertEquals(successor.id(), reloadedPredecessor.superseder().orElseThrow());
+    assertEquals(ValidationResult.SUPERSEDED, pageResult(predecessor.id()));
+    assertEquals(ValidationResult.VALID, pageResult(successor.id()), "both are findable");
+  }
+
+  @Test
   @DisplayName("an unknown id is a no-op")
   void unknownIsNoop() {
     assertTrue(governance.revoke(UUID.randomUUID()).isEmpty());
+    assertTrue(governance.reissue(UUID.randomUUID(), null).isEmpty());
     assertTrue(repo.all().isEmpty());
   }
 }

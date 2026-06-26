@@ -17,6 +17,7 @@
 package com.svenruppert.openprobatum.credential;
 
 import com.svenruppert.dependencies.core.logger.HasLogger;
+import com.svenruppert.openprobatum.security.AppClock;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -59,6 +60,27 @@ public final class CredentialGovernance implements HasLogger {
   public Optional<Credential> supersede(UUID id, UUID replacementId) {
     Objects.requireNonNull(replacementId, "replacementId");
     return transition(id, c -> c.supersededByCredential(replacementId), "superseded");
+  }
+
+  /**
+   * Re-issues (renews) a credential (concept §10.9): mints a fresh {@code VALID}
+   * successor with the same recipient + basis and an optional new expiry, then
+   * marks the predecessor {@code SUPERSEDED} pointing at the successor. The
+   * predecessor is never deleted — both stay findable. Returns the successor, or
+   * empty when the predecessor id is unknown.
+   *
+   * @param predecessorId the credential being renewed
+   * @param newExpiresAt  the successor's optional expiry; {@code null} for none
+   */
+  public synchronized Optional<Credential> reissue(UUID predecessorId, java.time.Instant newExpiresAt) {
+    Objects.requireNonNull(predecessorId, "predecessorId");
+    return repository.findById(predecessorId).map(predecessor -> {
+      Credential successor = predecessor.renew(AppClock.now(), newExpiresAt);
+      repository.save(successor);
+      repository.save(predecessor.supersededByCredential(successor.id()));
+      logger().info("Credential {} reissued as {}", predecessorId, successor.id());
+      return successor;
+    });
   }
 
   private Optional<Credential> transition(UUID id, UnaryOperator<Credential> change, String action) {

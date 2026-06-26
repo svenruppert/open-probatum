@@ -103,6 +103,8 @@ public class GovernanceView extends Composite<VerticalLayout> implements I18nSup
     if (stored == CredentialStatus.VALID) {
       actions.add(action(tr("governance.suspend", "Suspend"),
           () -> new CredentialGovernance(repository).suspend(credential.id()), false));
+      actions.add(action(tr("governance.reissue", "Re-issue"),
+          () -> new CredentialGovernance(repository).reissue(credential.id(), null), false));
     }
     if (stored != CredentialStatus.REVOKED) {
       actions.add(action(tr("governance.revoke", "Revoke"),

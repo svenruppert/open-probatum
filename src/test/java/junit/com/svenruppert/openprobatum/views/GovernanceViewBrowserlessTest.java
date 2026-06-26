@@ -35,8 +35,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@DisplayName("GovernanceView — credential-manager revoke/suspend (P017)")
+@DisplayName("GovernanceView — credential-manager revoke/suspend/re-issue (P017/P009)")
 class GovernanceViewBrowserlessTest extends BrowserlessTest {
 
   private InMemoryCredentialRepository credentials;
@@ -84,6 +85,23 @@ class GovernanceViewBrowserlessTest extends BrowserlessTest {
     assertEquals(CredentialStatus.VALID,
         credentials.findById(c.id()).orElseThrow().status());
     assertEquals(List.of("VALID"), attributes(view, "data-status"));
+  }
+
+  @Test
+  @DisplayName("re-issuing supersedes the predecessor and adds a fresh VALID successor (P009)")
+  void reissueSupersedesAndRenews() {
+    Credential original = save(CredentialStatus.VALID);
+    GovernanceView view = new GovernanceView();
+
+    click(view, "Re-issue");
+
+    assertEquals(2, credentials.all().size(), "a successor was minted");
+    assertEquals(CredentialStatus.SUPERSEDED,
+        credentials.findById(original.id()).orElseThrow().status());
+    // The view now shows both: the superseded predecessor + the VALID successor.
+    List<String> statuses = attributes(view, "data-status");
+    assertEquals(2, statuses.size());
+    assertTrue(statuses.contains("SUPERSEDED") && statuses.contains("VALID"));
   }
 
   @Test
