@@ -93,3 +93,13 @@ com.svenruppert.openprobatum.progress=90
 # 22→33 %, overall 42→47 %. Existing floors left conservative (only content
 # added) per the "raise only after sustained coverage" rule. Floor 3 below measured.
 com.svenruppert.openprobatum.content=90
+
+# Labs & Practical Evidence domain (V00.40.00, P011). Full-gate measured: lab 78 %
+# (Lab/LabSubmission records + LabService/LabSubmissionService lifecycle logic kill
+# cleanly; the EclipseStore lab + lab-submission repositories add hard-to-kill
+# store-wiring mutants, like the other persistence packages, holding the package
+# off the 90s). The V00.40.00 additions held every existing floor and nudged a few
+# measurements up (assessment 83→84 %, credential 72→73 %, views 33→34 %, overall
+# 47→48 %); existing floors left conservative per the "raise only after sustained
+# coverage" rule. Floor 3 below measured.
+com.svenruppert.openprobatum.lab=75
