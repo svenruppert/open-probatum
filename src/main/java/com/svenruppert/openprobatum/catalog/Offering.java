@@ -16,6 +16,8 @@
 
 package com.svenruppert.openprobatum.catalog;
 
+import com.svenruppert.openprobatum.content.ContentStatus;
+
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -40,17 +42,23 @@ import java.util.UUID;
  * @param prerequisiteOfferingId the required offering for a {@code PREREQUISITE} offering, else null
  * @since V00.10.00
  */
-public record Offering(UUID id, String title, String description, OfferingType type,
+public record Offering(UUID id, UUID lineageId, int version, ContentStatus status,
+                       String title, String description, OfferingType type,
                        LearningPath path, OfferingVisibility visibility,
                        String accessCode, UUID prerequisiteOfferingId) {
 
   public Offering {
     Objects.requireNonNull(id, "id");
+    Objects.requireNonNull(lineageId, "lineageId");
+    Objects.requireNonNull(status, "status");
     Objects.requireNonNull(title, "title");
     Objects.requireNonNull(description, "description");
     Objects.requireNonNull(type, "type");
     Objects.requireNonNull(path, "path");
     Objects.requireNonNull(visibility, "visibility");
+    if (version < 1) {
+      throw new IllegalArgumentException("version must be >= 1");
+    }
     if (visibility == OfferingVisibility.CODE && (accessCode == null || accessCode.isBlank())) {
       throw new IllegalArgumentException("a CODE offering needs a non-blank access code");
     }
@@ -75,6 +83,14 @@ public record Offering(UUID id, String title, String description, OfferingType t
     return Optional.ofNullable(prerequisiteOfferingId);
   }
 
+  /** A fresh DRAFT v1 certification-path offering with its own lineage. */
+  private static Offering draft(String title, String description, LearningPath path,
+                                OfferingVisibility visibility, String code, UUID prereq) {
+    UUID id = UUID.randomUUID();
+    return new Offering(id, id, 1, ContentStatus.DRAFT, title, description,
+        OfferingType.CERTIFICATION_PATH, path, visibility, code, prereq);
+  }
+
   /** A public certification-path offering with a fresh random id. */
   public static Offering certificationPath(String title, LearningPath path) {
     return publicPath(title, "", path);
@@ -82,26 +98,42 @@ public record Offering(UUID id, String title, String description, OfferingType t
 
   /** A publicly visible certification path. */
   public static Offering publicPath(String title, String description, LearningPath path) {
-    return new Offering(UUID.randomUUID(), title, description, OfferingType.CERTIFICATION_PATH,
-        path, OfferingVisibility.PUBLIC, null, null);
+    return draft(title, description, path, OfferingVisibility.PUBLIC, null, null);
   }
 
   /** A certification path visible to any registered user. */
   public static Offering registeredPath(String title, String description, LearningPath path) {
-    return new Offering(UUID.randomUUID(), title, description, OfferingType.CERTIFICATION_PATH,
-        path, OfferingVisibility.REGISTERED, null, null);
+    return draft(title, description, path, OfferingVisibility.REGISTERED, null, null);
   }
 
   /** A certification path reachable only with {@code code}. */
   public static Offering codePath(String title, String description, LearningPath path, String code) {
-    return new Offering(UUID.randomUUID(), title, description, OfferingType.CERTIFICATION_PATH,
-        path, OfferingVisibility.CODE, code, null);
+    return draft(title, description, path, OfferingVisibility.CODE, code, null);
   }
 
   /** A certification path reachable only after {@code prerequisiteOfferingId} is completed. */
   public static Offering prerequisitePath(String title, String description, LearningPath path,
                                           UUID prerequisiteOfferingId) {
-    return new Offering(UUID.randomUUID(), title, description, OfferingType.CERTIFICATION_PATH,
-        path, OfferingVisibility.PREREQUISITE, null, prerequisiteOfferingId);
+    return draft(title, description, path, OfferingVisibility.PREREQUISITE, null, prerequisiteOfferingId);
+  }
+
+  /** A copy with the editorial status changed (e.g. publish). */
+  public Offering withStatus(ContentStatus newStatus) {
+    return new Offering(id, lineageId, version, newStatus, title, description, type, path,
+        visibility, accessCode, prerequisiteOfferingId);
+  }
+
+  /** @return {@code true} when this offering is PUBLISHED (learner-visible). */
+  public boolean isPublished() {
+    return status == ContentStatus.PUBLISHED;
+  }
+
+  /**
+   * A fresh DRAFT next version of the same logical offering — a new {@link #id},
+   * same {@link #lineageId}, {@code version + 1}. The prior version stays intact.
+   */
+  public Offering asNewVersion() {
+    return new Offering(UUID.randomUUID(), lineageId, version + 1, ContentStatus.DRAFT,
+        title, description, type, path, visibility, accessCode, prerequisiteOfferingId);
   }
 }

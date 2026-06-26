@@ -65,7 +65,8 @@ public class CatalogView extends Composite<VerticalLayout> implements I18nSuppor
     root.add(new PageHeader(tr("catalog.heading", "Academy catalog"),
         tr("catalog.subtitle", "Browse offerings and start learning.")));
 
-    var offerings = catalog.all();
+    // Learners browse only PUBLISHED offerings (§16.2); drafts/archived are hidden.
+    var offerings = catalog.all().stream().filter(Offering::isPublished).toList();
     if (offerings.isEmpty()) {
       root.add(new EmptyState(VaadinIcon.OPEN_BOOK,
           tr("catalog.empty.title", "No offerings yet"),

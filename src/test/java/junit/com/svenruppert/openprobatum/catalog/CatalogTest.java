@@ -123,6 +123,26 @@ class CatalogTest {
   }
 
   @Test
+  @DisplayName("a fresh offering is a DRAFT v1; withStatus publishes; asNewVersion preserves the old (P005)")
+  void offeringLifecycleAndVersion() {
+    Offering draft = Offering.publicPath("Course", "d", path());
+    assertEquals(1, draft.version());
+    assertEquals(com.svenruppert.openprobatum.content.ContentStatus.DRAFT, draft.status());
+    assertEquals(draft.id(), draft.lineageId());
+    assertFalse(draft.isPublished());
+
+    Offering published = draft.withStatus(com.svenruppert.openprobatum.content.ContentStatus.PUBLISHED);
+    assertTrue(published.isPublished());
+
+    Offering v2 = published.asNewVersion();
+    assertEquals(2, v2.version());
+    assertEquals(published.lineageId(), v2.lineageId());
+    assertNotEquals(published.id(), v2.id());
+    // the published v1 is untouched (immutable)
+    assertTrue(published.isPublished());
+  }
+
+  @Test
   @DisplayName("a path completes only when every mandatory module is done (optional never blocks)")
   void completionCriterion() {
     Module core = Module.mandatory("Core", "c");

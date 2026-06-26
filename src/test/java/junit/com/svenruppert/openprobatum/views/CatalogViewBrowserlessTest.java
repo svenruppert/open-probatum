@@ -72,8 +72,10 @@ class CatalogViewBrowserlessTest extends BrowserlessTest {
   @Test
   @DisplayName("the catalog lists each offering with its access state")
   void listsOfferingsWithAccess() {
-    catalog.save(Offering.publicPath("Open Course", "free for all", path()));
-    catalog.save(Offering.codePath("Gated Course", "needs a code", path(), "SECRET"));
+    catalog.save(Offering.publicPath("Open Course", "free for all", path())
+        .withStatus(com.svenruppert.openprobatum.content.ContentStatus.PUBLISHED));
+    catalog.save(Offering.codePath("Gated Course", "needs a code", path(), "SECRET")
+        .withStatus(com.svenruppert.openprobatum.content.ContentStatus.PUBLISHED));
 
     List<String> access = attributes(new CatalogView(), "data-access");
     assertEquals(2, attributes(new CatalogView(), "data-offering").size(), "two cards");
@@ -82,9 +84,11 @@ class CatalogViewBrowserlessTest extends BrowserlessTest {
   }
 
   @Test
-  @DisplayName("the empty catalog shows an empty state, not a crash")
+  @DisplayName("a draft offering is not shown in the catalog; an empty catalog is an empty state")
   void emptyCatalog() {
     assertTrue(attributes(new CatalogView(), "data-offering").isEmpty());
+    catalog.save(Offering.publicPath("Draft", "wip", path())); // DRAFT — must stay hidden
+    assertTrue(attributes(new CatalogView(), "data-offering").isEmpty(), "drafts are hidden");
   }
 
   @Test
