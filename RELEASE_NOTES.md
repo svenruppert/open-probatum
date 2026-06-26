@@ -2,6 +2,48 @@
 
 ## Unreleased
 
+## 00.50.00 — Workshops & Bundles (2026-06-26)
+
+The academy gains the two *packaging* shapes the catalog's `OfferingType` already
+anticipated (concept §23.5, drafted this cycle): a **Bundle** (a curated package
+of offerings granted together) and a **Workshop** (a scheduled, capacity-limited,
+instructor-run session). Both are authored, reviewed and versioned content; both
+earn evidence-backed credentials on the proven exactly-once / capacity edges. All
+V00.10–V00.40 invariants carry over.
+
+### Bundles
+
+- **Bundle as versioned content** (§7.x): a package grouping member offerings,
+  authored + reviewed like a lab (reuses `ContentStatus`, `ContentAuthorship`,
+  the review queue); approval requires at least one member.
+- **Bundle entitlement** (§12): joining (granting) a bundle entitles the learner
+  to **every** member offering at once.
+- **Bundle credential** (§10.6): completing every member offering's learning path
+  lets the learner claim **exactly one** `BUNDLE_COMPLETED` credential — the claim
+  is serialised so a re-claim or concurrent claim never double-mints.
+
+### Workshops
+
+- **Workshop as versioned content** (§7.x): a scheduled session with a start/end,
+  a seat capacity and an instructor, authored + reviewed + versioned; approval
+  requires a learning objective.
+- **Capacity-safe enrolment** (§7.x/§3.6): a learner enrols up to capacity and may
+  cancel a seat; the seat accounting is atomic, so concurrent learners never
+  overbook. A learner sees only their own enrolments.
+- **Attendance credential** (§10.6): an instructor (`workshop:run`) records
+  attendance; an **attended** seat mints **exactly one** `WORKSHOP_CERTIFICATE`
+  (`WORKSHOP_ATTENDED` evidence) on the edge; a no-show mints nothing.
+
+### Metrics & platform
+
+- **Packaging metrics** (§20.2): per-bundle completions and per-workshop fill +
+  attendance rates in the `MetricsView`.
+- Three new persisted stores (`bundles`, `workshops`, `workshopEnrolments`); a new
+  `workshop:run` permission on the Reviewer role (the six-role model is unchanged);
+  a new `BUNDLE` entitlement reason. EN + DE i18n throughout. Exit
+  production-review #2 rated 5/5 (shippable; one fill-rate display cap fixed
+  in-cycle).
+
 ## 00.40.00 — Labs & Practical Evidence (2026-06-26)
 
 The credential model grows from *theory-only* to *theory + practice* (concept
