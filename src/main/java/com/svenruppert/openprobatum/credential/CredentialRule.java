@@ -55,7 +55,9 @@ public record CredentialRule(UUID id, RuleType type, UUID targetId, double minSc
     /** A specific assessment is passed (optionally above a minimum score). */
     ASSESSMENT_PASSED,
     /** A specific offering's learning path is completed. */
-    PATH_COMPLETED
+    PATH_COMPLETED,
+    /** A specific lab's practical submission is verified by an assessor. */
+    LAB_VERIFIED
   }
 
   public CredentialRule {
@@ -86,6 +88,13 @@ public record CredentialRule(UUID id, RuleType type, UUID targetId, double minSc
         offeringId, 0.0, credentialTitle, awards);
   }
 
+  /** A rule earned by an assessor verifying a submission against {@code labId}. */
+  public static CredentialRule labVerified(UUID labId,
+                                           String credentialTitle, CredentialType awards) {
+    return new CredentialRule(UUID.randomUUID(), RuleType.LAB_VERIFIED,
+        labId, 0.0, credentialTitle, awards);
+  }
+
   /**
    * Whether this (ASSESSMENT_PASSED) rule is satisfied by {@code attempt}: the
    * attempt is against this rule's assessment, it passed, and its score meets
@@ -110,5 +119,17 @@ public record CredentialRule(UUID id, RuleType type, UUID targetId, double minSc
     return type == RuleType.PATH_COMPLETED
         && progress.offeringId().equals(targetId)
         && path.isComplete(progress.completedModuleIds());
+  }
+
+  /**
+   * Whether this (LAB_VERIFIED) rule is satisfied by {@code submission}: the
+   * submission is against this rule's lab and an assessor has verified it. A rule
+   * of another kind is never satisfied by a submission.
+   */
+  public boolean isSatisfiedBy(com.svenruppert.openprobatum.lab.LabSubmission submission) {
+    Objects.requireNonNull(submission, "submission");
+    return type == RuleType.LAB_VERIFIED
+        && submission.labId().equals(targetId)
+        && submission.isVerified();
   }
 }
