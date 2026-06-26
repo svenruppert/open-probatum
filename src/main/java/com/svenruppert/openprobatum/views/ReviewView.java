@@ -69,7 +69,8 @@ public class ReviewView extends Composite<VerticalLayout> implements I18nSupport
 
     var questions = new QuestionBankService().pendingReview();
     var offerings = new CatalogLifecycleService().pendingReview();
-    if (questions.isEmpty() && offerings.isEmpty()) {
+    var labs = new com.svenruppert.openprobatum.lab.LabService().pendingReview();
+    if (questions.isEmpty() && offerings.isEmpty() && labs.isEmpty()) {
       root.add(new EmptyState(VaadinIcon.CHECK_SQUARE_O,
           tr("review.empty.title", "Nothing to review"),
           tr("review.empty.body", "There is no content awaiting a verdict.")));
@@ -84,6 +85,21 @@ public class ReviewView extends Composite<VerticalLayout> implements I18nSupport
       root.add(new H3(tr("review.section.offerings", "Offerings")));
       offerings.forEach(o -> root.add(offeringRow(o)));
     }
+    if (!labs.isEmpty()) {
+      root.add(new H3(tr("review.section.labs", "Labs")));
+      labs.forEach(l -> root.add(labRow(l)));
+    }
+  }
+
+  private Div labRow(com.svenruppert.openprobatum.lab.Lab lab) {
+    com.svenruppert.openprobatum.lab.LabService service =
+        new com.svenruppert.openprobatum.lab.LabService();
+    Div card = card("data-lab", lab.id(), lab.title() + "  (v" + lab.version() + ")", lab.status());
+    card.add(actions(lab.status(),
+        () -> guardedApprove(() -> service.approve(lab.id(), currentReviewerId()), card),
+        () -> guardedTransition(() -> service.rejectToDraft(lab.id()), card),
+        () -> guardedTransition(() -> service.publish(lab.id()), card)));
+    return card;
   }
 
   private Div questionRow(Question q) {

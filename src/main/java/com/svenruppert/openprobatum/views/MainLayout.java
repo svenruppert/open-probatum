@@ -78,6 +78,7 @@ public class MainLayout extends AppLayout
   private static final String K_NAV_AUTHOR = "nav.author";
   private static final String K_NAV_QUESTIONS = "nav.questions";
   private static final String K_NAV_REVIEW = "nav.review";
+  private static final String K_NAV_LABS_AUTHOR = "nav.labsauthor";
   private static final String K_NAV_METRICS = "nav.metrics";
   private static final String K_NAV_ABOUT = "nav.about";
   private static final String K_NAV_YOUTUBE = "nav.youtube";
@@ -171,6 +172,8 @@ public class MainLayout extends AppLayout
             AuthorView.class, "author:content", grants),
         item(tr(K_NAV_QUESTIONS, "Question bank"), VaadinIcon.QUESTION,
             QuestionBankView.class, "author:content", grants),
+        item(tr(K_NAV_LABS_AUTHOR, "Lab authoring"), VaadinIcon.FLASK,
+            LabBankView.class, "author:content", grants),
         item(tr(K_NAV_REVIEW, "Review queue"), VaadinIcon.CHECK_SQUARE_O,
             ReviewView.class, "author:review", grants),
         item(tr(K_NAV_METRICS, "Quality metrics"), VaadinIcon.CHART,

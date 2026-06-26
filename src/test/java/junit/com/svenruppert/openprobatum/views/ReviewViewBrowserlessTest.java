@@ -48,19 +48,23 @@ class ReviewViewBrowserlessTest extends BrowserlessTest {
 
   private InMemoryQuestionRepository questions;
   private InMemoryCatalogRepository catalog;
+  private com.svenruppert.openprobatum.lab.InMemoryLabRepository labs;
 
   @BeforeEach
   void setUp() {
     questions = new InMemoryQuestionRepository();
     catalog = new InMemoryCatalogRepository();
+    labs = new com.svenruppert.openprobatum.lab.InMemoryLabRepository();
     QuestionRepositoryProvider.setRepository(questions);
     CatalogRepositoryProvider.setRepository(catalog);
+    com.svenruppert.openprobatum.lab.LabRepositoryProvider.setRepository(labs);
   }
 
   @AfterEach
   void tearDown() {
     QuestionRepositoryProvider.reset();
     CatalogRepositoryProvider.reset();
+    com.svenruppert.openprobatum.lab.LabRepositoryProvider.reset();
   }
 
   private static LearningPath path() {
@@ -125,6 +129,24 @@ class ReviewViewBrowserlessTest extends BrowserlessTest {
     click(view, "publish");
     assertEquals(List.of("STALE"), attributes(view, "data-error"));
     assertEquals(ContentStatus.PUBLISHED, questions.findById(q.id()).orElseThrow().status());
+  }
+
+  @Test
+  @DisplayName("a submitted lab appears in the queue and a reviewer approves it (P003)")
+  void approveSubmittedLab() {
+    com.svenruppert.openprobatum.lab.Lab lab =
+        com.svenruppert.openprobatum.lab.Lab.draft("Deploy", "Deploy the app")
+            .withMetadata("Master deploy", com.svenruppert.openprobatum.assessment.Difficulty.HARD,
+                "WAR boots");
+    com.svenruppert.openprobatum.lab.LabService labService =
+        new com.svenruppert.openprobatum.lab.LabService();
+    labService.create(lab);
+    labService.submitForReview(lab.id());
+
+    ReviewView view = new ReviewView();
+    assertEquals(List.of(lab.id().toString()), attributes(view, "data-lab"));
+    click(view, "approve");
+    assertEquals(ContentStatus.APPROVED, labs.findById(lab.id()).orElseThrow().status());
   }
 
   @Test
