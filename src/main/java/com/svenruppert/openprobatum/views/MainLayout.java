@@ -81,6 +81,7 @@ public class MainLayout extends AppLayout
   private static final String K_NAV_LABS_AUTHOR = "nav.labsauthor";
   private static final String K_NAV_BUNDLES_AUTHOR = "nav.bundlesauthor";
   private static final String K_NAV_LABS = "nav.labs";
+  private static final String K_NAV_BUNDLES = "nav.bundles";
   private static final String K_NAV_ASSESS = "nav.assess";
   private static final String K_NAV_METRICS = "nav.metrics";
   private static final String K_NAV_ABOUT = "nav.about";
@@ -173,6 +174,8 @@ public class MainLayout extends AppLayout
             WalletView.class, "app:view", grants),
         item(tr(K_NAV_LABS, "Labs"), VaadinIcon.FLASK,
             LabView.class, "app:view", grants),
+        item(tr(K_NAV_BUNDLES, "Bundles"), VaadinIcon.PACKAGE,
+            BundleView.class, "app:view", grants),
         item(tr(K_NAV_AUTHOR, "Author"), VaadinIcon.EDIT,
             AuthorView.class, "author:content", grants),
         item(tr(K_NAV_QUESTIONS, "Question bank"), VaadinIcon.QUESTION,
