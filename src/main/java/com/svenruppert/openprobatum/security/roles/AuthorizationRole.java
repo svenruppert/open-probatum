@@ -24,6 +24,8 @@ package com.svenruppert.openprobatum.security.roles;
  *       owns a credential wallet (§5.1).</li>
  *   <li>{@link #AUTHOR} — creates offerings, paths, modules, resources and
  *       questions (§5.2).</li>
+ *   <li>{@link #REVIEWER} — reviews + approves authored content before it is
+ *       published (§5.3).</li>
  *   <li>{@link #CREDENTIAL_MANAGER} — governs issued credentials, e.g. revoke
  *       (§5.5).</li>
  *   <li>{@link #PLATFORM_ADMIN} — operates the instance; holds every permission
@@ -39,6 +41,7 @@ package com.svenruppert.openprobatum.security.roles;
 public enum AuthorizationRole {
   LEARNER,
   AUTHOR,
+  REVIEWER,
   CREDENTIAL_MANAGER,
   PLATFORM_ADMIN,
   VERIFIER

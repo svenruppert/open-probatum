@@ -38,6 +38,7 @@ import static com.svenruppert.openprobatum.security.permissions.AppPermission.AD
 import static com.svenruppert.openprobatum.security.permissions.AppPermission.APP_VIEW;
 import static com.svenruppert.openprobatum.security.permissions.AppPermission.AUDIT_READ;
 import static com.svenruppert.openprobatum.security.permissions.AppPermission.AUTHOR_CONTENT;
+import static com.svenruppert.openprobatum.security.permissions.AppPermission.AUTHOR_REVIEW;
 import static com.svenruppert.openprobatum.security.permissions.AppPermission.CREDENTIAL_MANAGE;
 
 /**
@@ -47,6 +48,7 @@ import static com.svenruppert.openprobatum.security.permissions.AppPermission.CR
  * <ul>
  *   <li>LEARNER: {@code app:view}</li>
  *   <li>AUTHOR: {@code app:view}, {@code author:content}</li>
+ *   <li>REVIEWER: {@code app:view}, {@code author:review}</li>
  *   <li>CREDENTIAL_MANAGER: {@code app:view}, {@code credential:manage}</li>
  *   <li>PLATFORM_ADMIN: every permission</li>
  *   <li>VERIFIER: {@code app:view}</li>
@@ -62,6 +64,9 @@ public class AppAuthorizationService
       .put(roleName(AuthorizationRole.AUTHOR), Set.of(
           APP_VIEW.permissionName(),
           AUTHOR_CONTENT.permissionName()))
+      .put(roleName(AuthorizationRole.REVIEWER), Set.of(
+          APP_VIEW.permissionName(),
+          AUTHOR_REVIEW.permissionName()))
       .put(roleName(AuthorizationRole.CREDENTIAL_MANAGER), Set.of(
           APP_VIEW.permissionName(),
           CREDENTIAL_MANAGE.permissionName()))
@@ -71,6 +76,7 @@ public class AppAuthorizationService
           ADMIN_SESSIONS.permissionName(),
           ADMIN_ROLES.permissionName(),
           AUTHOR_CONTENT.permissionName(),
+          AUTHOR_REVIEW.permissionName(),
           CREDENTIAL_MANAGE.permissionName()))
       .put(roleName(AuthorizationRole.VERIFIER), Set.of(
           APP_VIEW.permissionName()))

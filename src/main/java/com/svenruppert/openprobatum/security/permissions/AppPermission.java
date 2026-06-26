@@ -34,6 +34,8 @@ public enum AppPermission {
   ADMIN_ROLES("admin:roles"),
   /** Author: create/edit catalog content (offerings, paths, modules, resources, questions). */
   AUTHOR_CONTENT("author:content"),
+  /** Reviewer: review + approve authored content before publication. */
+  AUTHOR_REVIEW("author:review"),
   /** Credential Manager: govern issued credentials (e.g. revoke). */
   CREDENTIAL_MANAGE("credential:manage");
 
