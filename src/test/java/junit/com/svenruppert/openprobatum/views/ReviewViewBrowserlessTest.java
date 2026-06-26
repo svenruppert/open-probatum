@@ -49,15 +49,18 @@ class ReviewViewBrowserlessTest extends BrowserlessTest {
   private InMemoryQuestionRepository questions;
   private InMemoryCatalogRepository catalog;
   private com.svenruppert.openprobatum.lab.InMemoryLabRepository labs;
+  private com.svenruppert.openprobatum.bundle.InMemoryBundleRepository bundles;
 
   @BeforeEach
   void setUp() {
     questions = new InMemoryQuestionRepository();
     catalog = new InMemoryCatalogRepository();
     labs = new com.svenruppert.openprobatum.lab.InMemoryLabRepository();
+    bundles = new com.svenruppert.openprobatum.bundle.InMemoryBundleRepository();
     QuestionRepositoryProvider.setRepository(questions);
     CatalogRepositoryProvider.setRepository(catalog);
     com.svenruppert.openprobatum.lab.LabRepositoryProvider.setRepository(labs);
+    com.svenruppert.openprobatum.bundle.BundleRepositoryProvider.setRepository(bundles);
   }
 
   @AfterEach
@@ -65,6 +68,7 @@ class ReviewViewBrowserlessTest extends BrowserlessTest {
     QuestionRepositoryProvider.reset();
     CatalogRepositoryProvider.reset();
     com.svenruppert.openprobatum.lab.LabRepositoryProvider.reset();
+    com.svenruppert.openprobatum.bundle.BundleRepositoryProvider.reset();
   }
 
   private static LearningPath path() {
@@ -147,6 +151,23 @@ class ReviewViewBrowserlessTest extends BrowserlessTest {
     assertEquals(List.of(lab.id().toString()), attributes(view, "data-lab"));
     click(view, "approve");
     assertEquals(ContentStatus.APPROVED, labs.findById(lab.id()).orElseThrow().status());
+  }
+
+  @Test
+  @DisplayName("a submitted bundle appears in the queue and a reviewer approves it (P003)")
+  void approveSubmittedBundle() {
+    com.svenruppert.openprobatum.bundle.Bundle bundle =
+        com.svenruppert.openprobatum.bundle.Bundle.draft("Pack", "d",
+            java.util.Set.of(java.util.UUID.randomUUID()));
+    com.svenruppert.openprobatum.bundle.BundleService bundleService =
+        new com.svenruppert.openprobatum.bundle.BundleService();
+    bundleService.create(bundle);
+    bundleService.submitForReview(bundle.id());
+
+    ReviewView view = new ReviewView();
+    assertEquals(List.of(bundle.id().toString()), attributes(view, "data-bundle"));
+    click(view, "approve");
+    assertEquals(ContentStatus.APPROVED, bundles.findById(bundle.id()).orElseThrow().status());
   }
 
   @Test

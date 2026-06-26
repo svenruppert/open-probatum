@@ -70,7 +70,8 @@ public class ReviewView extends Composite<VerticalLayout> implements I18nSupport
     var questions = new QuestionBankService().pendingReview();
     var offerings = new CatalogLifecycleService().pendingReview();
     var labs = new com.svenruppert.openprobatum.lab.LabService().pendingReview();
-    if (questions.isEmpty() && offerings.isEmpty() && labs.isEmpty()) {
+    var bundles = new com.svenruppert.openprobatum.bundle.BundleService().pendingReview();
+    if (questions.isEmpty() && offerings.isEmpty() && labs.isEmpty() && bundles.isEmpty()) {
       root.add(new EmptyState(VaadinIcon.CHECK_SQUARE_O,
           tr("review.empty.title", "Nothing to review"),
           tr("review.empty.body", "There is no content awaiting a verdict.")));
@@ -89,6 +90,10 @@ public class ReviewView extends Composite<VerticalLayout> implements I18nSupport
       root.add(new H3(tr("review.section.labs", "Labs")));
       labs.forEach(l -> root.add(labRow(l)));
     }
+    if (!bundles.isEmpty()) {
+      root.add(new H3(tr("review.section.bundles", "Bundles")));
+      bundles.forEach(b -> root.add(bundleRow(b)));
+    }
   }
 
   private Div labRow(com.svenruppert.openprobatum.lab.Lab lab) {
@@ -99,6 +104,18 @@ public class ReviewView extends Composite<VerticalLayout> implements I18nSupport
         () -> guardedApprove(() -> service.approve(lab.id(), currentReviewerId()), card),
         () -> guardedTransition(() -> service.rejectToDraft(lab.id()), card),
         () -> guardedTransition(() -> service.publish(lab.id()), card)));
+    return card;
+  }
+
+  private Div bundleRow(com.svenruppert.openprobatum.bundle.Bundle bundle) {
+    com.svenruppert.openprobatum.bundle.BundleService service =
+        new com.svenruppert.openprobatum.bundle.BundleService();
+    Div card = card("data-bundle", bundle.id(),
+        bundle.title() + "  (v" + bundle.version() + ")", bundle.status());
+    card.add(actions(bundle.status(),
+        () -> guardedApprove(() -> service.approve(bundle.id(), currentReviewerId()), card),
+        () -> guardedTransition(() -> service.rejectToDraft(bundle.id()), card),
+        () -> guardedTransition(() -> service.publish(bundle.id()), card)));
     return card;
   }
 
