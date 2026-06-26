@@ -80,6 +80,7 @@ public class MainLayout extends AppLayout
   private static final String K_NAV_REVIEW = "nav.review";
   private static final String K_NAV_LABS_AUTHOR = "nav.labsauthor";
   private static final String K_NAV_BUNDLES_AUTHOR = "nav.bundlesauthor";
+  private static final String K_NAV_WORKSHOPS_AUTHOR = "nav.workshopsauthor";
   private static final String K_NAV_LABS = "nav.labs";
   private static final String K_NAV_BUNDLES = "nav.bundles";
   private static final String K_NAV_ASSESS = "nav.assess";
@@ -184,6 +185,8 @@ public class MainLayout extends AppLayout
             LabBankView.class, "author:content", grants),
         item(tr(K_NAV_BUNDLES_AUTHOR, "Bundle authoring"), VaadinIcon.PACKAGE,
             BundleAuthorView.class, "author:content", grants),
+        item(tr(K_NAV_WORKSHOPS_AUTHOR, "Workshop authoring"), VaadinIcon.CALENDAR_CLOCK,
+            WorkshopAuthorView.class, "author:content", grants),
         item(tr(K_NAV_REVIEW, "Review queue"), VaadinIcon.CHECK_SQUARE_O,
             ReviewView.class, "author:review", grants),
         item(tr(K_NAV_ASSESS, "Assessment queue"), VaadinIcon.CLIPBOARD_CHECK,

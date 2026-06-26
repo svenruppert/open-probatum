@@ -50,6 +50,7 @@ class ReviewViewBrowserlessTest extends BrowserlessTest {
   private InMemoryCatalogRepository catalog;
   private com.svenruppert.openprobatum.lab.InMemoryLabRepository labs;
   private com.svenruppert.openprobatum.bundle.InMemoryBundleRepository bundles;
+  private com.svenruppert.openprobatum.workshop.InMemoryWorkshopRepository workshops;
 
   @BeforeEach
   void setUp() {
@@ -57,10 +58,12 @@ class ReviewViewBrowserlessTest extends BrowserlessTest {
     catalog = new InMemoryCatalogRepository();
     labs = new com.svenruppert.openprobatum.lab.InMemoryLabRepository();
     bundles = new com.svenruppert.openprobatum.bundle.InMemoryBundleRepository();
+    workshops = new com.svenruppert.openprobatum.workshop.InMemoryWorkshopRepository();
     QuestionRepositoryProvider.setRepository(questions);
     CatalogRepositoryProvider.setRepository(catalog);
     com.svenruppert.openprobatum.lab.LabRepositoryProvider.setRepository(labs);
     com.svenruppert.openprobatum.bundle.BundleRepositoryProvider.setRepository(bundles);
+    com.svenruppert.openprobatum.workshop.WorkshopRepositoryProvider.setRepository(workshops);
   }
 
   @AfterEach
@@ -69,6 +72,7 @@ class ReviewViewBrowserlessTest extends BrowserlessTest {
     CatalogRepositoryProvider.reset();
     com.svenruppert.openprobatum.lab.LabRepositoryProvider.reset();
     com.svenruppert.openprobatum.bundle.BundleRepositoryProvider.reset();
+    com.svenruppert.openprobatum.workshop.WorkshopRepositoryProvider.reset();
   }
 
   private static LearningPath path() {
@@ -168,6 +172,25 @@ class ReviewViewBrowserlessTest extends BrowserlessTest {
     assertEquals(List.of(bundle.id().toString()), attributes(view, "data-bundle"));
     click(view, "approve");
     assertEquals(ContentStatus.APPROVED, bundles.findById(bundle.id()).orElseThrow().status());
+  }
+
+  @Test
+  @DisplayName("a submitted workshop appears in the queue and a reviewer approves it (P007)")
+  void approveSubmittedWorkshop() {
+    com.svenruppert.openprobatum.workshop.Workshop workshop =
+        com.svenruppert.openprobatum.workshop.Workshop.draft("Vaadin Day", "d",
+            java.time.Instant.parse("2026-09-01T09:00:00Z"),
+            java.time.Instant.parse("2026-09-01T17:00:00Z"), 10, "Sven")
+            .withObjective("Master Vaadin");
+    com.svenruppert.openprobatum.workshop.WorkshopService workshopService =
+        new com.svenruppert.openprobatum.workshop.WorkshopService();
+    workshopService.create(workshop);
+    workshopService.submitForReview(workshop.id());
+
+    ReviewView view = new ReviewView();
+    assertEquals(List.of(workshop.id().toString()), attributes(view, "data-workshop"));
+    click(view, "approve");
+    assertEquals(ContentStatus.APPROVED, workshops.findById(workshop.id()).orElseThrow().status());
   }
 
   @Test

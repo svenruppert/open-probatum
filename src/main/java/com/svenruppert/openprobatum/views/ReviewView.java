@@ -71,7 +71,9 @@ public class ReviewView extends Composite<VerticalLayout> implements I18nSupport
     var offerings = new CatalogLifecycleService().pendingReview();
     var labs = new com.svenruppert.openprobatum.lab.LabService().pendingReview();
     var bundles = new com.svenruppert.openprobatum.bundle.BundleService().pendingReview();
-    if (questions.isEmpty() && offerings.isEmpty() && labs.isEmpty() && bundles.isEmpty()) {
+    var workshops = new com.svenruppert.openprobatum.workshop.WorkshopService().pendingReview();
+    if (questions.isEmpty() && offerings.isEmpty() && labs.isEmpty()
+        && bundles.isEmpty() && workshops.isEmpty()) {
       root.add(new EmptyState(VaadinIcon.CHECK_SQUARE_O,
           tr("review.empty.title", "Nothing to review"),
           tr("review.empty.body", "There is no content awaiting a verdict.")));
@@ -94,6 +96,22 @@ public class ReviewView extends Composite<VerticalLayout> implements I18nSupport
       root.add(new H3(tr("review.section.bundles", "Bundles")));
       bundles.forEach(b -> root.add(bundleRow(b)));
     }
+    if (!workshops.isEmpty()) {
+      root.add(new H3(tr("review.section.workshops", "Workshops")));
+      workshops.forEach(w -> root.add(workshopRow(w)));
+    }
+  }
+
+  private Div workshopRow(com.svenruppert.openprobatum.workshop.Workshop workshop) {
+    com.svenruppert.openprobatum.workshop.WorkshopService service =
+        new com.svenruppert.openprobatum.workshop.WorkshopService();
+    Div card = card("data-workshop", workshop.id(),
+        workshop.title() + "  (v" + workshop.version() + ")", workshop.status());
+    card.add(actions(workshop.status(),
+        () -> guardedApprove(() -> service.approve(workshop.id(), currentReviewerId()), card),
+        () -> guardedTransition(() -> service.rejectToDraft(workshop.id()), card),
+        () -> guardedTransition(() -> service.publish(workshop.id()), card)));
+    return card;
   }
 
   private Div labRow(com.svenruppert.openprobatum.lab.Lab lab) {
