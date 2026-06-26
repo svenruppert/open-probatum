@@ -79,6 +79,50 @@ public class MetricsView extends Composite<VerticalLayout> implements I18nSuppor
     } else {
       labMetrics.forEach(m -> root.add(labRow(m)));
     }
+
+    var packaging = new com.svenruppert.openprobatum.views.metrics.PackagingMetricsService();
+
+    root.add(new H3(tr("metrics.section.bundles", "Bundles")));
+    var bundleMetrics = packaging.allBundleMetrics();
+    if (bundleMetrics.isEmpty()) {
+      root.add(new Span(tr("metrics.bundles.empty", "No bundles yet.")));
+    } else {
+      bundleMetrics.forEach(m -> root.add(bundleRow(m)));
+    }
+
+    root.add(new H3(tr("metrics.section.workshops", "Workshops")));
+    var workshopMetrics = packaging.allWorkshopMetrics();
+    if (workshopMetrics.isEmpty()) {
+      root.add(new Span(tr("metrics.workshops.empty", "No workshops yet.")));
+    } else {
+      workshopMetrics.forEach(m -> root.add(workshopRow(m)));
+    }
+  }
+
+  private Div bundleRow(com.svenruppert.openprobatum.views.metrics.PackagingMetricsService.BundleMetrics m) {
+    Div card = new Div();
+    card.addClassName(TemplateBrand.CSS_HERO_SURFACE);
+    card.getStyle().set("padding", "var(--lumo-space-s)").set("margin-bottom", "var(--lumo-space-s)");
+    card.getElement().setAttribute("data-bundle", m.bundleId().toString());
+    card.getElement().setAttribute("data-completions", String.valueOf(m.completions()));
+    card.add(new H4(m.title()));
+    card.add(new Span(tr("metrics.completions", "Completions: {0}", m.completions())));
+    return card;
+  }
+
+  private Div workshopRow(com.svenruppert.openprobatum.views.metrics.PackagingMetricsService.WorkshopMetrics m) {
+    Div card = new Div();
+    card.addClassName(TemplateBrand.CSS_HERO_SURFACE);
+    card.getStyle().set("padding", "var(--lumo-space-s)").set("margin-bottom", "var(--lumo-space-s)");
+    card.getElement().setAttribute("data-workshop", m.workshopId().toString());
+    card.getElement().setAttribute("data-fill-rate", String.valueOf(Math.round(m.fillRate() * 100)));
+    card.getElement().setAttribute("data-attendance-rate",
+        String.valueOf(Math.round(m.attendanceRate() * 100)));
+    card.add(new H4(m.title()));
+    card.add(new Span(tr("metrics.workshopstats", "Fill: {0}% ({1}/{2}); attendance {3}%",
+        Math.round(m.fillRate() * 100), m.enrolled(), m.capacity(),
+        Math.round(m.attendanceRate() * 100))));
+    return card;
   }
 
   private Div labRow(QualityMetricsService.LabMetrics m) {

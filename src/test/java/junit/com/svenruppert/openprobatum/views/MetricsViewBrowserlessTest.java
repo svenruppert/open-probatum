@@ -61,6 +61,15 @@ class MetricsViewBrowserlessTest extends BrowserlessTest {
     QuestionRepositoryProvider.setRepository(questions);
     com.svenruppert.openprobatum.lab.LabRepositoryProvider.setRepository(labs);
     com.svenruppert.openprobatum.lab.LabSubmissionRepositoryProvider.setRepository(labSubmissions);
+    // Packaging metrics read bundles/workshops/enrolments/credentials — keep in memory.
+    com.svenruppert.openprobatum.bundle.BundleRepositoryProvider.setRepository(
+        new com.svenruppert.openprobatum.bundle.InMemoryBundleRepository());
+    com.svenruppert.openprobatum.workshop.WorkshopRepositoryProvider.setRepository(
+        new com.svenruppert.openprobatum.workshop.InMemoryWorkshopRepository());
+    com.svenruppert.openprobatum.workshop.WorkshopEnrolmentRepositoryProvider.setRepository(
+        new com.svenruppert.openprobatum.workshop.InMemoryWorkshopEnrolmentRepository());
+    com.svenruppert.openprobatum.credential.CredentialRepositoryProvider.setRepository(
+        new com.svenruppert.openprobatum.credential.InMemoryCredentialRepository());
   }
 
   @AfterEach
@@ -70,6 +79,10 @@ class MetricsViewBrowserlessTest extends BrowserlessTest {
     QuestionRepositoryProvider.reset();
     com.svenruppert.openprobatum.lab.LabRepositoryProvider.reset();
     com.svenruppert.openprobatum.lab.LabSubmissionRepositoryProvider.reset();
+    com.svenruppert.openprobatum.bundle.BundleRepositoryProvider.reset();
+    com.svenruppert.openprobatum.workshop.WorkshopRepositoryProvider.reset();
+    com.svenruppert.openprobatum.workshop.WorkshopEnrolmentRepositoryProvider.reset();
+    com.svenruppert.openprobatum.credential.CredentialRepositoryProvider.reset();
   }
 
   @Test
