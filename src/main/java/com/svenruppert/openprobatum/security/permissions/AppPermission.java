@@ -36,6 +36,8 @@ public enum AppPermission {
   AUTHOR_CONTENT("author:content"),
   /** Reviewer: review + approve authored content before publication. */
   AUTHOR_REVIEW("author:review"),
+  /** Assessor: verify or reject learners' practical lab submissions (§16.3). */
+  LAB_ASSESS("lab:assess"),
   /** Credential Manager: govern issued credentials (e.g. revoke). */
   CREDENTIAL_MANAGE("credential:manage");
 

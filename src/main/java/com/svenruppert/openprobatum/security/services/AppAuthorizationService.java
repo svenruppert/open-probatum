@@ -40,6 +40,7 @@ import static com.svenruppert.openprobatum.security.permissions.AppPermission.AU
 import static com.svenruppert.openprobatum.security.permissions.AppPermission.AUTHOR_CONTENT;
 import static com.svenruppert.openprobatum.security.permissions.AppPermission.AUTHOR_REVIEW;
 import static com.svenruppert.openprobatum.security.permissions.AppPermission.CREDENTIAL_MANAGE;
+import static com.svenruppert.openprobatum.security.permissions.AppPermission.LAB_ASSESS;
 
 /**
  * Role → permission table (concept §5). SPI-registered via
@@ -48,7 +49,7 @@ import static com.svenruppert.openprobatum.security.permissions.AppPermission.CR
  * <ul>
  *   <li>LEARNER: {@code app:view}</li>
  *   <li>AUTHOR: {@code app:view}, {@code author:content}</li>
- *   <li>REVIEWER: {@code app:view}, {@code author:review}</li>
+ *   <li>REVIEWER: {@code app:view}, {@code author:review}, {@code lab:assess}</li>
  *   <li>CREDENTIAL_MANAGER: {@code app:view}, {@code credential:manage}</li>
  *   <li>PLATFORM_ADMIN: every permission</li>
  *   <li>VERIFIER: {@code app:view}</li>
@@ -66,7 +67,8 @@ public class AppAuthorizationService
           AUTHOR_CONTENT.permissionName()))
       .put(roleName(AuthorizationRole.REVIEWER), Set.of(
           APP_VIEW.permissionName(),
-          AUTHOR_REVIEW.permissionName()))
+          AUTHOR_REVIEW.permissionName(),
+          LAB_ASSESS.permissionName()))
       .put(roleName(AuthorizationRole.CREDENTIAL_MANAGER), Set.of(
           APP_VIEW.permissionName(),
           CREDENTIAL_MANAGE.permissionName()))
@@ -77,6 +79,7 @@ public class AppAuthorizationService
           ADMIN_ROLES.permissionName(),
           AUTHOR_CONTENT.permissionName(),
           AUTHOR_REVIEW.permissionName(),
+          LAB_ASSESS.permissionName(),
           CREDENTIAL_MANAGE.permissionName()))
       .put(roleName(AuthorizationRole.VERIFIER), Set.of(
           APP_VIEW.permissionName()))
