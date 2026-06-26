@@ -16,6 +16,7 @@
 
 package com.svenruppert.openprobatum.lab;
 
+import com.svenruppert.openprobatum.content.ContentAuthorshipProvider;
 import com.svenruppert.dependencies.core.logger.HasLogger;
 
 import java.util.Objects;
@@ -65,7 +66,48 @@ public final class LabSubmissionService implements HasLogger {
         });
   }
 
+  /**
+   * Verifies a SUBMITTED submission on behalf of {@code assessorId} — the
+   * SUBMITTED→VERIFIED edge (idempotent: a non-SUBMITTED submission yields empty,
+   * so re-verifying never re-fires). Enforces segregation of duties (§3.6): the
+   * assessor may not have authored the lab. Returns the verified submission, or
+   * empty when the id is unknown or already decided.
+   */
+  public synchronized Optional<LabSubmission> verify(UUID id, Long assessorId, String feedback) {
+    return decide(id, assessorId, s -> s.verified(feedback), "verified");
+  }
+
+  /** Rejects a SUBMITTED submission with feedback (same SoD + idempotency as verify). */
+  public synchronized Optional<LabSubmission> reject(UUID id, Long assessorId, String feedback) {
+    return decide(id, assessorId, s -> s.rejected(feedback), "rejected");
+  }
+
+  private Optional<LabSubmission> decide(UUID id, Long assessorId,
+                                         java.util.function.UnaryOperator<LabSubmission> decision,
+                                         String action) {
+    Objects.requireNonNull(id, "id");
+    return submissions.findById(id)
+        .filter(s -> s.status() == SubmissionStatus.SUBMITTED)
+        .map(s -> {
+          guardSelfAssessment(s, assessorId);
+          LabSubmission decided = decision.apply(s);
+          submissions.save(decided);
+          logger().info("Lab submission {} {} by assessor {}", id, action, assessorId);
+          return decided;
+        });
+  }
+
+  /** Refuses an assessor verifying a submission to a lab they authored (§3.6/§17.2). */
+  private void guardSelfAssessment(LabSubmission submission, Long assessorId) {
+    labs.findById(submission.labId()).ifPresent(lab -> {
+      if (ContentAuthorshipProvider.registry().isAuthor(lab.lineageId(), assessorId)) {
+        throw new IllegalStateException("an author cannot assess submissions to their own lab");
+      }
+    });
+  }
+
   private static String blankToNull(String value) {
     return value == null || value.isBlank() ? null : value.trim();
   }
 }
+
