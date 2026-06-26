@@ -84,3 +84,12 @@ com.svenruppert.openprobatum.credential=64
 # 100 % (35/35), progress 95 % (22/23) — pure domain logic, cleanly killed.
 com.svenruppert.openprobatum.access=90
 com.svenruppert.openprobatum.progress=90
+
+# Authoring & Credential Governance domain (V00.30.00, P015). Full-gate
+# measured: content 93 % (ContentStatus lifecycle + ContentAuthorship registry —
+# pure logic + IODH providers, cleanly killed). The V00.30.00 additions also
+# lifted existing packages' measurements without lowering any floor: credential
+# 64→72 %, catalog 0→85 %, assessment 82→83 %, security.services 68→80 %, views
+# 22→33 %, overall 42→47 %. Existing floors left conservative (only content
+# added) per the "raise only after sustained coverage" rule. Floor 3 below measured.
+com.svenruppert.openprobatum.content=90
