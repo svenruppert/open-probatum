@@ -36,5 +36,8 @@ public enum EntitlementReason {
   PREREQUISITE,
 
   /** Granted manually by an author / platform admin. */
-  MANUAL
+  MANUAL,
+
+  /** Unlocked as a member offering of a granted bundle (§7.x). */
+  BUNDLE
 }

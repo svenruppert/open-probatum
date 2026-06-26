@@ -38,6 +38,8 @@ public enum AppPermission {
   AUTHOR_REVIEW("author:review"),
   /** Assessor: verify or reject learners' practical lab submissions (§16.3). */
   LAB_ASSESS("lab:assess"),
+  /** Instructor: run workshops and record learner attendance (§7.x). */
+  WORKSHOP_RUN("workshop:run"),
   /** Credential Manager: govern issued credentials (e.g. revoke). */
   CREDENTIAL_MANAGE("credential:manage");
 
