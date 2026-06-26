@@ -46,15 +46,21 @@ class MetricsViewBrowserlessTest extends BrowserlessTest {
   private InMemoryAttemptRepository attempts;
   private InMemoryAssessmentRepository assessments;
   private InMemoryQuestionRepository questions;
+  private com.svenruppert.openprobatum.lab.InMemoryLabRepository labs;
+  private com.svenruppert.openprobatum.lab.InMemoryLabSubmissionRepository labSubmissions;
 
   @BeforeEach
   void setUp() {
     attempts = new InMemoryAttemptRepository();
     assessments = new InMemoryAssessmentRepository();
     questions = new InMemoryQuestionRepository();
+    labs = new com.svenruppert.openprobatum.lab.InMemoryLabRepository();
+    labSubmissions = new com.svenruppert.openprobatum.lab.InMemoryLabSubmissionRepository();
     AttemptRepositoryProvider.setRepository(attempts);
     AssessmentRepositoryProvider.setRepository(assessments);
     QuestionRepositoryProvider.setRepository(questions);
+    com.svenruppert.openprobatum.lab.LabRepositoryProvider.setRepository(labs);
+    com.svenruppert.openprobatum.lab.LabSubmissionRepositoryProvider.setRepository(labSubmissions);
   }
 
   @AfterEach
@@ -62,6 +68,8 @@ class MetricsViewBrowserlessTest extends BrowserlessTest {
     AttemptRepositoryProvider.reset();
     AssessmentRepositoryProvider.reset();
     QuestionRepositoryProvider.reset();
+    com.svenruppert.openprobatum.lab.LabRepositoryProvider.reset();
+    com.svenruppert.openprobatum.lab.LabSubmissionRepositoryProvider.reset();
   }
 
   @Test
@@ -80,6 +88,23 @@ class MetricsViewBrowserlessTest extends BrowserlessTest {
     assertEquals(List.of("50"), attributes(view, "data-pass-rate"), "1 of 2 passed → 50%");
     assertEquals(List.of("2"), attributes(view, "data-attempts"));
     assertEquals(List.of("1"), attributes(view, "data-bank-total"));
+  }
+
+  @Test
+  @DisplayName("the view shows a lab's verify rate (P009)")
+  void showsLabVerifyRate() {
+    com.svenruppert.openprobatum.lab.Lab lab =
+        com.svenruppert.openprobatum.lab.Lab.draft("Deploy", "do it");
+    labs.save(lab);
+    labSubmissions.save(com.svenruppert.openprobatum.lab.LabSubmission
+        .submit(lab.id(), lab.version(), 1L, "Ada", "did it", null).verified("ok"));
+    labSubmissions.save(com.svenruppert.openprobatum.lab.LabSubmission
+        .submit(lab.id(), lab.version(), 2L, "Bob", "did it", null).rejected("no"));
+
+    MetricsView view = new MetricsView();
+    assertEquals(List.of(lab.id().toString()), attributes(view, "data-lab"));
+    assertEquals(List.of("50"), attributes(view, "data-verify-rate"), "1 of 2 verified → 50%");
+    assertEquals(List.of("2"), attributes(view, "data-submissions"));
   }
 
   @Test

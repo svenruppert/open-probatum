@@ -97,6 +97,53 @@ class QualityMetricsServiceTest {
   }
 
   @Test
+  @DisplayName("lab metrics aggregate submissions: verify rate, verified + rejected counts")
+  void labMetrics() {
+    com.svenruppert.openprobatum.lab.InMemoryLabRepository labRepo =
+        new com.svenruppert.openprobatum.lab.InMemoryLabRepository();
+    com.svenruppert.openprobatum.lab.InMemoryLabSubmissionRepository subRepo =
+        new com.svenruppert.openprobatum.lab.InMemoryLabSubmissionRepository();
+    QualityMetricsService m = new QualityMetricsService(attempts, assessments, questions,
+        labRepo, subRepo);
+
+    com.svenruppert.openprobatum.lab.Lab lab =
+        com.svenruppert.openprobatum.lab.Lab.draft("Deploy", "do it");
+    labRepo.save(lab);
+    // 4 submissions: 3 verified, 1 rejected → verify rate 0.75
+    subRepo.save(sub(lab).verified("ok"));
+    subRepo.save(sub(lab).verified("ok"));
+    subRepo.save(sub(lab).verified("ok"));
+    subRepo.save(sub(lab).rejected("no"));
+
+    var metrics = m.metricsForLab(lab.id());
+    assertEquals(4, metrics.submissions());
+    assertEquals(3, metrics.verified());
+    assertEquals(1, metrics.rejected());
+    assertEquals(0.75, metrics.verifyRate(), 1e-9);
+    assertEquals("Deploy", metrics.title());
+    assertEquals(1, m.allLabMetrics().size());
+  }
+
+  @Test
+  @DisplayName("a lab with no submissions reports a zero verify rate, not a divide-by-zero")
+  void labNoSubmissions() {
+    com.svenruppert.openprobatum.lab.InMemoryLabRepository labRepo =
+        new com.svenruppert.openprobatum.lab.InMemoryLabRepository();
+    QualityMetricsService m = new QualityMetricsService(attempts, assessments, questions,
+        labRepo, new com.svenruppert.openprobatum.lab.InMemoryLabSubmissionRepository());
+    com.svenruppert.openprobatum.lab.Lab lab =
+        com.svenruppert.openprobatum.lab.Lab.draft("Empty", "x");
+    labRepo.save(lab);
+    assertEquals(0.0, m.metricsForLab(lab.id()).verifyRate(), 1e-9);
+  }
+
+  private static com.svenruppert.openprobatum.lab.LabSubmission sub(
+      com.svenruppert.openprobatum.lab.Lab lab) {
+    return com.svenruppert.openprobatum.lab.LabSubmission.submit(
+        lab.id(), lab.version(), 1L, "Ada", "did it", null);
+  }
+
+  @Test
   @DisplayName("bank composition counts questions by status and difficulty")
   void bankComposition() {
     questions.save(Question.singleChoice("q1", List.of("a", "b"), 0, "e")); // DRAFT, MEDIUM

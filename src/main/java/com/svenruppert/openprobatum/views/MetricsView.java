@@ -71,6 +71,28 @@ public class MetricsView extends Composite<VerticalLayout> implements I18nSuppor
     metrics.bankByDifficulty().forEach((difficulty, count) ->
         bank.add(chip("data-bank-difficulty", difficulty.name(), difficulty.name() + ": " + count)));
     root.add(bank);
+
+    root.add(new H3(tr("metrics.section.labs", "Labs")));
+    var labMetrics = metrics.allLabMetrics();
+    if (labMetrics.isEmpty()) {
+      root.add(new Span(tr("metrics.labs.empty", "No labs yet.")));
+    } else {
+      labMetrics.forEach(m -> root.add(labRow(m)));
+    }
+  }
+
+  private Div labRow(QualityMetricsService.LabMetrics m) {
+    Div card = new Div();
+    card.addClassName(TemplateBrand.CSS_HERO_SURFACE);
+    card.getStyle().set("padding", "var(--lumo-space-s)").set("margin-bottom", "var(--lumo-space-s)");
+    card.getElement().setAttribute("data-lab", m.labId().toString());
+    card.getElement().setAttribute("data-verify-rate", String.valueOf(Math.round(m.verifyRate() * 100)));
+    card.getElement().setAttribute("data-submissions", String.valueOf(m.submissions()));
+
+    card.add(new H4(m.title()));
+    card.add(new Span(tr("metrics.verifyrate", "Verify rate: {0}% ({1}/{2}); {3} rejected",
+        Math.round(m.verifyRate() * 100), m.verified(), m.submissions(), m.rejected())));
+    return card;
   }
 
   private Div assessmentRow(QualityMetricsService.AssessmentMetrics m) {

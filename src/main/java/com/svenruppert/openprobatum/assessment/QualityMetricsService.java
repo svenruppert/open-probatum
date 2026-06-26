@@ -38,18 +38,34 @@ public final class QualityMetricsService {
   private final AttemptRepository attempts;
   private final AssessmentRepository assessments;
   private final QuestionRepository questions;
+  private final com.svenruppert.openprobatum.lab.LabRepository labs;
+  private final com.svenruppert.openprobatum.lab.LabSubmissionRepository labSubmissions;
 
   public QualityMetricsService(AttemptRepository attempts, AssessmentRepository assessments,
-                               QuestionRepository questions) {
+                               QuestionRepository questions,
+                               com.svenruppert.openprobatum.lab.LabRepository labs,
+                               com.svenruppert.openprobatum.lab.LabSubmissionRepository labSubmissions) {
     this.attempts = Objects.requireNonNull(attempts, "attempts");
     this.assessments = Objects.requireNonNull(assessments, "assessments");
     this.questions = Objects.requireNonNull(questions, "questions");
+    this.labs = Objects.requireNonNull(labs, "labs");
+    this.labSubmissions = Objects.requireNonNull(labSubmissions, "labSubmissions");
+  }
+
+  /** Convenience for callers that only need assessment + question metrics. */
+  public QualityMetricsService(AttemptRepository attempts, AssessmentRepository assessments,
+                               QuestionRepository questions) {
+    this(attempts, assessments, questions,
+        com.svenruppert.openprobatum.lab.LabRepositoryProvider.repository(),
+        com.svenruppert.openprobatum.lab.LabSubmissionRepositoryProvider.repository());
   }
 
   public QualityMetricsService() {
     this(AttemptRepositoryProvider.repository(),
         AssessmentRepositoryProvider.repository(),
-        QuestionRepositoryProvider.repository());
+        QuestionRepositoryProvider.repository(),
+        com.svenruppert.openprobatum.lab.LabRepositoryProvider.repository(),
+        com.svenruppert.openprobatum.lab.LabSubmissionRepositoryProvider.repository());
   }
 
   /**
@@ -98,5 +114,43 @@ public final class QualityMetricsService {
   public Map<Difficulty, Long> bankByDifficulty() {
     return questions.all().stream()
         .collect(Collectors.groupingBy(Question::difficulty, Collectors.counting()));
+  }
+
+  /**
+   * Aggregated quality of one lab (§20.2).
+   *
+   * @param labId       the lab version
+   * @param title       the lab title (or its id when unknown)
+   * @param submissions the number of submissions made
+   * @param verified    how many were verified
+   * @param rejected    how many were rejected
+   * @param verifyRate  {@code verified / submissions} in {@code [0, 1]} (0 when none)
+   */
+  public record LabMetrics(UUID labId, String title, int submissions, int verified,
+                           int rejected, double verifyRate) {
+  }
+
+  /** Metrics for a single lab version. */
+  public LabMetrics metricsForLab(UUID labId) {
+    Objects.requireNonNull(labId, "labId");
+    List<com.svenruppert.openprobatum.lab.LabSubmission> all = labSubmissions.forLab(labId);
+    int total = all.size();
+    int verified = (int) all.stream()
+        .filter(com.svenruppert.openprobatum.lab.LabSubmission::isVerified).count();
+    int rejected = (int) all.stream()
+        .filter(s -> s.status() == com.svenruppert.openprobatum.lab.SubmissionStatus.REJECTED)
+        .count();
+    double verifyRate = total == 0 ? 0.0 : (double) verified / total;
+    String title = labs.findById(labId)
+        .map(com.svenruppert.openprobatum.lab.Lab::title).orElse(labId.toString());
+    return new LabMetrics(labId, title, total, verified, rejected, verifyRate);
+  }
+
+  /** Metrics for every known lab version, by title. */
+  public List<LabMetrics> allLabMetrics() {
+    return labs.all().stream()
+        .map(l -> metricsForLab(l.id()))
+        .sorted((x, y) -> x.title().compareToIgnoreCase(y.title()))
+        .toList();
   }
 }
