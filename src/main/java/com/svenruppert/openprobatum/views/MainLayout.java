@@ -74,6 +74,7 @@ public class MainLayout extends AppLayout
   private static final String K_NAV_SECURITY = "nav.security.features";
   private static final String K_NAV_DASHBOARD = "nav.dashboard";
   private static final String K_NAV_CATALOG = "nav.catalog";
+  private static final String K_NAV_WALLET = "nav.wallet";
   private static final String K_NAV_ABOUT = "nav.about";
   private static final String K_NAV_YOUTUBE = "nav.youtube";
   private static final String K_NAV_PUSHDEMO = "nav.pushDemo";
@@ -158,6 +159,8 @@ public class MainLayout extends AppLayout
             DashboardView.class, "app:view", grants),
         item(tr(K_NAV_CATALOG, "Catalog"), VaadinIcon.OPEN_BOOK,
             CatalogView.class, "app:view", grants),
+        item(tr(K_NAV_WALLET, "My credentials"), VaadinIcon.DIPLOMA,
+            WalletView.class, "app:view", grants),
         item(tr(K_NAV_PUSHDEMO, "Push demo"), VaadinIcon.BELL,
             PushDemoView.class, "app:view", grants));
     if (app != null) container.add(app);
