@@ -121,9 +121,10 @@ Der portable Kern lebt im Skill; hier stehen nur die projektspezifischen Slots.
 - Schema `VMAJOR.MINOR.PATCH`, Minor in 10er-Schritten (`00.10`, `00.20`, …),
   Patch für reine Bugfixes. Hauptstand bleibt bis `V01.00.00` bei `00`.
 - Einzelmodul `open-probatum`. V00.10.00 (Trust Core) … V00.70.00 (Operator
-  Analytics) sind finalisiert + als `v00.10.00` … `v00.70.00` getaggt; der
-  Hauptstand steht auf **`00.70.00`**. Die nächste Entwicklungslinie öffnet ihr
-  Window (P000) auf `00.80.00-SNAPSHOT`.
+  Analytics) sind finalisiert + als `v00.10.00` … `v00.70.00` getaggt; aktuelle
+  Entwicklungslinie **`00.70.10-SNAPSHOT`** (V00.70.10 — Sammelrelease Bugs +
+  Features, Window in P000 geöffnet). `00.70.10` wird beim Release-Close
+  finalisiert + als `v00.70.10` getaggt.
 - **Kein Deployment bis V01.00.00** (Sven, 2026-06-26): der Release-Close-Schritt
   ist ausschließlich Finalize + Tag + Production-WAR + GitHub-Release, kein
   Live-Rollout.
