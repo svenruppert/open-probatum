@@ -50,14 +50,16 @@ public final class CoachingSlotService implements HasLogger {
   }
 
   /**
-   * Opens a bookable slot under a <em>published</em> offer (the coach is taken from
-   * the offer). Returns empty (and saves nothing) when the offer is unknown or not
-   * published.
+   * Opens a bookable slot under a <em>published</em> offer on behalf of
+   * {@code coachId}, who must be the offer's own coach (parity with
+   * {@link #complete}/{@link #cancelSlot}). Returns empty (and saves nothing) when
+   * the offer is unknown, not published, or not run by {@code coachId}.
    */
-  public Optional<CoachingSlot> open(UUID offerId, Instant startsAt, Instant endsAt) {
+  public Optional<CoachingSlot> open(UUID offerId, Long coachId, Instant startsAt, Instant endsAt) {
     Objects.requireNonNull(offerId, "offerId");
     return offers.findById(offerId)
         .filter(CoachingOffer::isPublished)
+        .filter(offer -> coachId != null && coachId.equals(offer.coachId()))
         .map(offer -> {
           CoachingSlot slot = CoachingSlot.open(offer.id(), offer.coachId(), startsAt, endsAt);
           slots.save(slot);
@@ -75,7 +77,7 @@ public final class CoachingSlotService implements HasLogger {
    */
   public Optional<CoachingSlot> book(UUID slotId, Long recipientId, String learnerName) {
     Objects.requireNonNull(slotId, "slotId");
-    if (recipientId == null) {
+    if (recipientId == null || learnerName == null || learnerName.isBlank()) {
       return Optional.empty();
     }
     synchronized (SLOT_LOCK) {

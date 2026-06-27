@@ -54,7 +54,7 @@ class CoachingBookingTest {
     CoachingOffer offer = CoachingOffer.draft("Mentoring", "d", "Sven", 7L, 60)
         .withStatus(ContentStatus.PUBLISHED);
     offers.save(offer);
-    slot = service.open(offer.id(), START, END).orElseThrow();
+    slot = service.open(offer.id(), 7L, START, END).orElseThrow();
   }
 
   @Test

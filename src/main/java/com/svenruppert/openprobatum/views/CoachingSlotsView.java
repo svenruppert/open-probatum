@@ -123,7 +123,7 @@ public class CoachingSlotsView extends Composite<VerticalLayout> implements I18n
           "Select an offer and a valid start/end."));
       return;
     }
-    new CoachingSlotService().open(selected.id(),
+    new CoachingSlotService().open(selected.id(), currentCoachId(),
         start.toInstant(ZoneOffset.UTC), end.toInstant(ZoneOffset.UTC));
     showStatus("OPENED", tr("slots.success", "Slot opened."));
     startsAt.clear();

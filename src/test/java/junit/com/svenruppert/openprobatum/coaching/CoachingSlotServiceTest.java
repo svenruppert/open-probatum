@@ -57,7 +57,7 @@ class CoachingSlotServiceTest {
   @Test
   @DisplayName("opening a slot under a published offer creates an OPEN slot carrying the coach")
   void open() {
-    CoachingSlot slot = service.open(published.id(), START, END).orElseThrow();
+    CoachingSlot slot = service.open(published.id(), 7L, START, END).orElseThrow();
     assertEquals(BookingStatus.OPEN, slot.status());
     assertEquals(7L, slot.coachId());
     assertEquals(published.id(), slot.offerId());
@@ -69,21 +69,29 @@ class CoachingSlotServiceTest {
   void unpublishedRefused() {
     CoachingOffer draft = CoachingOffer.draft("Draft", "d", "Sven", 7L, 60); // DRAFT
     offers.save(draft);
-    assertTrue(service.open(draft.id(), START, END).isEmpty(), "unpublished refused");
-    assertTrue(service.open(java.util.UUID.randomUUID(), START, END).isEmpty(), "unknown refused");
+    assertTrue(service.open(draft.id(), 7L, START, END).isEmpty(), "unpublished refused");
+    assertTrue(service.open(java.util.UUID.randomUUID(), 7L, START, END).isEmpty(), "unknown refused");
     assertTrue(slots.all().isEmpty());
   }
 
   @Test
   @DisplayName("a slot ending before it starts is rejected")
   void invalidTimes() {
-    assertThrows(IllegalArgumentException.class, () -> service.open(published.id(), END, START));
+    assertThrows(IllegalArgumentException.class, () -> service.open(published.id(), 7L, END, START));
+  }
+
+  @Test
+  @DisplayName("only the offer's own coach may open slots under it (exit-review L2)")
+  void onlyOwnCoachOpens() {
+    assertTrue(service.open(published.id(), 9999L, START, END).isEmpty(),
+        "another coach cannot open slots under this offer");
+    assertTrue(slots.all().isEmpty());
   }
 
   @Test
   @DisplayName("complete fires only on the BOOKED→COMPLETED edge, by the owning coach (idempotent)")
   void completeEdge() {
-    CoachingSlot slot = service.open(published.id(), START, END).orElseThrow();
+    CoachingSlot slot = service.open(published.id(), 7L, START, END).orElseThrow();
     assertTrue(service.complete(slot.id(), 7L, "notes").isEmpty(), "an OPEN slot cannot be completed");
     service.book(slot.id(), 5005L, "Ada");
     assertTrue(service.complete(slot.id(), 9999L, "n").isEmpty(), "not this coach's slot");
@@ -97,7 +105,7 @@ class CoachingSlotServiceTest {
   @Test
   @DisplayName("the coach cancels an open slot; a non-owner cannot")
   void cancel() {
-    CoachingSlot slot = service.open(published.id(), START, END).orElseThrow();
+    CoachingSlot slot = service.open(published.id(), 7L, START, END).orElseThrow();
     assertTrue(service.cancelSlot(slot.id(), 9999L).isEmpty(), "not this coach's slot");
     assertEquals(BookingStatus.CANCELLED,
         service.cancelSlot(slot.id(), 7L).orElseThrow().status());

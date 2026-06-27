@@ -106,18 +106,19 @@ public class CoachingAuthorView extends Composite<VerticalLayout> implements I18
   void create() {
     String t = value(title);
     Integer mins = duration.getValue();
-    if (t.isBlank() || mins == null || mins < 1) {
+    Long coachId = currentId();
+    if (t.isBlank() || mins == null || mins < 1 || coachId == null) {
       showStatus("INVALID", tr("coachingauthor.error.invalid",
           "A title and a session duration of at least one minute are required."));
       return;
     }
     CoachingOffer offer = CoachingOffer.draft(t, areaValue(description),
-            currentName(), currentId(), mins)
+            currentName(), coachId, mins)
         .withObjective(value(objective))
         .withTags(java.util.Set.copyOf(splitCsv(value(tags))));
     new CoachingOfferService().create(offer);
     com.svenruppert.openprobatum.content.ContentAuthorshipProvider.registry()
-        .recordAuthor(offer.lineageId(), currentId());
+        .recordAuthor(offer.lineageId(), coachId);
     showStatus("CREATED", tr("coachingauthor.success", "Coaching offer created as a draft."));
     clear();
     render();

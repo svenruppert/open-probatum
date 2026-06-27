@@ -68,6 +68,12 @@ public final class CoachingOfferService implements HasLogger {
   /**
    * Applies a lifecycle transition (validated against {@link ContentStatus}).
    * Approval additionally requires a non-blank learning objective.
+   *
+   * <p>The {@code synchronized} is on this per-call instance, so it does not
+   * serialise across concurrent requests — accepted because a content transition
+   * is idempotent to its target and mints nothing (unlike the slot booking /
+   * completion edges, which use a shared static monitor). This matches the
+   * existing question/lab/workshop lifecycle services.
    */
   public synchronized Optional<CoachingOffer> transition(UUID id, ContentStatus target) {
     Objects.requireNonNull(target, "target");
