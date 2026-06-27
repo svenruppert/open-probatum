@@ -19,6 +19,7 @@ package com.svenruppert.openprobatum.views;
 import com.svenruppert.dependencies.core.logger.HasLogger;
 import com.svenruppert.openprobatum.i18n.I18nSupport;
 import com.svenruppert.openprobatum.security.model.AppUser;
+import com.svenruppert.openprobatum.views.analytics.OperatorDashboardView;
 import com.svenruppert.openprobatum.views.main.PushDemoView;
 import com.svenruppert.openprobatum.views.ui.BrandMark;
 import com.svenruppert.openprobatum.views.ui.LocaleSwitcher;
@@ -99,6 +100,7 @@ public class MainLayout extends AppLayout
   private static final String K_NAV_ROLES = "nav.roles";
   private static final String K_NAV_GOVERNANCE = "nav.governance";
   private static final String K_NAV_CRED_AUDIT = "nav.credaudit";
+  private static final String K_NAV_OPERATOR = "nav.operator";
   private static final String K_SIGN_IN = "common.signIn";
   private static final String K_SIGN_OUT = "common.signOut";
 
@@ -226,7 +228,9 @@ public class MainLayout extends AppLayout
         item(tr(K_NAV_GOVERNANCE, "Credential governance"), VaadinIcon.DIPLOMA,
             GovernanceView.class, "credential:manage", grants),
         item(tr(K_NAV_CRED_AUDIT, "Credential audit"), VaadinIcon.RECORDS,
-            CredentialAuditView.class, "credential:manage", grants));
+            CredentialAuditView.class, "credential:manage", grants),
+        item(tr(K_NAV_OPERATOR, "Operator dashboard"), VaadinIcon.DASHBOARD,
+            OperatorDashboardView.class, "analytics:read", grants));
     if (admin != null) container.add(admin);
 
     return container;
