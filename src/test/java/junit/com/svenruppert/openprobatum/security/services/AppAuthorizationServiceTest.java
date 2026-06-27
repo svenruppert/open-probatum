@@ -52,7 +52,7 @@ class AppAuthorizationServiceTest {
     assertEquals(
         Set.of("app:view", "audit:read", "admin:sessions", "admin:roles",
             "author:content", "author:review", "lab:assess", "workshop:run",
-            "coaching:provide", "credential:manage"),
+            "coaching:provide", "analytics:read", "credential:manage"),
         permissionsOf(AuthorizationRole.PLATFORM_ADMIN));
   }
 

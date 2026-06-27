@@ -43,6 +43,7 @@ import static com.svenruppert.openprobatum.security.permissions.AppPermission.CR
 import static com.svenruppert.openprobatum.security.permissions.AppPermission.LAB_ASSESS;
 import static com.svenruppert.openprobatum.security.permissions.AppPermission.WORKSHOP_RUN;
 import static com.svenruppert.openprobatum.security.permissions.AppPermission.COACHING_PROVIDE;
+import static com.svenruppert.openprobatum.security.permissions.AppPermission.ANALYTICS_READ;
 
 /**
  * Role → permission table (concept §5). SPI-registered via
@@ -87,6 +88,7 @@ public class AppAuthorizationService
           LAB_ASSESS.permissionName(),
           WORKSHOP_RUN.permissionName(),
           COACHING_PROVIDE.permissionName(),
+          ANALYTICS_READ.permissionName(),
           CREDENTIAL_MANAGE.permissionName()))
       .put(roleName(AuthorizationRole.VERIFIER), Set.of(
           APP_VIEW.permissionName()))
