@@ -114,3 +114,11 @@ com.svenruppert.openprobatum.lab=75
 com.svenruppert.openprobatum.bundle=69
 com.svenruppert.openprobatum.workshop=71
 com.svenruppert.openprobatum.views.metrics=83
+
+# 1:1 Coaching domain (V00.60.00, P009). Full-gate measured: coaching 76 %
+# (CoachingOffer/CoachingSlot records + lifecycle + the atomic book/complete edges
+# kill cleanly; the EclipseStore offer + slot repositories add the usual hard-to-kill
+# store-wiring mutants). The V00.60.00 additions held every existing floor and nudged
+# overall 49→52 %; existing floors left conservative per the "raise only after
+# sustained coverage" rule. Floor 3 below measured.
+com.svenruppert.openprobatum.coaching=73
