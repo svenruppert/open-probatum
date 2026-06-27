@@ -40,6 +40,8 @@ public enum AppPermission {
   LAB_ASSESS("lab:assess"),
   /** Instructor: run workshops and record learner attendance (§7.x). */
   WORKSHOP_RUN("workshop:run"),
+  /** Coach: open coaching slots and complete 1:1 sessions (§7.x). */
+  COACHING_PROVIDE("coaching:provide"),
   /** Credential Manager: govern issued credentials (e.g. revoke). */
   CREDENTIAL_MANAGE("credential:manage");
 

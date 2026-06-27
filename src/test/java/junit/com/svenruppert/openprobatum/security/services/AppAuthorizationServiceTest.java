@@ -52,14 +52,15 @@ class AppAuthorizationServiceTest {
     assertEquals(
         Set.of("app:view", "audit:read", "admin:sessions", "admin:roles",
             "author:content", "author:review", "lab:assess", "workshop:run",
-            "credential:manage"),
+            "coaching:provide", "credential:manage"),
         permissionsOf(AuthorizationRole.PLATFORM_ADMIN));
   }
 
   @Test
-  @DisplayName("REVIEWER gets app:view + author:review + lab:assess + workshop:run")
+  @DisplayName("REVIEWER gets app:view + author:review + lab:assess + workshop:run + coaching:provide")
   void reviewerGetsReviewPermission() {
-    assertEquals(Set.of("app:view", "author:review", "lab:assess", "workshop:run"),
+    assertEquals(Set.of("app:view", "author:review", "lab:assess", "workshop:run",
+            "coaching:provide"),
         permissionsOf(AuthorizationRole.REVIEWER));
   }
 
