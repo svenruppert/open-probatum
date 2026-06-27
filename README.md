@@ -153,6 +153,111 @@ src/main/java/com/svenruppert/flow/
     └── YoutubeView.java      ← embed example
 ```
 
+## How the components fit together
+
+The base package is `com.svenruppert.openprobatum`. The platform is one Vaadin
+WAR whose parts are wired through three recurring seams: **one persistent store**,
+**one authorization gate on every route**, and **one issuance edge** that turns
+learner activity into credentials. Understanding those three explains the whole.
+
+### 1. Persistence — two stores, reached through `*Provider`s
+
+All state lives in Eclipse-Store via a single `JSentinelStoragePair`
+(`security/storage/AppStorage`): the **framework store** (jSentinel: users,
+sessions, audit, version stamps) and the **app store** whose `AppRoot` holds one
+`ConcurrentHashMap` per domain type — `credentials`, `offerings`, `entitlements`,
+`progress`, `assessments`, `attempts`, `questions`, `credentialEvents`,
+`contentAuthors`, `labs`, `labSubmissions`, `bundles`, `workshops`,
+`workshopEnrolments`, `coachingOffers`, `coachingSlots`.
+
+No component touches a store directly. Each domain exposes a **repository quartet**
+— `interface` + `InMemory*` + `EclipseStore*` + `*Provider` — and everything
+resolves the repository through the `*Provider` (Initialization-on-Demand Holder +
+a `setX`/`reset` test override). That one seam is why every service is testable
+against in-memory repositories with **no mocks**.
+
+### 2. The request & authorization pipeline
+
+```
+HTTP → SecurityHeadersFilter → AppServlet (VaadinServlet)
+     → jSentinel auth (SubjectStores.currentSubject → AppUser)
+     → AppAuthorizationService  (roles ─► permissions table)
+     → RoleAccessEvaluator      (enforces @VisibleFor on the target route)
+            • no subject        → reroute to /login
+            • lacks every role  → reroute to MainView
+     → MainLayout               (builds the drawer; each item shown only if the
+                                  subject holds that item's permission)
+```
+
+A view is gated **twice, by the same model**: `@VisibleFor(roles…)` guards the
+route (server-side, enforced by `RoleAccessEvaluator`), and `MainLayout` hides the
+nav item unless the subject holds the item's permission. The roles→permissions
+table (`AppAuthorizationService`) is the single source for both — see
+**[Users & roles](#users--roles)**. The first admin is seeded by the layered
+**bootstrap SPI** (next section); roles are then administered live in
+`AdminRolesView`, and any role mutation version-bumps the subject so stale
+sessions re-evaluate.
+
+### 3. From authoring to a credential (the domain spine)
+
+```
+AUTHOR                REVIEWER / staff           LEARNER                CRED. MANAGER
+──────                ────────────────           ───────                ─────────────
+author content   ─►   review + approve     ─►    entitlement + progress
+(ContentStatus:       (SoD: approver ≠           (EntitlementService,
+ DRAFT, author         author; → PUBLISHED)       ProgressService)
+ recorded in                                          │
+ ContentAuthorship)                                   ▼
+                      staff act / completion ─►  Evidence  ─►  IssuanceService
+                      (lab verified, workshop    (typed,        • one atomic edge
+                       attended, coaching         versioned,      (shared static LOCK)
+                       completed, assessment      source id)     • saves 1 Credential
+                       passed, bundle done)                      • appends 1 ISSUED
+                                                                   CredentialEvent
+                                                          │
+                                                          ▼
+                                                   learner Wallet  ──►  public verification
+                                                                        (effectiveStatusAt)
+                                                                              │
+                                                  revoke / reissue  ◄─────────┘
+                                                  (GovernanceView) → another CredentialEvent
+```
+
+Key interactions on that spine:
+
+- **Versioned reviewed content** is shared by questions, offerings, labs, bundles,
+  workshops and coaching offers: the same `ContentStatus` lifecycle
+  (DRAFT→IN_REVIEW→APPROVED→PUBLISHED→…) and the `ContentAuthorship` registry that
+  enforces **segregation of duties** (an author can't approve their own content)
+  drive the single shared **Review queue**.
+- **Evidence is the contract** between the academy and a credential: every
+  non-manual credential carries a typed `Evidence` (assessment / lab / bundle /
+  workshop / coaching) with the **source id + version**, so a credential always
+  points back at exactly what earned it.
+- **One issuance edge, minted exactly once.** Every mint (lab verify, bundle
+  claim, workshop attendance, coaching completion, assessment pass) runs its
+  check-then-act inside a **shared static lock** so two concurrent clicks never
+  double-mint, and each issuance appends exactly one `ISSUED` `CredentialEvent` —
+  the app-side audit trail that `CredentialAuditView` and credential governance
+  read back.
+
+### 4. The read side — analytics & audit reuse the same repositories
+
+Nothing on the reporting side keeps its own data: `QualityMetricsService` (per
+assessment/lab), `PackagingMetricsService` (bundles/workshops/coaching) and
+`OperatorAnalyticsService` (academy-wide) all **aggregate the live repositories
+through the same `*Provider`s**, read-only and zero-safe. `AuditView` shows the
+security audit log; the **Operator dashboard** shows the credential mix, the
+content pipeline and engagement — the same facts, summed.
+
+### 5. Cross-cutting
+
+- **i18n**: `AppI18NProvider` (registered via the `i18n.provider` init-param in
+  `web.xml`) + the `I18nSupport` mixin's `tr(key, fallback)`; `MainLayout` carries
+  the locale switcher. EN + DE, British English.
+- **Theme & push**: `AppShell` sets the Lumo theme + viewport and enables `@Push`;
+  the design-system components live in `views/ui`.
+
 ## Security layering — three additive layers
 
 The bootstrap pipeline is an SPI (`BootstrapExtension`) that picks up
