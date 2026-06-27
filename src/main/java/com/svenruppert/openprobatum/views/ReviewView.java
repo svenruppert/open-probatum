@@ -72,8 +72,9 @@ public class ReviewView extends Composite<VerticalLayout> implements I18nSupport
     var labs = new com.svenruppert.openprobatum.lab.LabService().pendingReview();
     var bundles = new com.svenruppert.openprobatum.bundle.BundleService().pendingReview();
     var workshops = new com.svenruppert.openprobatum.workshop.WorkshopService().pendingReview();
+    var coachingOffers = new com.svenruppert.openprobatum.coaching.CoachingOfferService().pendingReview();
     if (questions.isEmpty() && offerings.isEmpty() && labs.isEmpty()
-        && bundles.isEmpty() && workshops.isEmpty()) {
+        && bundles.isEmpty() && workshops.isEmpty() && coachingOffers.isEmpty()) {
       root.add(new EmptyState(VaadinIcon.CHECK_SQUARE_O,
           tr("review.empty.title", "Nothing to review"),
           tr("review.empty.body", "There is no content awaiting a verdict.")));
@@ -100,6 +101,22 @@ public class ReviewView extends Composite<VerticalLayout> implements I18nSupport
       root.add(new H3(tr("review.section.workshops", "Workshops")));
       workshops.forEach(w -> root.add(workshopRow(w)));
     }
+    if (!coachingOffers.isEmpty()) {
+      root.add(new H3(tr("review.section.coaching", "Coaching")));
+      coachingOffers.forEach(o -> root.add(coachingRow(o)));
+    }
+  }
+
+  private Div coachingRow(com.svenruppert.openprobatum.coaching.CoachingOffer offer) {
+    com.svenruppert.openprobatum.coaching.CoachingOfferService service =
+        new com.svenruppert.openprobatum.coaching.CoachingOfferService();
+    Div card = card("data-offer", offer.id(),
+        offer.title() + "  (v" + offer.version() + ")", offer.status());
+    card.add(actions(offer.status(),
+        () -> guardedApprove(() -> service.approve(offer.id(), currentReviewerId()), card),
+        () -> guardedTransition(() -> service.rejectToDraft(offer.id()), card),
+        () -> guardedTransition(() -> service.publish(offer.id()), card)));
+    return card;
   }
 
   private Div workshopRow(com.svenruppert.openprobatum.workshop.Workshop workshop) {

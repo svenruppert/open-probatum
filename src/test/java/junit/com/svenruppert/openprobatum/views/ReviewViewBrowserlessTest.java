@@ -51,6 +51,7 @@ class ReviewViewBrowserlessTest extends BrowserlessTest {
   private com.svenruppert.openprobatum.lab.InMemoryLabRepository labs;
   private com.svenruppert.openprobatum.bundle.InMemoryBundleRepository bundles;
   private com.svenruppert.openprobatum.workshop.InMemoryWorkshopRepository workshops;
+  private com.svenruppert.openprobatum.coaching.InMemoryCoachingOfferRepository coaching;
 
   @BeforeEach
   void setUp() {
@@ -59,11 +60,13 @@ class ReviewViewBrowserlessTest extends BrowserlessTest {
     labs = new com.svenruppert.openprobatum.lab.InMemoryLabRepository();
     bundles = new com.svenruppert.openprobatum.bundle.InMemoryBundleRepository();
     workshops = new com.svenruppert.openprobatum.workshop.InMemoryWorkshopRepository();
+    coaching = new com.svenruppert.openprobatum.coaching.InMemoryCoachingOfferRepository();
     QuestionRepositoryProvider.setRepository(questions);
     CatalogRepositoryProvider.setRepository(catalog);
     com.svenruppert.openprobatum.lab.LabRepositoryProvider.setRepository(labs);
     com.svenruppert.openprobatum.bundle.BundleRepositoryProvider.setRepository(bundles);
     com.svenruppert.openprobatum.workshop.WorkshopRepositoryProvider.setRepository(workshops);
+    com.svenruppert.openprobatum.coaching.CoachingOfferRepositoryProvider.setRepository(coaching);
   }
 
   @AfterEach
@@ -73,6 +76,7 @@ class ReviewViewBrowserlessTest extends BrowserlessTest {
     com.svenruppert.openprobatum.lab.LabRepositoryProvider.reset();
     com.svenruppert.openprobatum.bundle.BundleRepositoryProvider.reset();
     com.svenruppert.openprobatum.workshop.WorkshopRepositoryProvider.reset();
+    com.svenruppert.openprobatum.coaching.CoachingOfferRepositoryProvider.reset();
   }
 
   private static LearningPath path() {
@@ -191,6 +195,23 @@ class ReviewViewBrowserlessTest extends BrowserlessTest {
     assertEquals(List.of(workshop.id().toString()), attributes(view, "data-workshop"));
     click(view, "approve");
     assertEquals(ContentStatus.APPROVED, workshops.findById(workshop.id()).orElseThrow().status());
+  }
+
+  @Test
+  @DisplayName("a submitted coaching offer appears in the queue and a reviewer approves it (P003)")
+  void approveSubmittedCoachingOffer() {
+    com.svenruppert.openprobatum.coaching.CoachingOffer offer =
+        com.svenruppert.openprobatum.coaching.CoachingOffer.draft("Mentoring", "d", "Sven", 7L, 60)
+            .withObjective("Grow as a lead");
+    com.svenruppert.openprobatum.coaching.CoachingOfferService offerService =
+        new com.svenruppert.openprobatum.coaching.CoachingOfferService();
+    offerService.create(offer);
+    offerService.submitForReview(offer.id());
+
+    ReviewView view = new ReviewView();
+    assertEquals(List.of(offer.id().toString()), attributes(view, "data-offer"));
+    click(view, "approve");
+    assertEquals(ContentStatus.APPROVED, coaching.findById(offer.id()).orElseThrow().status());
   }
 
   @Test
