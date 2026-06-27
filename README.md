@@ -41,6 +41,62 @@ The first start prints a bootstrap token to stdout and writes it to
 — you'll be redirected to `/setup` until you've used the token to
 create the first admin.
 
+## Users & roles
+
+Every account holds a **set of roles**; each role grants a **set of
+permissions**; views and navigation are gated by permission (a subject's
+permissions are the union across its roles, so one person can wear several
+hats). The first account — created from the bootstrap token at `/setup` — is a
+**Platform Admin**; from there you assign all other users and roles in
+**Role administration** (`/roles`, needs `admin:roles`).
+
+### The six roles
+
+| Role | Holds permissions | What this user does |
+|---|---|---|
+| **Learner** | `app:view` | Registers, browses the **Catalog**, follows learning paths, **practises** and sits assessments, joins **Bundles** / **Workshops**, books **Coaching**, and owns a **credential wallet** (`/wallet`) + in-app credential check. |
+| **Author** | `app:view`, `author:content` | Creates and edits content: offerings, paths, modules, resources, **questions**, **labs**, **bundles**, **workshops** and **coaching offers** (the author is recorded as the coach). Sees the per-content **Quality metrics**. |
+| **Reviewer** | `app:view`, `author:review`, `lab:assess`, `workshop:run`, `coaching:provide` | The **teaching/quality staff**: reviews + approves authored content in the **Review queue**, verifies/rejects **lab submissions** (Assessment queue), runs **workshops** + records **attendance**, opens **coaching slots** and completes **1:1 sessions** — the acts that mint practical credentials. |
+| **Credential Manager** | `app:view`, `credential:manage` | Governs **issued** credentials — revoke / reissue in **Credential governance**, with the **Credential audit** trail. |
+| **Platform Admin** | *every* permission (incl. `audit:read`, `admin:sessions`, `admin:roles`, `analytics:read`) | Operates the instance: **Audit log**, **Active sessions**, **Role administration**, the academy-wide **Operator dashboard** — and can perform any of the above. |
+| **Verifier** | `app:view` | An *authenticated* verifier. (The **public** credential-validation page needs no account at all — this role is only for signed-in verification workflows.) |
+
+> **Segregation of duties:** an author cannot approve their **own** content —
+> review/approval (`author:review`) is a Reviewer act, distinct from authoring
+> (`author:content`). For a clean editorial workflow, the Author and the
+> Reviewer should be **different people**.
+
+### Permission catalogue (11)
+
+| Permission | Gates |
+|---|---|
+| `app:view` | Sign in and see the application (held by every role). |
+| `author:content` | Authoring surfaces + Quality metrics. |
+| `author:review` | Review queue — approve content before publication. |
+| `lab:assess` | Verify / reject practical lab submissions. |
+| `workshop:run` | Run workshops, record attendance. |
+| `coaching:provide` | Open coaching slots, complete 1:1 sessions. |
+| `analytics:read` | Academy-wide **Operator dashboard**. |
+| `credential:manage` | Credential governance (revoke/reissue) + credential audit. |
+| `audit:read` | Security audit log. |
+| `admin:sessions` | Active-session inventory + revoke. |
+| `admin:roles` | Assign users and roles. |
+
+### The minimum set of users to run the academy end-to-end
+
+| You need | Role(s) | Why |
+|---|---|---|
+| **1 operator** | Platform Admin | Bootstrap account; assigns all other users, operates the instance. |
+| **1 author** | Author | Produces the catalog content. |
+| **1 reviewer** | Reviewer | Approves content **and** delivers labs/workshops/coaching. Make this a *different* person from the author (segregation of duties). |
+| **1 credential manager** | Credential Manager | Only if you need to revoke/reissue issued credentials (a Platform Admin can also do this). |
+| **≥1 learner** | Learner | The end user who learns and earns credentials. |
+| *(optional)* verifier | Verifier | Only for signed-in verification flows — public credential checks need no account. |
+
+A single person may combine roles (e.g. a small instance can run with one
+Platform Admin doing admin + authoring + review, plus learners) — but keep
+**Author ≠ Reviewer** wherever content approval must be independent.
+
 ## Build commands
 
 ```bash
