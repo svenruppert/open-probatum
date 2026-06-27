@@ -47,7 +47,7 @@ import java.util.List;
  * @since V00.20.00
  */
 @Route(value = AuthorView.NAV, layout = MainLayout.class)
-@VisibleFor(AuthorizationRole.AUTHOR)
+@VisibleFor({AuthorizationRole.AUTHOR, AuthorizationRole.PLATFORM_ADMIN})
 public class AuthorView extends Composite<VerticalLayout> implements I18nSupport {
 
   public static final String NAV = "author";

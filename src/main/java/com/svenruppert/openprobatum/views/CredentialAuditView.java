@@ -44,7 +44,7 @@ import java.time.format.DateTimeFormatter;
  * @since V00.30.00
  */
 @Route(value = CredentialAuditView.NAV, layout = MainLayout.class)
-@VisibleFor(AuthorizationRole.CREDENTIAL_MANAGER)
+@VisibleFor({AuthorizationRole.CREDENTIAL_MANAGER, AuthorizationRole.PLATFORM_ADMIN})
 public class CredentialAuditView extends Composite<VerticalLayout> implements I18nSupport {
 
   public static final String NAV = "credential-audit";

@@ -51,7 +51,7 @@ import java.util.List;
  * @since V00.30.00
  */
 @Route(value = QuestionBankView.NAV, layout = MainLayout.class)
-@VisibleFor(AuthorizationRole.AUTHOR)
+@VisibleFor({AuthorizationRole.AUTHOR, AuthorizationRole.PLATFORM_ADMIN})
 public class QuestionBankView extends Composite<VerticalLayout> implements I18nSupport {
 
   public static final String NAV = "questions";

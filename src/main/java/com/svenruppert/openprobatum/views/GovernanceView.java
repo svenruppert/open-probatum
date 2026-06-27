@@ -51,7 +51,7 @@ import java.util.Comparator;
  * @since V00.20.00
  */
 @Route(value = GovernanceView.NAV, layout = MainLayout.class)
-@VisibleFor(AuthorizationRole.CREDENTIAL_MANAGER)
+@VisibleFor({AuthorizationRole.CREDENTIAL_MANAGER, AuthorizationRole.PLATFORM_ADMIN})
 public class GovernanceView extends Composite<VerticalLayout> implements I18nSupport {
 
   public static final String NAV = "governance";

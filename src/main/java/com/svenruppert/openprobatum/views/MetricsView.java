@@ -40,7 +40,7 @@ import com.vaadin.flow.router.Route;
  * @since V00.30.00
  */
 @Route(value = MetricsView.NAV, layout = MainLayout.class)
-@VisibleFor({AuthorizationRole.AUTHOR, AuthorizationRole.REVIEWER})
+@VisibleFor({AuthorizationRole.AUTHOR, AuthorizationRole.PLATFORM_ADMIN})
 public class MetricsView extends Composite<VerticalLayout> implements I18nSupport {
 
   public static final String NAV = "metrics";

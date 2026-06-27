@@ -57,7 +57,7 @@ import java.util.stream.Collectors;
  * @since V00.50.00
  */
 @Route(value = BundleAuthorView.NAV, layout = MainLayout.class)
-@VisibleFor(AuthorizationRole.AUTHOR)
+@VisibleFor({AuthorizationRole.AUTHOR, AuthorizationRole.PLATFORM_ADMIN})
 public class BundleAuthorView extends Composite<VerticalLayout> implements I18nSupport {
 
   public static final String NAV = "bundles-author";
