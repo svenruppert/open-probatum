@@ -258,6 +258,70 @@ content pipeline and engagement — the same facts, summed.
 - **Theme & push**: `AppShell` sets the Lumo theme + viewport and enables `@Push`;
   the design-system components live in `views/ui`.
 
+## Data model — a course and its parts
+
+A "course" is an **`Offering`** (package `catalog`) — a versioned, reviewable
+`content` artefact. Its learning content is a nested hierarchy; its **questions
+and assessments are a separate, parallel structure**, not nested inside the
+modules.
+
+### The learning-content hierarchy
+
+```
+Offering  (the "course")
+ ├─ id, lineageId, version, ContentStatus        ← versioned, reviewable content
+ ├─ title, description
+ ├─ OfferingType        LEARNING_PATH | CERTIFICATION_PATH | ASSESSMENT_ONLY |
+ │                      ON_DEMAND_WORKSHOP | COACHING_OFFERING | BUNDLE | RENEWAL_OFFERING
+ ├─ OfferingVisibility  PUBLIC | REGISTERED | CODE | PREREQUISITE   (+ accessCode)
+ ├─ prerequisiteOfferingId
+ └─ LearningPath
+      ├─ title
+      └─ List<Module>
+           └─ Module
+                ├─ id, title, content
+                ├─ mandatory : boolean
+                └─ List<LearningResource>
+                     └─ LearningResource ( ResourceType, title, payload )
+```
+
+- **`Offering`** is the course (a `content` item with a `ContentStatus`
+  lifecycle — DRAFT…PUBLISHED).
+- **`LearningPath`** = a title + a `List<Module>`; it can filter
+  `mandatoryModules()` and answer `isComplete(completedModuleIds)` — the basis for
+  path/bundle credentials.
+- **`Module`** = title + free-text `content` + a `mandatory` flag + a
+  `List<LearningResource>`.
+- **`LearningResource`** = a typed (`ResourceType`) content payload.
+
+### The question bank & assessments (separate structure)
+
+```
+Question     (one entry in the question bank)
+  └─ id, lineageId, version, ContentStatus, text, QuestionType
+     (SINGLE_CHOICE | MULTIPLE_CHOICE), options, correctIndices,
+     explanation, learningObjective, topic, Difficulty, tags
+
+Assessment   (a quiz assembled from bank questions — Assessment.fromBank(...))
+  └─ id, title, version, List<Question>, passThreshold
+
+Attempt      → references only assessmentId + assessmentVersion
+```
+
+These live in the `assessment` package and are **not linked** to the catalog:
+
+- A `Module` / `LearningResource` does **not** reference an `Assessment` or
+  `Question`.
+- An `Assessment` does **not** reference an `Offering` or `Module` — the question
+  bank is an **offering-independent pool**, and an assessment is a standalone quiz
+  assembled from it.
+- An `Attempt` records only which assessment+version was sat.
+
+> **Design note:** today a module does not "contain" a question catalogue.
+> Coupling them (course → module → assessment → questions, e.g. a module that
+> completes on a passed module-assessment) would be a **model change**, not just
+> a UI change — a `Module`/`LearningResource` would need an `assessment` reference.
+
 ## Security layering — three additive layers
 
 The bootstrap pipeline is an SPI (`BootstrapExtension`) that picks up
