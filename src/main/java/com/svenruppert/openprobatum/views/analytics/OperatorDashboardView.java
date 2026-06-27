@@ -78,7 +78,8 @@ public class OperatorDashboardView extends Composite<VerticalLayout> implements 
           .set("margin-bottom", "var(--lumo-space-s)");
       card.getElement().setAttribute("data-pipeline", p.type());
       card.getElement().setAttribute("data-pipeline-total", String.valueOf(p.total()));
-      card.add(new H4(p.type()));
+      card.add(new H4(tr("operator.pipeline." + p.type().toLowerCase(java.util.Locale.ROOT),
+          p.type())));
       p.byStatus().forEach((status, count) ->
           card.add(chip("data-pipeline-status", status.name(), status.name() + ": " + count)));
       root.add(card);
