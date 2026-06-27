@@ -105,6 +105,27 @@ public final class CoachingSlotService implements HasLogger {
     }
   }
 
+  /**
+   * Completes a BOOKED session on behalf of its coach — the BOOKED→COMPLETED edge
+   * (idempotent: a non-BOOKED slot yields empty, so re-completing never re-fires
+   * and never double-mints the credential). Only the slot's own coach may complete
+   * it. The view mints the coaching credential only on the non-empty result.
+   */
+  public Optional<CoachingSlot> complete(UUID slotId, Long coachId, String notes) {
+    Objects.requireNonNull(slotId, "slotId");
+    synchronized (SLOT_LOCK) {
+      return slots.findById(slotId)
+          .filter(s -> coachId != null && coachId.equals(s.coachId()))
+          .filter(CoachingSlot::isBooked)
+          .map(s -> {
+            CoachingSlot completed = s.completed(notes);
+            slots.save(completed);
+            logger().info("Coaching slot {} completed by coach {}", slotId, coachId);
+            return completed;
+          });
+    }
+  }
+
   /** Cancels an OPEN or BOOKED slot (coach action). Empty when not this coach's / terminal. */
   public Optional<CoachingSlot> cancelSlot(UUID slotId, Long coachId) {
     Objects.requireNonNull(slotId, "slotId");

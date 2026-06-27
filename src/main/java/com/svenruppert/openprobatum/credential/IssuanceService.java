@@ -192,4 +192,37 @@ public final class IssuanceService implements HasLogger {
         credential.id(), learnerName, recipientId, workshopId, workshopVersion);
     return Optional.of(credential);
   }
+
+  /**
+   * Issues and persists a {@code VALID} credential for a <em>completed</em> 1:1
+   * coaching session (concept §10.6), carrying {@link Evidence} that the coaching
+   * offer version's session was completed + the learner's stable recipient id.
+   * Emits one {@code ISSUED} audit event. The caller (the completion flow) guards
+   * the atomic complete edge.
+   *
+   * @param offerId      the completed coaching offer version
+   * @param offerVersion the offer version (§16.4)
+   * @param recipientId  the learner's stable id
+   * @param learnerName  the learner's display name
+   * @param title        the credential title
+   * @param type         the credential type
+   * @param expiresAt    optional expiry; {@code null} for no expiry
+   */
+  public Optional<Credential> issueForCoaching(UUID offerId, int offerVersion, Long recipientId,
+                                               String learnerName, String title, CredentialType type,
+                                               java.time.Instant expiresAt) {
+    Objects.requireNonNull(offerId, "offerId");
+    Objects.requireNonNull(title, "title");
+    Objects.requireNonNull(type, "type");
+    Evidence evidence = Evidence.coachingCompleted(offerId, offerVersion);
+    Credential credential = Credential.issue(title, type, recipientId, learnerName,
+        issuer.name(), AppClock.now(), expiresAt, evidence);
+    repository.save(credential);
+    CredentialEventRepositoryProvider.repository().append(CredentialEvent.of(
+        credential.id(), CredentialEvent.Action.ISSUED, "system",
+        "coaching " + offerId + " v" + offerVersion + " completed"));
+    logger().info("Issued credential {} to '{}' (id={}, evidence: coaching {} v{} completed)",
+        credential.id(), learnerName, recipientId, offerId, offerVersion);
+    return Optional.of(credential);
+  }
 }

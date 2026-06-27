@@ -61,7 +61,9 @@ public record CredentialRule(UUID id, RuleType type, UUID targetId, double minSc
     /** Every member offering of a specific bundle is completed. */
     BUNDLE_COMPLETED,
     /** A specific workshop is attended. */
-    WORKSHOP_ATTENDED
+    WORKSHOP_ATTENDED,
+    /** A specific coaching offer's 1:1 session is completed. */
+    COACHING_COMPLETED
   }
 
   public CredentialRule {
@@ -115,6 +117,13 @@ public record CredentialRule(UUID id, RuleType type, UUID targetId, double minSc
                                                 String credentialTitle, CredentialType awards) {
     return new CredentialRule(UUID.randomUUID(), RuleType.WORKSHOP_ATTENDED,
         workshopId, 0.0, credentialTitle, awards);
+  }
+
+  /** A rule earned by completing a 1:1 coaching session of {@code offerId}. */
+  public static CredentialRule coachingCompleted(UUID offerId,
+                                                 String credentialTitle, CredentialType awards) {
+    return new CredentialRule(UUID.randomUUID(), RuleType.COACHING_COMPLETED,
+        offerId, 0.0, credentialTitle, awards);
   }
 
   /**

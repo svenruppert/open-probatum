@@ -89,6 +89,7 @@ public class MainLayout extends AppLayout
   private static final String K_NAV_ASSESS = "nav.assess";
   private static final String K_NAV_ATTENDANCE = "nav.attendance";
   private static final String K_NAV_COACHING_SLOTS = "nav.coachingslots";
+  private static final String K_NAV_COACHING_SESSIONS = "nav.coachingsessions";
   private static final String K_NAV_METRICS = "nav.metrics";
   private static final String K_NAV_ABOUT = "nav.about";
   private static final String K_NAV_YOUTUBE = "nav.youtube";
@@ -206,6 +207,8 @@ public class MainLayout extends AppLayout
             WorkshopAttendanceView.class, "workshop:run", grants),
         item(tr(K_NAV_COACHING_SLOTS, "Coaching slots"), VaadinIcon.COMMENTS,
             CoachingSlotsView.class, "coaching:provide", grants),
+        item(tr(K_NAV_COACHING_SESSIONS, "Coaching sessions"), VaadinIcon.HANDSHAKE,
+            CoachingSessionView.class, "coaching:provide", grants),
         item(tr(K_NAV_METRICS, "Quality metrics"), VaadinIcon.CHART,
             MetricsView.class, "author:content", grants),
         item(tr(K_NAV_PUSHDEMO, "Push demo"), VaadinIcon.BELL,

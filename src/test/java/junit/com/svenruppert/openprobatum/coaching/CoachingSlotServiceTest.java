@@ -81,6 +81,20 @@ class CoachingSlotServiceTest {
   }
 
   @Test
+  @DisplayName("complete fires only on the BOOKED→COMPLETED edge, by the owning coach (idempotent)")
+  void completeEdge() {
+    CoachingSlot slot = service.open(published.id(), START, END).orElseThrow();
+    assertTrue(service.complete(slot.id(), 7L, "notes").isEmpty(), "an OPEN slot cannot be completed");
+    service.book(slot.id(), 5005L, "Ada");
+    assertTrue(service.complete(slot.id(), 9999L, "n").isEmpty(), "not this coach's slot");
+
+    assertEquals(BookingStatus.COMPLETED,
+        service.complete(slot.id(), 7L, "great").orElseThrow().status());
+    // Re-completing a COMPLETED slot does nothing (no double-mint upstream).
+    assertTrue(service.complete(slot.id(), 7L, "again").isEmpty());
+  }
+
+  @Test
   @DisplayName("the coach cancels an open slot; a non-owner cannot")
   void cancel() {
     CoachingSlot slot = service.open(published.id(), START, END).orElseThrow();
