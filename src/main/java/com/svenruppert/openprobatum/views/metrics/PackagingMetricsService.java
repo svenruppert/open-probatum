@@ -19,6 +19,13 @@ package com.svenruppert.openprobatum.views.metrics;
 import com.svenruppert.openprobatum.bundle.Bundle;
 import com.svenruppert.openprobatum.bundle.BundleRepository;
 import com.svenruppert.openprobatum.bundle.BundleRepositoryProvider;
+import com.svenruppert.openprobatum.coaching.BookingStatus;
+import com.svenruppert.openprobatum.coaching.CoachingOffer;
+import com.svenruppert.openprobatum.coaching.CoachingOfferRepository;
+import com.svenruppert.openprobatum.coaching.CoachingOfferRepositoryProvider;
+import com.svenruppert.openprobatum.coaching.CoachingSlot;
+import com.svenruppert.openprobatum.coaching.CoachingSlotRepository;
+import com.svenruppert.openprobatum.coaching.CoachingSlotRepositoryProvider;
 import com.svenruppert.openprobatum.credential.CredentialRepository;
 import com.svenruppert.openprobatum.credential.CredentialRepositoryProvider;
 import com.svenruppert.openprobatum.credential.Evidence;
@@ -47,19 +54,26 @@ public final class PackagingMetricsService {
   private final CredentialRepository credentials;
   private final WorkshopRepository workshops;
   private final WorkshopEnrolmentRepository enrolments;
+  private final CoachingOfferRepository coachingOffers;
+  private final CoachingSlotRepository coachingSlots;
 
   public PackagingMetricsService(BundleRepository bundles, CredentialRepository credentials,
                                  WorkshopRepository workshops,
-                                 WorkshopEnrolmentRepository enrolments) {
+                                 WorkshopEnrolmentRepository enrolments,
+                                 CoachingOfferRepository coachingOffers,
+                                 CoachingSlotRepository coachingSlots) {
     this.bundles = Objects.requireNonNull(bundles, "bundles");
     this.credentials = Objects.requireNonNull(credentials, "credentials");
     this.workshops = Objects.requireNonNull(workshops, "workshops");
     this.enrolments = Objects.requireNonNull(enrolments, "enrolments");
+    this.coachingOffers = Objects.requireNonNull(coachingOffers, "coachingOffers");
+    this.coachingSlots = Objects.requireNonNull(coachingSlots, "coachingSlots");
   }
 
   public PackagingMetricsService() {
     this(BundleRepositoryProvider.repository(), CredentialRepositoryProvider.repository(),
-        WorkshopRepositoryProvider.repository(), WorkshopEnrolmentRepositoryProvider.repository());
+        WorkshopRepositoryProvider.repository(), WorkshopEnrolmentRepositoryProvider.repository(),
+        CoachingOfferRepositoryProvider.repository(), CoachingSlotRepositoryProvider.repository());
   }
 
   /** How many learners have earned the completion credential of a bundle. */
@@ -114,5 +128,34 @@ public final class PackagingMetricsService {
     double attendanceRate = enrolled == 0 ? 0.0 : (double) attended / enrolled;
     return new WorkshopMetrics(workshop.id(), workshop.title(), enrolled, attended,
         workshop.capacity(), fillRate, attendanceRate);
+  }
+
+  /**
+   * Slots + completions of a coaching offer.
+   *
+   * @param slots          slots opened (not cancelled)
+   * @param booked         slots currently booked (awaiting the session)
+   * @param completed      slots completed (a credential was earned)
+   * @param completionRate {@code completed / slots} in {@code [0, 1]} (0 when no slots)
+   */
+  public record CoachingMetrics(UUID offerId, String title, int slots, int booked,
+                                int completed, double completionRate) {
+  }
+
+  /** Slots + completions per coaching offer, by title. */
+  public List<CoachingMetrics> allCoachingMetrics() {
+    return coachingOffers.all().stream()
+        .map(this::metricsFor)
+        .sorted((x, y) -> x.title().compareToIgnoreCase(y.title()))
+        .toList();
+  }
+
+  private CoachingMetrics metricsFor(CoachingOffer offer) {
+    List<CoachingSlot> all = coachingSlots.forOffer(offer.id());
+    int slots = (int) all.stream().filter(s -> s.status() != BookingStatus.CANCELLED).count();
+    int booked = (int) all.stream().filter(CoachingSlot::isBooked).count();
+    int completed = (int) all.stream().filter(CoachingSlot::isCompleted).count();
+    double completionRate = slots == 0 ? 0.0 : (double) completed / slots;
+    return new CoachingMetrics(offer.id(), offer.title(), slots, booked, completed, completionRate);
   }
 }

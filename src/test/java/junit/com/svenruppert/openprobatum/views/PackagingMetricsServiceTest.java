@@ -43,8 +43,13 @@ class PackagingMetricsServiceTest {
   private final InMemoryCredentialRepository credentials = new InMemoryCredentialRepository();
   private final InMemoryWorkshopRepository workshops = new InMemoryWorkshopRepository();
   private final InMemoryWorkshopEnrolmentRepository enrolments = new InMemoryWorkshopEnrolmentRepository();
+  private final com.svenruppert.openprobatum.coaching.InMemoryCoachingOfferRepository coachingOffers =
+      new com.svenruppert.openprobatum.coaching.InMemoryCoachingOfferRepository();
+  private final com.svenruppert.openprobatum.coaching.InMemoryCoachingSlotRepository coachingSlots =
+      new com.svenruppert.openprobatum.coaching.InMemoryCoachingSlotRepository();
   private final PackagingMetricsService metrics =
-      new PackagingMetricsService(bundles, credentials, workshops, enrolments);
+      new PackagingMetricsService(bundles, credentials, workshops, enrolments,
+          coachingOffers, coachingSlots);
 
   @Test
   @DisplayName("bundle metrics count the completion credentials issued for each bundle")
@@ -83,6 +88,31 @@ class PackagingMetricsServiceTest {
     assertEquals(1, m.attended());
     assertEquals(0.5, m.fillRate(), 1e-9);
     assertEquals(0.5, m.attendanceRate(), 1e-9);
+  }
+
+  @Test
+  @DisplayName("coaching metrics report slots, booked + completed and the completion rate")
+  void coachingSlotsAndCompletions() {
+    com.svenruppert.openprobatum.coaching.CoachingOffer offer =
+        com.svenruppert.openprobatum.coaching.CoachingOffer.draft("Mentoring", "d", "Sven", 7L, 60);
+    coachingOffers.save(offer);
+    java.time.Instant s = java.time.Instant.parse("2026-09-01T09:00:00Z");
+    java.time.Instant e = java.time.Instant.parse("2026-09-01T10:00:00Z");
+    // 4 non-cancelled slots: 1 completed, 1 booked, 2 open; 1 cancelled is ignored.
+    coachingSlots.save(com.svenruppert.openprobatum.coaching.CoachingSlot.open(offer.id(), 7L, s, e)
+        .booked(1L, "Ada").completed("ok"));
+    coachingSlots.save(com.svenruppert.openprobatum.coaching.CoachingSlot.open(offer.id(), 7L, s, e)
+        .booked(2L, "Bob"));
+    coachingSlots.save(com.svenruppert.openprobatum.coaching.CoachingSlot.open(offer.id(), 7L, s, e));
+    coachingSlots.save(com.svenruppert.openprobatum.coaching.CoachingSlot.open(offer.id(), 7L, s, e));
+    coachingSlots.save(com.svenruppert.openprobatum.coaching.CoachingSlot.open(offer.id(), 7L, s, e)
+        .cancelled());
+
+    var m = metrics.allCoachingMetrics().get(0);
+    assertEquals(4, m.slots(), "cancelled is excluded");
+    assertEquals(1, m.booked());
+    assertEquals(1, m.completed());
+    assertEquals(0.25, m.completionRate(), 1e-9);
   }
 
   @Test

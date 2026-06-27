@@ -70,6 +70,10 @@ class MetricsViewBrowserlessTest extends BrowserlessTest {
         new com.svenruppert.openprobatum.workshop.InMemoryWorkshopEnrolmentRepository());
     com.svenruppert.openprobatum.credential.CredentialRepositoryProvider.setRepository(
         new com.svenruppert.openprobatum.credential.InMemoryCredentialRepository());
+    com.svenruppert.openprobatum.coaching.CoachingOfferRepositoryProvider.setRepository(
+        new com.svenruppert.openprobatum.coaching.InMemoryCoachingOfferRepository());
+    com.svenruppert.openprobatum.coaching.CoachingSlotRepositoryProvider.setRepository(
+        new com.svenruppert.openprobatum.coaching.InMemoryCoachingSlotRepository());
   }
 
   @AfterEach
@@ -83,6 +87,8 @@ class MetricsViewBrowserlessTest extends BrowserlessTest {
     com.svenruppert.openprobatum.workshop.WorkshopRepositoryProvider.reset();
     com.svenruppert.openprobatum.workshop.WorkshopEnrolmentRepositoryProvider.reset();
     com.svenruppert.openprobatum.credential.CredentialRepositoryProvider.reset();
+    com.svenruppert.openprobatum.coaching.CoachingOfferRepositoryProvider.reset();
+    com.svenruppert.openprobatum.coaching.CoachingSlotRepositoryProvider.reset();
   }
 
   @Test

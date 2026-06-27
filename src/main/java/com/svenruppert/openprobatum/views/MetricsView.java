@@ -97,6 +97,28 @@ public class MetricsView extends Composite<VerticalLayout> implements I18nSuppor
     } else {
       workshopMetrics.forEach(m -> root.add(workshopRow(m)));
     }
+
+    root.add(new H3(tr("metrics.section.coaching", "Coaching")));
+    var coachingMetrics = packaging.allCoachingMetrics();
+    if (coachingMetrics.isEmpty()) {
+      root.add(new Span(tr("metrics.coaching.empty", "No coaching yet.")));
+    } else {
+      coachingMetrics.forEach(m -> root.add(coachingRow(m)));
+    }
+  }
+
+  private Div coachingRow(com.svenruppert.openprobatum.views.metrics.PackagingMetricsService.CoachingMetrics m) {
+    Div card = new Div();
+    card.addClassName(TemplateBrand.CSS_HERO_SURFACE);
+    card.getStyle().set("padding", "var(--lumo-space-s)").set("margin-bottom", "var(--lumo-space-s)");
+    card.getElement().setAttribute("data-offer", m.offerId().toString());
+    card.getElement().setAttribute("data-completion-rate",
+        String.valueOf(Math.round(m.completionRate() * 100)));
+    card.getElement().setAttribute("data-slots", String.valueOf(m.slots()));
+    card.add(new H4(m.title()));
+    card.add(new Span(tr("metrics.coachingstats", "Completion: {0}% ({1}/{2} slots); {3} booked",
+        Math.round(m.completionRate() * 100), m.completed(), m.slots(), m.booked())));
+    return card;
   }
 
   private Div bundleRow(com.svenruppert.openprobatum.views.metrics.PackagingMetricsService.BundleMetrics m) {
