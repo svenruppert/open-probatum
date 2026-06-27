@@ -2,6 +2,41 @@
 
 ## Unreleased
 
+## 00.70.00 — Operator Analytics (2026-06-27)
+
+The academy gains an **academy-wide operator dashboard** (concept §20.x, drafted
+this cycle): where `MetricsView` shows *per-content* quality, operators
+(PlatformAdmin) now see the *whole platform* at a glance. This is the smallest,
+lowest-risk release of the series — pure read-only aggregation over the existing
+repositories: **no new persistence, no new domain objects, no atomic edges**. All
+V00.10–V00.60 invariants carry over unchanged.
+
+### Operator dashboard
+
+- **Academy-wide analytics** (§20.x): a new `analytics:read` permission on the
+  PlatformAdmin role (the six-role model is unchanged) gates a read-only
+  `OperatorDashboardView` under Administration.
+- **Credential mix**: total credentials issued, broken down by effective status
+  (VALID / EXPIRED / REVOKED / SUSPENDED / SUPERSEDED, resolved at the current
+  instant) and by evidence type (assessment / lab / bundle / workshop / coaching /
+  manual).
+- **Content pipeline**: per content type (questions, offerings, labs, bundles,
+  workshops, coaching offers) a count by `ContentStatus`
+  (DRAFT / IN_REVIEW / APPROVED / PUBLISHED / DEPRECATED / ARCHIVED) — the
+  editorial backlog at a glance.
+- **Engagement**: registered learners, lab submissions, workshop enrolments and
+  coaching bookings.
+
+### Platform
+
+- `OperatorAnalyticsService` aggregates the live repositories via the established
+  `*Provider` seam; every figure is zero-safe (an empty academy yields zeros, no
+  NPE / divide-by-zero). EN + DE i18n throughout (British English). Exit
+  production-review #2 rated 4/5 (shippable; the one MEDIUM finding —
+  untranslated content-pipeline card titles — was fixed in-cycle). The
+  mutation-coverage gate is paused for this release at the maintainer's request;
+  acceptance rests on the full test suite (547 green) and the exit review.
+
 ## 00.60.00 — 1:1 Coaching (2026-06-27)
 
 The academy adds **personal 1:1 coaching** (concept §23.6): a coach offers a
