@@ -2,6 +2,40 @@
 
 ## Unreleased
 
+## 00.60.00 — 1:1 Coaching (2026-06-27)
+
+The academy adds **personal 1:1 coaching** (concept §23.6): a coach offers a
+coaching topic, opens bookable time slots, a learner books a slot, and the coach
+completes the session — minting an evidence-backed coaching credential. Coaching
+reuses every V00.40–V00.50 mechanism (versioned reviewed content, the atomic
+seat/booking edge, the atomic mint edge). All earlier invariants carry over.
+
+### Coaching offers
+
+- **CoachingOffer as versioned content** (§7.x): a coach's 1:1 topic (title,
+  objective, session duration), authored + reviewed + versioned like a workshop;
+  the author is the coach; approval requires a learning objective.
+
+### Booking & sessions
+
+- **Open slots** (§7.x): a coach (`coaching:provide`) opens bookable time slots
+  under their *published* offers.
+- **Book a slot** (§7.x/§3.6): a learner books an OPEN slot — exactly one learner
+  per slot, atomic so two learners never book the same slot, even concurrently; a
+  learner sees only their own bookings and may release a booked slot (it reopens).
+- **Complete a session** (§10.6): the coach completes a booked session, which
+  mints **exactly one** `COACHING_COMPLETED` credential on the edge; re-completing
+  never double-mints.
+
+### Metrics & platform
+
+- **Coaching metrics** (§20.2): per-offer slots, bookings, completions and the
+  completion rate in the `MetricsView`.
+- Two new persisted stores (`coachingOffers`, `coachingSlots`); a new
+  `coaching:provide` permission on the Reviewer role (the six-role model is
+  unchanged). EN + DE i18n throughout. Exit production-review #2 rated 5/5
+  (shippable; coach-ownership + null-id hardening folded in-cycle).
+
 ## 00.50.00 — Workshops & Bundles (2026-06-26)
 
 The academy gains the two *packaging* shapes the catalog's `OfferingType` already
