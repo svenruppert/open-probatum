@@ -35,6 +35,14 @@ import java.util.UUID;
  */
 public final class CatalogLifecycleService implements HasLogger {
 
+  /**
+   * Process-wide monitor for the check-then-act in {@link #transition}. Views create
+   * a fresh {@code CatalogLifecycleService} per action, so an instance lock would
+   * serialise nothing across callers/threads; a shared static lock does (the same
+   * mint-once pattern used by {@code CoachingSlotService.SLOT_LOCK}).
+   */
+  private static final Object LOCK = new Object();
+
   private final CatalogRepository repository;
 
   public CatalogLifecycleService(CatalogRepository repository) {
@@ -46,18 +54,20 @@ public final class CatalogLifecycleService implements HasLogger {
   }
 
   /** Applies a lifecycle transition, validated against {@link ContentStatus}. */
-  public synchronized Optional<Offering> transition(UUID id, ContentStatus target) {
+  public Optional<Offering> transition(UUID id, ContentStatus target) {
     Objects.requireNonNull(target, "target");
-    return repository.findById(id).map(o -> {
-      if (!o.status().canTransitionTo(target)) {
-        throw new IllegalStateException(
-            "illegal content transition " + o.status() + " → " + target);
-      }
-      Offering next = o.withStatus(target);
-      repository.save(next);
-      logger().info("Offering {} → {}", id, target);
-      return next;
-    });
+    synchronized (LOCK) {
+      return repository.findById(id).map(o -> {
+        if (!o.status().canTransitionTo(target)) {
+          throw new IllegalStateException(
+              "illegal content transition " + o.status() + " → " + target);
+        }
+        Offering next = o.withStatus(target);
+        repository.save(next);
+        logger().info("Offering {} → {}", id, target);
+        return next;
+      });
+    }
   }
 
   public Optional<Offering> submitForReview(UUID id) {

@@ -94,4 +94,45 @@ class CatalogLifecycleServiceTest {
     CatalogLifecycleService service = new CatalogLifecycleService(new InMemoryCatalogRepository());
     assertTrue(service.submitForReview(UUID.randomUUID()).isEmpty());
   }
+
+  @Test
+  @DisplayName("concurrent submit-for-review transitions a DRAFT exactly once (P007)")
+  void concurrentTransitionHappensOnce() throws InterruptedException {
+    // Shared repo, but each thread uses its OWN service instance — proving the
+    // static LOCK serialises across instances (an instance lock would not).
+    InMemoryCatalogRepository repo = new InMemoryCatalogRepository();
+    Offering draft = draftIn(repo);
+
+    int threads = 16;
+    var pool = java.util.concurrent.Executors.newFixedThreadPool(threads);
+    var ready = new java.util.concurrent.CountDownLatch(threads);
+    var go = new java.util.concurrent.CountDownLatch(1);
+    var successes = new java.util.concurrent.atomic.AtomicInteger();
+    var illegal = new java.util.concurrent.atomic.AtomicInteger();
+
+    for (int i = 0; i < threads; i++) {
+      pool.execute(() -> {
+        CatalogLifecycleService svc = new CatalogLifecycleService(repo);
+        ready.countDown();
+        try {
+          go.await();
+          if (svc.submitForReview(draft.id()).isPresent()) {
+            successes.incrementAndGet();
+          }
+        } catch (IllegalStateException e) {
+          illegal.incrementAndGet();        // the losers: DRAFT is already IN_REVIEW
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+      });
+    }
+    ready.await();
+    go.countDown();
+    pool.shutdown();
+    assertTrue(pool.awaitTermination(10, java.util.concurrent.TimeUnit.SECONDS));
+
+    assertEquals(1, successes.get(), "exactly one thread performs the DRAFT → IN_REVIEW move");
+    assertEquals(threads - 1, illegal.get(), "every other thread is refused");
+    assertEquals(ContentStatus.IN_REVIEW, repo.findById(draft.id()).orElseThrow().status());
+  }
 }
