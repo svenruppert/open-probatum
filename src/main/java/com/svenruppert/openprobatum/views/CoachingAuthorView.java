@@ -54,7 +54,7 @@ import java.util.List;
  * @since V00.60.00
  */
 @Route(value = CoachingAuthorView.NAV, layout = MainLayout.class)
-@VisibleFor(AuthorizationRole.AUTHOR)
+@VisibleFor({AuthorizationRole.COACH, AuthorizationRole.PLATFORM_ADMIN})
 public class CoachingAuthorView extends Composite<VerticalLayout> implements I18nSupport {
 
   public static final String NAV = "coaching-author";

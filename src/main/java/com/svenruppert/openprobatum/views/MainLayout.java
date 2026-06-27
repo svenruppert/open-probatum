@@ -200,7 +200,7 @@ public class MainLayout extends AppLayout
         item(tr(K_NAV_WORKSHOPS_AUTHOR, "Workshop authoring"), VaadinIcon.CALENDAR_CLOCK,
             WorkshopAuthorView.class, "author:content", grants),
         item(tr(K_NAV_COACHING_AUTHOR, "Coaching authoring"), VaadinIcon.COMMENTS,
-            CoachingAuthorView.class, "author:content", grants),
+            CoachingAuthorView.class, "coaching:author", grants),
         item(tr(K_NAV_REVIEW, "Review queue"), VaadinIcon.CHECK_SQUARE_O,
             ReviewView.class, "author:review", grants),
         item(tr(K_NAV_ASSESS, "Assessment queue"), VaadinIcon.CLIPBOARD_CHECK,

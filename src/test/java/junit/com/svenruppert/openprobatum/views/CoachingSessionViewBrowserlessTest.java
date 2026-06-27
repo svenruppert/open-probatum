@@ -70,7 +70,7 @@ class CoachingSessionViewBrowserlessTest extends BrowserlessTest {
         .withStatus(ContentStatus.PUBLISHED);
     offers.save(offer);
     SubjectStores.subjectStore().setCurrentSubject(
-        new AppUser(7L, "Sven", EnumSet.of(AuthorizationRole.REVIEWER)), AppUser.class);
+        new AppUser(7L, "Sven", EnumSet.of(AuthorizationRole.COACH)), AppUser.class);
   }
 
   @AfterEach

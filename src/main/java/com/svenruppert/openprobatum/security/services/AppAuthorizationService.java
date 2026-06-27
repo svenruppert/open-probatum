@@ -42,6 +42,7 @@ import static com.svenruppert.openprobatum.security.permissions.AppPermission.AU
 import static com.svenruppert.openprobatum.security.permissions.AppPermission.CREDENTIAL_MANAGE;
 import static com.svenruppert.openprobatum.security.permissions.AppPermission.LAB_ASSESS;
 import static com.svenruppert.openprobatum.security.permissions.AppPermission.WORKSHOP_RUN;
+import static com.svenruppert.openprobatum.security.permissions.AppPermission.COACHING_AUTHOR;
 import static com.svenruppert.openprobatum.security.permissions.AppPermission.COACHING_PROVIDE;
 import static com.svenruppert.openprobatum.security.permissions.AppPermission.ANALYTICS_READ;
 
@@ -53,7 +54,8 @@ import static com.svenruppert.openprobatum.security.permissions.AppPermission.AN
  *   <li>LEARNER: {@code app:view}</li>
  *   <li>AUTHOR: {@code app:view}, {@code author:content}</li>
  *   <li>REVIEWER: {@code app:view}, {@code author:review}, {@code lab:assess},
- *       {@code workshop:run}, {@code coaching:provide}</li>
+ *       {@code workshop:run}</li>
+ *   <li>COACH: {@code app:view}, {@code coaching:author}, {@code coaching:provide}</li>
  *   <li>CREDENTIAL_MANAGER: {@code app:view}, {@code credential:manage}</li>
  *   <li>PLATFORM_ADMIN: every permission</li>
  *   <li>VERIFIER: {@code app:view}</li>
@@ -73,7 +75,10 @@ public class AppAuthorizationService
           APP_VIEW.permissionName(),
           AUTHOR_REVIEW.permissionName(),
           LAB_ASSESS.permissionName(),
-          WORKSHOP_RUN.permissionName(),
+          WORKSHOP_RUN.permissionName()))
+      .put(roleName(AuthorizationRole.COACH), Set.of(
+          APP_VIEW.permissionName(),
+          COACHING_AUTHOR.permissionName(),
           COACHING_PROVIDE.permissionName()))
       .put(roleName(AuthorizationRole.CREDENTIAL_MANAGER), Set.of(
           APP_VIEW.permissionName(),
@@ -87,6 +92,7 @@ public class AppAuthorizationService
           AUTHOR_REVIEW.permissionName(),
           LAB_ASSESS.permissionName(),
           WORKSHOP_RUN.permissionName(),
+          COACHING_AUTHOR.permissionName(),
           COACHING_PROVIDE.permissionName(),
           ANALYTICS_READ.permissionName(),
           CREDENTIAL_MANAGE.permissionName()))

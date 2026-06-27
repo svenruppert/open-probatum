@@ -50,13 +50,14 @@ hats). The first account — created from the bootstrap token at `/setup` — is
 **Platform Admin**; from there you assign all other users and roles in
 **Role administration** (`/roles`, needs `admin:roles`).
 
-### The six roles
+### The seven roles
 
 | Role | Holds permissions | What this user does |
 |---|---|---|
 | **Learner** | `app:view` | Registers, browses the **Catalog**, follows learning paths, **practises** and sits assessments, joins **Bundles** / **Workshops**, books **Coaching**, and owns a **credential wallet** (`/wallet`) + in-app credential check. |
-| **Author** | `app:view`, `author:content` | Creates and edits content: offerings, paths, modules, resources, **questions**, **labs**, **bundles**, **workshops** and **coaching offers** (the author is recorded as the coach). Sees the per-content **Quality metrics**. |
-| **Reviewer** | `app:view`, `author:review`, `lab:assess`, `workshop:run`, `coaching:provide` | The **teaching/quality staff**: reviews + approves authored content in the **Review queue**, verifies/rejects **lab submissions** (Assessment queue), runs **workshops** + records **attendance**, opens **coaching slots** and completes **1:1 sessions** — the acts that mint practical credentials. |
+| **Author** | `app:view`, `author:content` | Creates and edits catalog content: offerings, paths, modules, resources, **questions**, **labs**, **bundles** and **workshops**. Sees the per-content **Quality metrics**. |
+| **Reviewer** | `app:view`, `author:review`, `lab:assess`, `workshop:run` | The **teaching/quality staff**: reviews + approves authored content in the **Review queue**, verifies/rejects **lab submissions** (Assessment queue), and runs **workshops** + records **attendance** — the acts that mint practical credentials. |
+| **Coach** | `app:view`, `coaching:author`, `coaching:provide` | Owns the **1:1 coaching** domain end-to-end: authors a coaching offer (and is recorded as its coach), opens bookable **slots**, and completes **sessions** — minting a coaching credential. Acts only on their *own* offers (the offer pins the coach's id). |
 | **Credential Manager** | `app:view`, `credential:manage` | Governs **issued** credentials — revoke / reissue in **Credential governance**, with the **Credential audit** trail. |
 | **Platform Admin** | *every* permission (incl. `audit:read`, `admin:sessions`, `admin:roles`, `analytics:read`) | Operates the instance: **Audit log**, **Active sessions**, **Role administration**, the academy-wide **Operator dashboard** — and can perform any of the above. |
 | **Verifier** | `app:view` | An *authenticated* verifier. (The **public** credential-validation page needs no account at all — this role is only for signed-in verification workflows.) |
@@ -66,15 +67,16 @@ hats). The first account — created from the bootstrap token at `/setup` — is
 > (`author:content`). For a clean editorial workflow, the Author and the
 > Reviewer should be **different people**.
 
-### Permission catalogue (11)
+### Permission catalogue (12)
 
 | Permission | Gates |
 |---|---|
 | `app:view` | Sign in and see the application (held by every role). |
-| `author:content` | Authoring surfaces + Quality metrics. |
+| `author:content` | Catalog authoring surfaces + Quality metrics. |
 | `author:review` | Review queue — approve content before publication. |
 | `lab:assess` | Verify / reject practical lab submissions. |
 | `workshop:run` | Run workshops, record attendance. |
+| `coaching:author` | Author 1:1 coaching offers. |
 | `coaching:provide` | Open coaching slots, complete 1:1 sessions. |
 | `analytics:read` | Academy-wide **Operator dashboard**. |
 | `credential:manage` | Credential governance (revoke/reissue) + credential audit. |
@@ -88,7 +90,8 @@ hats). The first account — created from the bootstrap token at `/setup` — is
 |---|---|---|
 | **1 operator** | Platform Admin | Bootstrap account; assigns all other users, operates the instance. |
 | **1 author** | Author | Produces the catalog content. |
-| **1 reviewer** | Reviewer | Approves content **and** delivers labs/workshops/coaching. Make this a *different* person from the author (segregation of duties). |
+| **1 reviewer** | Reviewer | Approves content **and** delivers labs/workshops. Make this a *different* person from the author (segregation of duties). |
+| *(optional)* coach | Coach | Only if you offer **1:1 coaching** — authors + delivers their own coaching offers. |
 | **1 credential manager** | Credential Manager | Only if you need to revoke/reissue issued credentials (a Platform Admin can also do this). |
 | **≥1 learner** | Learner | The end user who learns and earns credentials. |
 | *(optional)* verifier | Verifier | Only for signed-in verification flows — public credential checks need no account. |

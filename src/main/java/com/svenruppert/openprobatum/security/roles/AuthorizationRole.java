@@ -25,7 +25,9 @@ package com.svenruppert.openprobatum.security.roles;
  *   <li>{@link #AUTHOR} — creates offerings, paths, modules, resources and
  *       questions (§5.2).</li>
  *   <li>{@link #REVIEWER} — reviews + approves authored content before it is
- *       published (§5.3).</li>
+ *       published, and assesses labs + runs workshops (§5.3).</li>
+ *   <li>{@link #COACH} — authors 1:1 coaching offers and delivers them
+ *       (opens slots, completes sessions); the coach is the offer's author (§5.4).</li>
  *   <li>{@link #CREDENTIAL_MANAGER} — governs issued credentials, e.g. revoke
  *       (§5.5).</li>
  *   <li>{@link #PLATFORM_ADMIN} — operates the instance; holds every permission
@@ -42,6 +44,7 @@ public enum AuthorizationRole {
   LEARNER,
   AUTHOR,
   REVIEWER,
+  COACH,
   CREDENTIAL_MANAGER,
   PLATFORM_ADMIN,
   VERIFIER

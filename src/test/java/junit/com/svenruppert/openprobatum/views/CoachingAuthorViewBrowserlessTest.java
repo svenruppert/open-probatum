@@ -51,7 +51,7 @@ class CoachingAuthorViewBrowserlessTest extends BrowserlessTest {
     // The author is the coach — create() now requires an identified author.
     com.svenruppert.jsentinel.authorization.api.SubjectStores.subjectStore().setCurrentSubject(
         new com.svenruppert.openprobatum.security.model.AppUser(7L, "Sven",
-            java.util.EnumSet.of(com.svenruppert.openprobatum.security.roles.AuthorizationRole.AUTHOR)),
+            java.util.EnumSet.of(com.svenruppert.openprobatum.security.roles.AuthorizationRole.COACH)),
         com.svenruppert.openprobatum.security.model.AppUser.class);
   }
 
