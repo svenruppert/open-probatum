@@ -67,6 +67,44 @@ public final class CoachingSlotService implements HasLogger {
         });
   }
 
+  /**
+   * Books an OPEN slot for {@code recipientId}, atomically — exactly one learner
+   * per slot. The OPEN→BOOKED compare-and-set is serialised on {@link #SLOT_LOCK},
+   * so two concurrent learners can never both book the same slot (the loser sees a
+   * no-longer-OPEN slot → empty). Returns empty when the slot is unknown or not OPEN.
+   */
+  public Optional<CoachingSlot> book(UUID slotId, Long recipientId, String learnerName) {
+    Objects.requireNonNull(slotId, "slotId");
+    if (recipientId == null) {
+      return Optional.empty();
+    }
+    synchronized (SLOT_LOCK) {
+      return slots.findById(slotId)
+          .filter(CoachingSlot::isOpen)
+          .map(s -> {
+            CoachingSlot booked = s.booked(recipientId, learnerName);
+            slots.save(booked);
+            logger().info("Coaching slot {} booked by '{}' (id={})", slotId, learnerName, recipientId);
+            return booked;
+          });
+    }
+  }
+
+  /** A learner releases their own BOOKED slot, returning it to OPEN for others. */
+  public Optional<CoachingSlot> cancelBooking(UUID slotId, Long recipientId) {
+    Objects.requireNonNull(slotId, "slotId");
+    synchronized (SLOT_LOCK) {
+      return slots.findById(slotId)
+          .filter(s -> s.isHeldBy(recipientId) && s.isBooked())
+          .map(s -> {
+            CoachingSlot reopened = s.reopened();
+            slots.save(reopened);
+            logger().info("Coaching slot {} booking released by {}", slotId, recipientId);
+            return reopened;
+          });
+    }
+  }
+
   /** Cancels an OPEN or BOOKED slot (coach action). Empty when not this coach's / terminal. */
   public Optional<CoachingSlot> cancelSlot(UUID slotId, Long coachId) {
     Objects.requireNonNull(slotId, "slotId");

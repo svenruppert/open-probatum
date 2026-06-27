@@ -76,6 +76,12 @@ public record CoachingSlot(UUID id, UUID offerId, Long coachId, Instant startsAt
         recipientId, learnerName, sessionNotes == null ? "" : sessionNotes, bookedAt, AppClock.now());
   }
 
+  /** A copy returned to {@code OPEN}, clearing the booking (a learner released the slot). */
+  public CoachingSlot reopened() {
+    return new CoachingSlot(id, offerId, coachId, startsAt, endsAt, BookingStatus.OPEN,
+        null, null, notes, null, decidedAt);
+  }
+
   /** A copy marked {@code CANCELLED} (the slot/booking is released). */
   public CoachingSlot cancelled() {
     return new CoachingSlot(id, offerId, coachId, startsAt, endsAt, BookingStatus.CANCELLED,

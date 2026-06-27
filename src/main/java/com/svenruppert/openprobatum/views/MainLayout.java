@@ -85,6 +85,7 @@ public class MainLayout extends AppLayout
   private static final String K_NAV_LABS = "nav.labs";
   private static final String K_NAV_BUNDLES = "nav.bundles";
   private static final String K_NAV_WORKSHOPS = "nav.workshops";
+  private static final String K_NAV_COACHING = "nav.coaching";
   private static final String K_NAV_ASSESS = "nav.assess";
   private static final String K_NAV_ATTENDANCE = "nav.attendance";
   private static final String K_NAV_COACHING_SLOTS = "nav.coachingslots";
@@ -183,6 +184,8 @@ public class MainLayout extends AppLayout
             BundleView.class, "app:view", grants),
         item(tr(K_NAV_WORKSHOPS, "Workshops"), VaadinIcon.CALENDAR_CLOCK,
             WorkshopView.class, "app:view", grants),
+        item(tr(K_NAV_COACHING, "Coaching"), VaadinIcon.COMMENTS,
+            CoachingView.class, "app:view", grants),
         item(tr(K_NAV_AUTHOR, "Author"), VaadinIcon.EDIT,
             AuthorView.class, "author:content", grants),
         item(tr(K_NAV_QUESTIONS, "Question bank"), VaadinIcon.QUESTION,
