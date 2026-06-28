@@ -19,9 +19,11 @@ package junit.com.svenruppert.openprobatum.views;
 import com.svenruppert.openprobatum.catalog.CatalogRepositoryProvider;
 import com.svenruppert.openprobatum.catalog.InMemoryCatalogRepository;
 import com.svenruppert.openprobatum.catalog.LearningPath;
+import com.svenruppert.openprobatum.catalog.LearningResource;
 import com.svenruppert.openprobatum.catalog.Module;
 import com.svenruppert.openprobatum.catalog.Offering;
 import com.svenruppert.openprobatum.catalog.OfferingVisibility;
+import com.svenruppert.openprobatum.catalog.ResourceType;
 import com.svenruppert.openprobatum.content.ContentAuthorshipProvider;
 import com.svenruppert.openprobatum.content.ContentStatus;
 import com.svenruppert.openprobatum.content.InMemoryContentAuthorship;
@@ -152,6 +154,40 @@ class AuthorViewBrowserlessTest extends BrowserlessTest {
     assertEquals("OPEN-2026", o.accessCodeOpt().orElseThrow());
   }
 
+  @Test
+  @DisplayName("a module's learning resources are saved with the module (P005)")
+  void savesModuleWithResources() throws Exception {
+    AuthorView view = new AuthorView();
+    setText(view, "title", "Course");
+    clearModules(view);
+    addModule(view, "Intro", "start here", true);
+    addResourceTo(view, 0, ResourceType.ARTICLE, "Reading", "Some inline text");
+    addResourceTo(view, 0, ResourceType.EXTERNAL_LINK, "Docs", "https://vaadin.com");
+    invoke(view, "saveOffering");
+
+    Offering o = catalog.all().iterator().next();
+    Module m = o.path().modules().get(0);
+    assertEquals(2, m.resources().size());
+    LearningResource first = m.resources().get(0);
+    assertEquals(ResourceType.ARTICLE, first.type());
+    assertEquals("Reading", first.title());
+    assertEquals(ResourceType.EXTERNAL_LINK, m.resources().get(1).type());
+  }
+
+  @Test
+  @DisplayName("an invalid resource payload (URL type without a URL) is rejected, nothing saved")
+  void rejectsInvalidResource() throws Exception {
+    AuthorView view = new AuthorView();
+    setText(view, "title", "Course");
+    clearModules(view);
+    addModule(view, "Intro", "start here", true);
+    addResourceTo(view, 0, ResourceType.VIDEO_REFERENCE, "Clip", "not-a-url");
+    invoke(view, "saveOffering");
+
+    assertTrue(catalog.all().isEmpty(), "the invalid resource blocks the save");
+    assertTrue(attributes(view, "data-result").contains("INVALID"));
+  }
+
   // ── reflection + tree helpers ──────────────────────────────────────
 
   private static void setText(AuthorView v, String field, String value) throws Exception {
@@ -198,6 +234,25 @@ class AuthorViewBrowserlessTest extends BrowserlessTest {
     Field f = cls.getDeclaredField(name);
     f.setAccessible(true);
     f.set(row, value);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static void addResourceTo(AuthorView v, int moduleIndex, ResourceType type,
+                                    String title, String payload) throws Exception {
+    Object moduleRow = moduleRows(v).get(moduleIndex);
+    Field resF = moduleRow.getClass().getDeclaredField("resources");
+    resF.setAccessible(true);
+    List<Object> resources = (List<Object>) resF.get(moduleRow);
+    Class<?> rrClass = Class.forName("com.svenruppert.openprobatum.views.AuthorView$ResourceRow");
+    Constructor<?> ctor = rrClass.getDeclaredConstructor();
+    ctor.setAccessible(true);
+    Object rr = ctor.newInstance();
+    Field tf = rrClass.getDeclaredField("type");
+    tf.setAccessible(true);
+    tf.set(rr, type);
+    setRowField(rrClass, rr, "title", title);
+    setRowField(rrClass, rr, "payload", payload);
+    resources.add(rr);
   }
 
   private static void invoke(AuthorView v, String method) throws Exception {

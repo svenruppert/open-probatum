@@ -17,10 +17,12 @@
 package com.svenruppert.openprobatum.views;
 
 import com.svenruppert.openprobatum.catalog.CatalogIntegrityService;
+import com.svenruppert.openprobatum.catalog.LearningResource;
 import com.svenruppert.openprobatum.catalog.Module;
 import com.svenruppert.openprobatum.catalog.Offering;
 import com.svenruppert.openprobatum.catalog.OfferingAuthoringService;
 import com.svenruppert.openprobatum.catalog.OfferingVisibility;
+import com.svenruppert.openprobatum.catalog.ResourceType;
 import com.svenruppert.openprobatum.content.ContentStatus;
 import com.svenruppert.openprobatum.i18n.I18nSupport;
 import com.svenruppert.openprobatum.security.model.AppUser;
@@ -71,6 +73,14 @@ public class AuthorView extends Composite<VerticalLayout> implements I18nSupport
     private String title = "";
     private String content = "";
     private boolean mandatory = true;
+    private final List<ResourceRow> resources = new ArrayList<>();
+  }
+
+  /** A mutable editor row backing a module's resource table (→ {@link LearningResource}). */
+  static final class ResourceRow {
+    private ResourceType type = ResourceType.ARTICLE;
+    private String title = "";
+    private String payload = "";
   }
 
   private final OfferingAuthoringService service = new OfferingAuthoringService();
@@ -82,6 +92,9 @@ public class AuthorView extends Composite<VerticalLayout> implements I18nSupport
   private final ComboBox<Offering> prerequisite = new ComboBox<>();
   private final List<ModuleRow> moduleRows = new ArrayList<>();
   private final Grid<ModuleRow> moduleGrid = new Grid<>(ModuleRow.class, false);
+  private final Grid<ResourceRow> resourceGrid = new Grid<>(ResourceRow.class, false);
+  private final Div resourceSection = new Div();
+  private final H3 resourceHeading = new H3();
   private final Span status = new Span();
   private final Div inventory = new Div();
   private final H3 editorHeading = new H3();
@@ -89,6 +102,8 @@ public class AuthorView extends Composite<VerticalLayout> implements I18nSupport
   /** The offering currently being edited, or {@code null} when creating a new one. */
   private Offering editing;
   private ModuleRow dragged;
+  /** The module whose resources are being edited below the module table, or {@code null}. */
+  private ModuleRow selectedModule;
 
   public AuthorView() {
     VerticalLayout root = getContent();
@@ -131,6 +146,7 @@ public class AuthorView extends Composite<VerticalLayout> implements I18nSupport
     prerequisite.setWidthFull();
 
     configureModuleGrid();
+    configureResourceSection();
 
     Button addModule = new Button(tr("author.module.add", "Add module"), e -> addModuleRow());
     Button save = new Button(tr("author.save", "Save offering"), e -> saveOffering());
@@ -139,7 +155,7 @@ public class AuthorView extends Composite<VerticalLayout> implements I18nSupport
 
     form.add(title, description, visibility, accessCode, prerequisite,
         new H3(tr("author.modules.heading", "Modules (drag to reorder, edit inline)")),
-        moduleGrid, addModule, new HorizontalLayout(save, cancel));
+        moduleGrid, addModule, resourceSection, new HorizontalLayout(save, cancel));
     updateGateFields();
     return form;
   }
@@ -169,8 +185,20 @@ public class AuthorView extends Composite<VerticalLayout> implements I18nSupport
       return box;
     }).setHeader(tr("author.module.mandatory", "Mandatory")).setFlexGrow(0);
     moduleGrid.addComponentColumn(row -> {
+      Button resources = new Button(
+          tr("author.module.resources", "Resources ({0})", row.resources.size()),
+          e -> selectModuleForResources(row));
+      resources.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+      resources.getElement().setAttribute("data-module-resources", String.valueOf(row.resources.size()));
+      return resources;
+    }).setHeader("").setFlexGrow(0);
+    moduleGrid.addComponentColumn(row -> {
       Button remove = new Button(tr("author.module.remove", "Remove"), e -> {
         moduleRows.remove(row);
+        if (selectedModule == row) {
+          selectedModule = null;
+          resourceSection.setVisible(false);
+        }
         refreshModules();
       });
       remove.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ERROR);
@@ -206,6 +234,83 @@ public class AuthorView extends Composite<VerticalLayout> implements I18nSupport
 
   private void refreshModules() {
     moduleGrid.setItems(new ArrayList<>(moduleRows));
+  }
+
+  // ── Resources per module (master-detail, P005) ────────────────────
+
+  private void configureResourceSection() {
+    resourceGrid.addComponentColumn(row -> {
+      ComboBox<ResourceType> type = new ComboBox<>();
+      type.setItems(ResourceType.values());
+      type.setItemLabelGenerator(this::resourceTypeLabel);
+      type.setValue(row.type);
+      type.addValueChangeListener(e ->
+          row.type = e.getValue() == null ? ResourceType.ARTICLE : e.getValue());
+      return type;
+    }).setHeader(tr("author.resource.type", "Type")).setFlexGrow(1);
+    resourceGrid.addComponentColumn(row -> {
+      TextField field = new TextField();
+      field.setValue(row.title);
+      field.setWidthFull();
+      field.addValueChangeListener(e -> row.title = e.getValue() == null ? "" : e.getValue());
+      return field;
+    }).setHeader(tr("author.resource.title", "Title")).setFlexGrow(2);
+    resourceGrid.addComponentColumn(row -> {
+      TextField field = new TextField();
+      field.setValue(row.payload);
+      field.setWidthFull();
+      field.addValueChangeListener(e -> row.payload = e.getValue() == null ? "" : e.getValue());
+      return field;
+    }).setHeader(tr("author.resource.payload", "Text or URL")).setFlexGrow(3);
+    resourceGrid.addComponentColumn(row -> {
+      Button remove = new Button(tr("author.resource.remove", "Remove"), e -> {
+        if (selectedModule != null) {
+          selectedModule.resources.remove(row);
+          refreshResources();
+          refreshModules();
+        }
+      });
+      remove.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ERROR);
+      return remove;
+    }).setHeader("").setFlexGrow(0);
+    resourceGrid.setAllRowsVisible(true);
+
+    Button addResource = new Button(tr("author.resource.add", "Add resource"), e -> addResource());
+    resourceSection.add(resourceHeading, resourceGrid, addResource);
+    resourceSection.setVisible(false);
+  }
+
+  private void selectModuleForResources(ModuleRow row) {
+    selectedModule = row;
+    String name = row.title == null || row.title.isBlank()
+        ? tr("author.resources.untitled", "(untitled module)") : row.title;
+    resourceHeading.setText(tr("author.resources.heading", "Resources for module: {0}", name));
+    resourceSection.setVisible(true);
+    refreshResources();
+  }
+
+  private void addResource() {
+    if (selectedModule == null) {
+      return;
+    }
+    selectedModule.resources.add(new ResourceRow());
+    refreshResources();
+    refreshModules();
+  }
+
+  private void refreshResources() {
+    resourceGrid.setItems(selectedModule == null
+        ? List.of() : new ArrayList<>(selectedModule.resources));
+  }
+
+  private String resourceTypeLabel(ResourceType type) {
+    return switch (type) {
+      case ARTICLE -> tr("author.resourcetype.article", "Article (text)");
+      case CHECKLIST -> tr("author.resourcetype.checklist", "Checklist (text)");
+      case VIDEO_REFERENCE -> tr("author.resourcetype.video", "Video (URL)");
+      case DOWNLOAD -> tr("author.resourcetype.download", "Download (URL)");
+      case EXTERNAL_LINK -> tr("author.resourcetype.link", "External link (URL)");
+    };
   }
 
   // ── Inventory ─────────────────────────────────────────────────────
@@ -287,12 +392,21 @@ public class AuthorView extends Composite<VerticalLayout> implements I18nSupport
     offering.prerequisiteOfferingIdOpt().ifPresent(id ->
         prerequisite.setValue(service.myOfferings(currentAuthorId()).stream()
             .filter(o -> o.id().equals(id)).findFirst().orElse(null)));
+    selectedModule = null;
+    resourceSection.setVisible(false);
     moduleRows.clear();
     offering.path().modules().forEach(m -> {
       ModuleRow row = new ModuleRow();
       row.title = m.title();
       row.content = m.content();
       row.mandatory = m.mandatory();
+      m.resources().forEach(res -> {
+        ResourceRow rr = new ResourceRow();
+        rr.type = res.type();
+        rr.title = res.title();
+        rr.payload = res.payload();
+        row.resources.add(rr);
+      });
       moduleRows.add(row);
     });
     refreshModules();
@@ -302,7 +416,14 @@ public class AuthorView extends Composite<VerticalLayout> implements I18nSupport
 
   void saveOffering() {
     String t = title.getValue() == null ? "" : title.getValue().trim();
-    List<Module> modules = collectModules();
+    List<Module> modules;
+    try {
+      modules = collectModules();
+    } catch (IllegalArgumentException invalid) {
+      showStatus("INVALID", tr("author.error.resource",
+          "A resource needs a title and a valid payload (a URL for video/download/link)."));
+      return;
+    }
     if (t.isBlank() || modules.isEmpty()) {
       showStatus("INVALID", tr("author.error.required", "A title and at least one module are required."));
       return;
@@ -339,13 +460,35 @@ public class AuthorView extends Composite<VerticalLayout> implements I18nSupport
       if (mt.isBlank() || mc.isBlank()) {
         continue;
       }
-      modules.add(row.mandatory ? Module.mandatory(mt, mc) : Module.optional(mt, mc));
+      List<LearningResource> resources = collectResources(row);
+      modules.add(row.mandatory
+          ? Module.mandatory(mt, mc, resources) : Module.optional(mt, mc, resources));
     }
     return modules;
   }
 
+  /**
+   * Builds a module's resources, skipping blank rows. Throws
+   * {@link IllegalArgumentException} on an invalid resource (e.g. a non-URL payload
+   * for a video/download/link) via the {@link LearningResource} invariants.
+   */
+  private List<LearningResource> collectResources(ModuleRow row) {
+    List<LearningResource> resources = new ArrayList<>();
+    for (ResourceRow r : row.resources) {
+      String rt = r.title == null ? "" : r.title.trim();
+      String rp = r.payload == null ? "" : r.payload.trim();
+      if (rt.isBlank() || rp.isBlank()) {
+        continue;
+      }
+      resources.add(new LearningResource(r.type, rt, rp));
+    }
+    return resources;
+  }
+
   private void resetForm() {
     editing = null;
+    selectedModule = null;
+    resourceSection.setVisible(false);
     title.clear();
     description.clear();
     accessCode.clear();
