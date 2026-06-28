@@ -19,6 +19,8 @@ package com.svenruppert.openprobatum.views;
 import com.svenruppert.openprobatum.assessment.Question;
 import com.svenruppert.openprobatum.assessment.QuestionBankService;
 import com.svenruppert.openprobatum.catalog.CatalogLifecycleService;
+import com.svenruppert.openprobatum.catalog.CatalogRepositoryProvider;
+import com.svenruppert.openprobatum.catalog.Module;
 import com.svenruppert.openprobatum.catalog.Offering;
 import com.svenruppert.openprobatum.content.ContentStatus;
 import com.svenruppert.openprobatum.i18n.I18nSupport;
@@ -38,6 +40,7 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -112,6 +115,7 @@ public class ReviewView extends Composite<VerticalLayout> implements I18nSupport
         new com.svenruppert.openprobatum.coaching.CoachingOfferService();
     Div card = card("data-offer", offer.id(),
         offer.title() + "  (v" + offer.version() + ")", offer.status());
+    card.add(coachingDetail(offer));
     card.add(actions(offer.status(),
         () -> guardedApprove(() -> service.approve(offer.id(), currentReviewerId()), card),
         () -> guardedTransition(() -> service.rejectToDraft(offer.id()), card),
@@ -124,6 +128,7 @@ public class ReviewView extends Composite<VerticalLayout> implements I18nSupport
         new com.svenruppert.openprobatum.workshop.WorkshopService();
     Div card = card("data-workshop", workshop.id(),
         workshop.title() + "  (v" + workshop.version() + ")", workshop.status());
+    card.add(workshopDetail(workshop));
     card.add(actions(workshop.status(),
         () -> guardedApprove(() -> service.approve(workshop.id(), currentReviewerId()), card),
         () -> guardedTransition(() -> service.rejectToDraft(workshop.id()), card),
@@ -135,6 +140,7 @@ public class ReviewView extends Composite<VerticalLayout> implements I18nSupport
     com.svenruppert.openprobatum.lab.LabService service =
         new com.svenruppert.openprobatum.lab.LabService();
     Div card = card("data-lab", lab.id(), lab.title() + "  (v" + lab.version() + ")", lab.status());
+    card.add(labDetail(lab));
     card.add(actions(lab.status(),
         () -> guardedApprove(() -> service.approve(lab.id(), currentReviewerId()), card),
         () -> guardedTransition(() -> service.rejectToDraft(lab.id()), card),
@@ -147,6 +153,7 @@ public class ReviewView extends Composite<VerticalLayout> implements I18nSupport
         new com.svenruppert.openprobatum.bundle.BundleService();
     Div card = card("data-bundle", bundle.id(),
         bundle.title() + "  (v" + bundle.version() + ")", bundle.status());
+    card.add(bundleDetail(bundle));
     card.add(actions(bundle.status(),
         () -> guardedApprove(() -> service.approve(bundle.id(), currentReviewerId()), card),
         () -> guardedTransition(() -> service.rejectToDraft(bundle.id()), card),
@@ -157,6 +164,7 @@ public class ReviewView extends Composite<VerticalLayout> implements I18nSupport
   private Div questionRow(Question q) {
     QuestionBankService service = new QuestionBankService();
     Div card = card("data-question", q.id(), q.text() + "  (v" + q.version() + ")", q.status());
+    card.add(questionDetail(q));
     card.add(actions(q.status(),
         () -> guardedApprove(() -> service.approve(q.id(), currentReviewerId()), card),
         () -> guardedTransition(() -> service.rejectToDraft(q.id()), card),
@@ -167,6 +175,7 @@ public class ReviewView extends Composite<VerticalLayout> implements I18nSupport
   private Div offeringRow(Offering o) {
     CatalogLifecycleService service = new CatalogLifecycleService();
     Div card = card("data-offering", o.id(), o.title() + "  (v" + o.version() + ")", o.status());
+    card.add(offeringDetail(o));
     card.add(actions(o.status(),
         () -> guardedApprove(() -> service.approve(o.id(), currentReviewerId()), card),
         () -> guardedTransition(() -> service.rejectToDraft(o.id()), card),
@@ -216,6 +225,114 @@ public class ReviewView extends Composite<VerticalLayout> implements I18nSupport
         .currentSubject(com.svenruppert.openprobatum.security.model.AppUser.class)
         .map(com.svenruppert.openprobatum.security.model.AppUser::id)
         .orElse(null);
+  }
+
+  // ── read-only content the reviewer judges (P009a) ─────────────────
+
+  private Div questionDetail(Question q) {
+    Div box = detailBox();
+    for (int i = 0; i < q.options().size(); i++) {
+      String option = q.options().get(i);
+      boolean correct = q.correctIndices().contains(i);
+      Span line = new Span((correct ? "✓ " : "• ") + option);
+      line.getElement().setAttribute("data-detail-option", option);
+      if (correct) {
+        line.getElement().setAttribute("data-detail-correct", option);
+        line.getStyle().set("font-weight", "600");
+      }
+      box.add(new Div(line));
+    }
+    box.add(labelled("review.detail.explanation", "Explanation", q.explanation()));
+    box.add(labelled("review.detail.objective", "Objective", q.learningObjective()));
+    box.add(labelled("review.detail.topic", "Topic", q.topic()));
+    box.add(labelled("review.detail.difficulty", "Difficulty", q.difficulty().name()));
+    return box;
+  }
+
+  private Div offeringDetail(Offering offering) {
+    Div box = detailBox();
+    List<Module> modules = offering.path().modules();
+    for (int i = 0; i < modules.size(); i++) {
+      Module m = modules.get(i);
+      String suffix = m.mandatory() ? "" : " (" + tr("review.detail.optional", "optional") + ")";
+      Span line = new Span((i + 1) + ". " + m.title() + suffix);
+      line.getElement().setAttribute("data-detail-module", m.title());
+      line.getStyle().set("font-weight", "600");
+      box.add(new Div(line));
+      if (m.content() != null && !m.content().isBlank()) {
+        box.add(new Div(new Span(m.content())));
+      }
+    }
+    return box;
+  }
+
+  private Div labDetail(com.svenruppert.openprobatum.lab.Lab lab) {
+    Div box = detailBox();
+    box.add(labelledMarked("review.detail.instructions", "Instructions", lab.instructions(),
+        "data-detail-instructions"));
+    box.add(labelledMarked("review.detail.acceptance", "Acceptance criteria",
+        lab.acceptanceCriteria(), "data-detail-acceptance"));
+    box.add(labelled("review.detail.objective", "Objective", lab.learningObjective()));
+    box.add(labelled("review.detail.difficulty", "Difficulty", lab.difficulty().name()));
+    return box;
+  }
+
+  private Div bundleDetail(com.svenruppert.openprobatum.bundle.Bundle bundle) {
+    Div box = detailBox();
+    box.add(labelled("review.detail.description", "Description", bundle.description()));
+    bundle.offeringIds().forEach(id -> {
+      String title = CatalogRepositoryProvider.repository().findById(id)
+          .map(Offering::title).orElse(id.toString());
+      Span line = new Span("• " + title);
+      line.getElement().setAttribute("data-detail-member", title);
+      box.add(new Div(line));
+    });
+    return box;
+  }
+
+  private Div workshopDetail(com.svenruppert.openprobatum.workshop.Workshop workshop) {
+    Div box = detailBox();
+    box.add(labelled("review.detail.description", "Description", workshop.description()));
+    box.add(labelled("review.detail.objective", "Objective", workshop.learningObjective()));
+    box.add(labelled("review.detail.schedule", "Schedule",
+        workshop.startsAt() + " – " + workshop.endsAt()));
+    box.add(labelled("review.detail.capacity", "Capacity", String.valueOf(workshop.capacity())));
+    box.add(labelled("review.detail.instructor", "Instructor", workshop.instructor()));
+    return box;
+  }
+
+  private Div coachingDetail(com.svenruppert.openprobatum.coaching.CoachingOffer offer) {
+    Div box = detailBox();
+    box.add(labelled("review.detail.description", "Description", offer.description()));
+    box.add(labelled("review.detail.objective", "Objective", offer.learningObjective()));
+    box.add(labelled("review.detail.coach", "Coach", offer.coachName()));
+    box.add(labelled("review.detail.duration", "Duration (min)",
+        String.valueOf(offer.durationMinutes())));
+    return box;
+  }
+
+  private Div detailBox() {
+    Div box = new Div();
+    box.getElement().setAttribute("data-detail", "");
+    box.getStyle().set("margin", "var(--lumo-space-xs) 0")
+        .set("padding-left", "var(--lumo-space-s)")
+        .set("border-left", "2px solid var(--lumo-contrast-20pct)")
+        .set("font-size", "var(--lumo-font-size-s)");
+    return box;
+  }
+
+  private Div labelled(String key, String fallback, String value) {
+    Div line = new Div();
+    Span label = new Span(tr(key, fallback) + ": ");
+    label.getStyle().set("font-weight", "600");
+    line.add(label, new Span(value == null ? "" : value));
+    return line;
+  }
+
+  private Div labelledMarked(String key, String fallback, String value, String marker) {
+    Div line = labelled(key, fallback, value);
+    line.getElement().setAttribute(marker, value == null ? "" : value);
+    return line;
   }
 
   private Div card(String idAttr, UUID id, String heading, ContentStatus status) {

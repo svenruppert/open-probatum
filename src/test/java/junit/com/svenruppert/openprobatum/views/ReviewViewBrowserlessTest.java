@@ -231,6 +231,47 @@ class ReviewViewBrowserlessTest extends BrowserlessTest {
     assertFalse(published.id().equals(null));
   }
 
+  @Test
+  @DisplayName("each card shows the reviewable content the reviewer judges (P009a)")
+  void rendersReviewableContent() {
+    // Question: options + the correct answer marked.
+    submittedQuestion();
+    // Offering with a named module.
+    Offering offering = Offering.publicPath("Course", "d",
+        new LearningPath("P", List.of(Module.mandatory("Routing", "how @Route works"))));
+    catalog.save(offering);
+    new CatalogLifecycleService().submitForReview(offering.id());
+    // Lab with acceptance criteria.
+    com.svenruppert.openprobatum.lab.Lab lab =
+        com.svenruppert.openprobatum.lab.Lab.draft("Deploy", "Deploy the app")
+            .withMetadata("Master deploy", com.svenruppert.openprobatum.assessment.Difficulty.HARD,
+                "WAR boots cleanly");
+    com.svenruppert.openprobatum.lab.LabService labService =
+        new com.svenruppert.openprobatum.lab.LabService();
+    labService.create(lab);
+    labService.submitForReview(lab.id());
+    // Bundle referencing a member offering (only saved, not itself in review).
+    Offering member = Offering.publicPath("MemberCourse", "d", path());
+    catalog.save(member);
+    com.svenruppert.openprobatum.bundle.Bundle bundle =
+        com.svenruppert.openprobatum.bundle.Bundle.draft("Pack", "a pack", java.util.Set.of(member.id()));
+    com.svenruppert.openprobatum.bundle.BundleService bundleService =
+        new com.svenruppert.openprobatum.bundle.BundleService();
+    bundleService.create(bundle);
+    bundleService.submitForReview(bundle.id());
+
+    ReviewView view = new ReviewView();
+
+    List<String> options = attributes(view, "data-detail-option");
+    assertTrue(options.contains("3") && options.contains("4"), "question options shown");
+    assertEquals(List.of("4"), attributes(view, "data-detail-correct"), "correct answer marked");
+    assertTrue(attributes(view, "data-detail-module").contains("Routing"), "offering modules shown");
+    assertTrue(attributes(view, "data-detail-acceptance").contains("WAR boots cleanly"),
+        "lab acceptance criteria shown");
+    assertTrue(attributes(view, "data-detail-member").contains("MemberCourse"),
+        "bundle member title resolved + shown");
+  }
+
   // ── tree-walk helpers ───────────────────────────────────────────
 
   private static void click(Component root, String action) {
