@@ -71,13 +71,13 @@ class GateConsistencyTest {
   }
 
   @Test
-  @DisplayName("MetricsView route matches its author:content nav gate (AUTHOR + admin, not REVIEWER)")
+  @DisplayName("MetricsView route matches its metrics:read nav gate (AUTHOR + REVIEWER + admin)")
   void metricsRouteMatchesNav() {
     Set<AuthorizationRole> roles = rolesOf(MetricsView.class);
     assertTrue(roles.contains(AuthorizationRole.AUTHOR));
+    assertTrue(roles.contains(AuthorizationRole.REVIEWER),
+        "REVIEWER holds metrics:read and must reach Quality metrics");
     assertTrue(roles.contains(AuthorizationRole.PLATFORM_ADMIN));
-    assertFalse(roles.contains(AuthorizationRole.REVIEWER),
-        "REVIEWER lacks author:content, so it must not reach Metrics by URL either");
   }
 
   @Test

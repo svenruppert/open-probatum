@@ -44,6 +44,8 @@ public enum AppPermission {
   COACHING_AUTHOR("coaching:author"),
   /** Coach: open coaching slots and complete 1:1 sessions (§7.x). */
   COACHING_PROVIDE("coaching:provide"),
+  /** Author/Reviewer: read per-content quality metrics (§20.2). */
+  METRICS_READ("metrics:read"),
   /** Operator: read academy-wide analytics (§20.x). */
   ANALYTICS_READ("analytics:read"),
   /** Credential Manager: govern issued credentials (e.g. revoke). */

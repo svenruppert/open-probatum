@@ -40,9 +40,9 @@ class AppPermissionTest {
   }
 
   @Test
-  @DisplayName("all twelve enum constants exist — kills enum-truncation mutants")
+  @DisplayName("all thirteen enum constants exist — kills enum-truncation mutants")
   void hasExactlyFourConstants() {
-    assertEquals(12, AppPermission.values().length);
+    assertEquals(13, AppPermission.values().length);
   }
 
   @Test
@@ -51,7 +51,7 @@ class AppPermissionTest {
     Set<String> values = EnumSet.allOf(AppPermission.class).stream()
         .map(p -> p.permissionName().value())
         .collect(Collectors.toSet());
-    assertEquals(12, values.size());
+    assertEquals(13, values.size());
   }
 
   @Test

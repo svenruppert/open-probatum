@@ -44,6 +44,7 @@ import static com.svenruppert.openprobatum.security.permissions.AppPermission.LA
 import static com.svenruppert.openprobatum.security.permissions.AppPermission.WORKSHOP_RUN;
 import static com.svenruppert.openprobatum.security.permissions.AppPermission.COACHING_AUTHOR;
 import static com.svenruppert.openprobatum.security.permissions.AppPermission.COACHING_PROVIDE;
+import static com.svenruppert.openprobatum.security.permissions.AppPermission.METRICS_READ;
 import static com.svenruppert.openprobatum.security.permissions.AppPermission.ANALYTICS_READ;
 
 /**
@@ -52,9 +53,9 @@ import static com.svenruppert.openprobatum.security.permissions.AppPermission.AN
  *
  * <ul>
  *   <li>LEARNER: {@code app:view}</li>
- *   <li>AUTHOR: {@code app:view}, {@code author:content}</li>
+ *   <li>AUTHOR: {@code app:view}, {@code author:content}, {@code metrics:read}</li>
  *   <li>REVIEWER: {@code app:view}, {@code author:review}, {@code lab:assess},
- *       {@code workshop:run}</li>
+ *       {@code workshop:run}, {@code metrics:read}</li>
  *   <li>COACH: {@code app:view}, {@code coaching:author}, {@code coaching:provide}</li>
  *   <li>CREDENTIAL_MANAGER: {@code app:view}, {@code credential:manage}</li>
  *   <li>PLATFORM_ADMIN: every permission</li>
@@ -70,12 +71,14 @@ public class AppAuthorizationService
           APP_VIEW.permissionName()))
       .put(roleName(AuthorizationRole.AUTHOR), Set.of(
           APP_VIEW.permissionName(),
-          AUTHOR_CONTENT.permissionName()))
+          AUTHOR_CONTENT.permissionName(),
+          METRICS_READ.permissionName()))
       .put(roleName(AuthorizationRole.REVIEWER), Set.of(
           APP_VIEW.permissionName(),
           AUTHOR_REVIEW.permissionName(),
           LAB_ASSESS.permissionName(),
-          WORKSHOP_RUN.permissionName()))
+          WORKSHOP_RUN.permissionName(),
+          METRICS_READ.permissionName()))
       .put(roleName(AuthorizationRole.COACH), Set.of(
           APP_VIEW.permissionName(),
           COACHING_AUTHOR.permissionName(),
@@ -94,6 +97,7 @@ public class AppAuthorizationService
           WORKSHOP_RUN.permissionName(),
           COACHING_AUTHOR.permissionName(),
           COACHING_PROVIDE.permissionName(),
+          METRICS_READ.permissionName(),
           ANALYTICS_READ.permissionName(),
           CREDENTIAL_MANAGE.permissionName()))
       .put(roleName(AuthorizationRole.VERIFIER), Set.of(

@@ -52,14 +52,16 @@ class AppAuthorizationServiceTest {
     assertEquals(
         Set.of("app:view", "audit:read", "admin:sessions", "admin:roles",
             "author:content", "author:review", "lab:assess", "workshop:run",
-            "coaching:author", "coaching:provide", "analytics:read", "credential:manage"),
+            "coaching:author", "coaching:provide", "metrics:read", "analytics:read",
+            "credential:manage"),
         permissionsOf(AuthorizationRole.PLATFORM_ADMIN));
   }
 
   @Test
-  @DisplayName("REVIEWER gets app:view + author:review + lab:assess + workshop:run")
+  @DisplayName("REVIEWER gets app:view + author:review + lab:assess + workshop:run + metrics:read")
   void reviewerGetsReviewPermission() {
-    assertEquals(Set.of("app:view", "author:review", "lab:assess", "workshop:run"),
+    assertEquals(Set.of("app:view", "author:review", "lab:assess", "workshop:run",
+            "metrics:read"),
         permissionsOf(AuthorizationRole.REVIEWER));
   }
 
@@ -77,9 +79,9 @@ class AppAuthorizationServiceTest {
   }
 
   @Test
-  @DisplayName("AUTHOR gets app:view + author:content")
+  @DisplayName("AUTHOR gets app:view + author:content + metrics:read")
   void authorGetsContentPermission() {
-    assertEquals(Set.of("app:view", "author:content"),
+    assertEquals(Set.of("app:view", "author:content", "metrics:read"),
         permissionsOf(AuthorizationRole.AUTHOR));
   }
 
@@ -99,7 +101,7 @@ class AppAuthorizationServiceTest {
   @Test
   @DisplayName("permissions are the union across a multi-role subject")
   void multiRoleUnionsPermissions() {
-    assertEquals(Set.of("app:view", "author:content", "credential:manage"),
+    assertEquals(Set.of("app:view", "author:content", "metrics:read", "credential:manage"),
         permissionsOf(AuthorizationRole.AUTHOR, AuthorizationRole.CREDENTIAL_MANAGER));
   }
 

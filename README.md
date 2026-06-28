@@ -55,8 +55,8 @@ hats). The first account — created from the bootstrap token at `/setup` — is
 | Role | Holds permissions | What this user does |
 |---|---|---|
 | **Learner** | `app:view` | Registers, browses the **Catalog**, follows learning paths, **practises** and sits assessments, joins **Bundles** / **Workshops**, books **Coaching**, and owns a **credential wallet** (`/wallet`) + in-app credential check. |
-| **Author** | `app:view`, `author:content` | Creates and edits catalog content: offerings, paths, modules, resources, **questions**, **labs**, **bundles** and **workshops**. Sees the per-content **Quality metrics**. |
-| **Reviewer** | `app:view`, `author:review`, `lab:assess`, `workshop:run` | The **teaching/quality staff**: reviews + approves authored content in the **Review queue**, verifies/rejects **lab submissions** (Assessment queue), and runs **workshops** + records **attendance** — the acts that mint practical credentials. |
+| **Author** | `app:view`, `author:content`, `metrics:read` | Creates and edits catalog content: offerings, paths, modules, resources, **questions**, **labs**, **bundles** and **workshops**. Sees the per-content **Quality metrics**. |
+| **Reviewer** | `app:view`, `author:review`, `lab:assess`, `workshop:run`, `metrics:read` | The **teaching/quality staff**: reviews + approves authored content in the **Review queue**, verifies/rejects **lab submissions** (Assessment queue), and runs **workshops** + records **attendance** — the acts that mint practical credentials. Sees the per-content **Quality metrics**. |
 | **Coach** | `app:view`, `coaching:author`, `coaching:provide` | Owns the **1:1 coaching** domain end-to-end: authors a coaching offer (and is recorded as its coach), opens bookable **slots**, and completes **sessions** — minting a coaching credential. Acts only on their *own* offers (the offer pins the coach's id). |
 | **Credential Manager** | `app:view`, `credential:manage` | Governs **issued** credentials — revoke / reissue in **Credential governance**, with the **Credential audit** trail. |
 | **Platform Admin** | *every* permission (incl. `audit:read`, `admin:sessions`, `admin:roles`, `analytics:read`) | Operates the instance: **Audit log**, **Active sessions**, **Role administration**, the academy-wide **Operator dashboard** — and can perform any of the above. |
@@ -67,17 +67,18 @@ hats). The first account — created from the bootstrap token at `/setup` — is
 > (`author:content`). For a clean editorial workflow, the Author and the
 > Reviewer should be **different people**.
 
-### Permission catalogue (12)
+### Permission catalogue (13)
 
 | Permission | Gates |
 |---|---|
 | `app:view` | Sign in and see the application (held by every role). |
-| `author:content` | Catalog authoring surfaces + Quality metrics. |
+| `author:content` | Catalog authoring surfaces. |
 | `author:review` | Review queue — approve content before publication. |
 | `lab:assess` | Verify / reject practical lab submissions. |
 | `workshop:run` | Run workshops, record attendance. |
 | `coaching:author` | Author 1:1 coaching offers. |
 | `coaching:provide` | Open coaching slots, complete 1:1 sessions. |
+| `metrics:read` | Per-content **Quality metrics** (authors + reviewers). |
 | `analytics:read` | Academy-wide **Operator dashboard**. |
 | `credential:manage` | Credential governance (revoke/reissue) + credential audit. |
 | `audit:read` | Security audit log. |

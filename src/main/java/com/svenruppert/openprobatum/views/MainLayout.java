@@ -212,7 +212,7 @@ public class MainLayout extends AppLayout
         item(tr(K_NAV_COACHING_SESSIONS, "Coaching sessions"), VaadinIcon.HANDSHAKE,
             CoachingSessionView.class, "coaching:provide", grants),
         item(tr(K_NAV_METRICS, "Quality metrics"), VaadinIcon.CHART,
-            MetricsView.class, "author:content", grants),
+            MetricsView.class, "metrics:read", grants),
         item(tr(K_NAV_PUSHDEMO, "Push demo"), VaadinIcon.BELL,
             PushDemoView.class, "app:view", grants));
     if (app != null) container.add(app);

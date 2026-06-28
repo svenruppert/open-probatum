@@ -75,10 +75,10 @@ flow.
 `PersistentUserDirectory` + `InMemoryUserDirectoryPersistence` /
 `EclipseStoreUserDirectoryPersistence` + `UserDirectoryProvider`.
 
-**`security.permissions`** — `AppPermission`: the 12-entry permission catalogue
+**`security.permissions`** — `AppPermission`: the 13-entry permission catalogue
 (`app:view`, `author:content`, `author:review`, `lab:assess`, `workshop:run`,
-`coaching:author`, `coaching:provide`, `analytics:read`, `credential:manage`,
-`audit:read`, `admin:sessions`, `admin:roles`).
+`coaching:author`, `coaching:provide`, `metrics:read`, `analytics:read`,
+`credential:manage`, `audit:read`, `admin:sessions`, `admin:roles`).
 
 **`security.roles`** — `AuthorizationRole` (the seven roles), `@VisibleFor`
 (route-level any-of-role annotation) and `RoleAccessEvaluator` (enforces it on
