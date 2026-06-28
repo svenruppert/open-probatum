@@ -149,6 +149,23 @@ class AssessmentQueueViewBrowserlessTest extends BrowserlessTest {
     assertTrue(attributes(new AssessmentQueueView(), "data-submission").isEmpty());
   }
 
+  @Test
+  @DisplayName("each card shows the lab spec the assessor judges against (P009b)")
+  void showsLabSpec() {
+    Lab spec = Lab.draft("Build", "Run the build")
+        .withMetadata("Green build", com.svenruppert.openprobatum.assessment.Difficulty.MEDIUM,
+            "All tests pass")
+        .withStatus(ContentStatus.PUBLISHED);
+    labs.save(spec);
+    submissions.save(LabSubmission.submit(spec.id(), spec.version(), 6006L, "Bob", "did it", null));
+
+    AssessmentQueueView view = new AssessmentQueueView();
+    assertTrue(attributes(view, "data-lab-instructions").contains("Run the build"),
+        "the lab instructions are shown");
+    assertTrue(attributes(view, "data-lab-acceptance").contains("All tests pass"),
+        "the acceptance criteria the assessor judges against are shown");
+  }
+
   // ── helpers ─────────────────────────────────────────────────────
 
   private static void click(Component root, String action) {

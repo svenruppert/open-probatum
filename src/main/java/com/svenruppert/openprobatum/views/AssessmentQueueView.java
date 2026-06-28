@@ -17,6 +17,7 @@
 package com.svenruppert.openprobatum.views;
 
 import com.svenruppert.openprobatum.i18n.I18nSupport;
+import com.svenruppert.openprobatum.lab.Lab;
 import com.svenruppert.openprobatum.lab.LabRepositoryProvider;
 import com.svenruppert.openprobatum.lab.LabSubmission;
 import com.svenruppert.openprobatum.lab.LabSubmissionRepositoryProvider;
@@ -81,10 +82,12 @@ public class AssessmentQueueView extends Composite<VerticalLayout> implements I1
     card.getStyle().set("padding", "var(--lumo-space-m)").set("margin-bottom", "var(--lumo-space-s)");
     card.getElement().setAttribute("data-submission", submission.id().toString());
 
-    String labTitle = LabRepositoryProvider.repository().findById(submission.labId())
-        .map(l -> l.title() + " (v" + l.version() + ")")
+    java.util.Optional<Lab> lab = LabRepositoryProvider.repository().findById(submission.labId());
+    String labTitle = lab.map(l -> l.title() + " (v" + l.version() + ")")
         .orElse(submission.labId().toString());
     card.add(new H4(labTitle + " — " + submission.learnerName()));
+    lab.ifPresent(l -> card.add(labSpec(l)));
+    card.add(new H4(tr("assess.submission", "Submission")));
     card.add(new Paragraph(submission.writeUp()));
     submission.artefactLinkOpt().ifPresent(link -> {
       com.vaadin.flow.component.html.Anchor a =
@@ -158,6 +161,34 @@ public class AssessmentQueueView extends Composite<VerticalLayout> implements I1
       inlineError(card, "assess.error.feedback",
           "A rejection needs feedback for the learner.", "FEEDBACK");
     }
+  }
+
+  /** The lab spec the assessor judges the submission against (read-only, P009b). */
+  private Div labSpec(Lab lab) {
+    Div box = new Div();
+    box.getElement().setAttribute("data-lab-spec", "");
+    box.getStyle().set("margin", "var(--lumo-space-xs) 0")
+        .set("padding-left", "var(--lumo-space-s)")
+        .set("border-left", "2px solid var(--lumo-contrast-20pct)")
+        .set("font-size", "var(--lumo-font-size-s)");
+    box.add(specLine("assess.lab.instructions", "Instructions", lab.instructions(),
+        "data-lab-instructions"));
+    box.add(specLine("assess.lab.acceptance", "Acceptance criteria", lab.acceptanceCriteria(),
+        "data-lab-acceptance"));
+    box.add(specLine("assess.lab.objective", "Objective", lab.learningObjective(), null));
+    box.add(specLine("assess.lab.difficulty", "Difficulty", lab.difficulty().name(), null));
+    return box;
+  }
+
+  private Div specLine(String key, String fallback, String value, String marker) {
+    Div line = new Div();
+    Span label = new Span(tr(key, fallback) + ": ");
+    label.getStyle().set("font-weight", "600");
+    line.add(label, new Span(value == null ? "" : value));
+    if (marker != null) {
+      line.getElement().setAttribute(marker, value == null ? "" : value);
+    }
+    return line;
   }
 
   private void inlineError(Div card, String key, String fallback, String marker) {
