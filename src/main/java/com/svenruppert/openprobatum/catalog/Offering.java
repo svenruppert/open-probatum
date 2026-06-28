@@ -123,6 +123,22 @@ public record Offering(UUID id, UUID lineageId, int version, ContentStatus statu
         visibility, accessCode, prerequisiteOfferingId);
   }
 
+  /**
+   * A copy with the author-editable details replaced — title, description,
+   * visibility (+ its gate data) and the learning path — keeping the identity and
+   * editorial state ({@link #id}, {@link #lineageId}, {@link #version},
+   * {@link #status}, {@link #type}). The compact constructor re-validates the
+   * visibility/access-code/prerequisite invariants. Use this for an in-place DRAFT
+   * edit; for a PUBLISHED offering, {@link #asNewVersion()} first so a published
+   * record is never rewritten under its own id.
+   */
+  public Offering withDetails(String newTitle, String newDescription,
+                              OfferingVisibility newVisibility, String newAccessCode,
+                              UUID newPrerequisiteOfferingId, LearningPath newPath) {
+    return new Offering(id, lineageId, version, status, newTitle, newDescription, type, newPath,
+        newVisibility, newAccessCode, newPrerequisiteOfferingId);
+  }
+
   /** @return {@code true} when this offering is PUBLISHED (learner-visible). */
   public boolean isPublished() {
     return status == ContentStatus.PUBLISHED;

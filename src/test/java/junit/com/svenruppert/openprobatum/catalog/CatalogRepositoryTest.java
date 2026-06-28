@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("CatalogRepository — shared-pair Eclipse-Store + in-memory (P003)")
@@ -109,5 +110,23 @@ class CatalogRepositoryTest {
     assertEquals(o, memory.findById(o.id()).orElseThrow());
     assertTrue(memory.findById(UUID.randomUUID()).isEmpty());
     assertEquals(1, memory.all().size());
+  }
+
+  @Test
+  @DisplayName("delete removes an offering (persistently); deleting an absent id is a no-op")
+  void deleteRemoves() {
+    Offering o = offering("Doomed");
+    repo.save(o);
+    assertTrue(repo.findById(o.id()).isPresent());
+
+    repo.delete(o.id());
+    assertTrue(repo.findById(o.id()).isEmpty(), "removed from the store");
+    repo.delete(UUID.randomUUID()); // no-op, no crash
+
+    InMemoryCatalogRepository memory = new InMemoryCatalogRepository();
+    Offering m = offering("HeapDoomed");
+    memory.save(m);
+    memory.delete(m.id());
+    assertFalse(memory.findById(m.id()).isPresent());
   }
 }

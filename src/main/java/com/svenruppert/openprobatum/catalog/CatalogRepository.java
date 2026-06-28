@@ -37,4 +37,12 @@ public interface CatalogRepository {
 
   /** All offerings in the catalog. */
   Collection<Offering> all();
+
+  /**
+   * Removes the offering with {@code id} (a no-op if absent). Hard deletion is
+   * reserved for unreferenced DRAFTs — callers gate it through
+   * {@link CatalogIntegrityService} (published/referenced offerings are deactivated,
+   * not deleted).
+   */
+  void delete(UUID id);
 }

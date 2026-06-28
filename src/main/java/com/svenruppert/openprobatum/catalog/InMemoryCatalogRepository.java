@@ -48,4 +48,9 @@ public final class InMemoryCatalogRepository implements CatalogRepository {
   public Collection<Offering> all() {
     return new ArrayList<>(offerings.values());
   }
+
+  @Override
+  public void delete(UUID id) {
+    offerings.remove(id);
+  }
 }

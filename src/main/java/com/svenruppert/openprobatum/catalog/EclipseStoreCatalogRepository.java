@@ -52,4 +52,11 @@ public final class EclipseStoreCatalogRepository implements CatalogRepository {
   public synchronized Collection<Offering> all() {
     return new ArrayList<>(AppStorage.appRoot().offerings.values());
   }
+
+  @Override
+  public synchronized void delete(UUID id) {
+    Map<UUID, Offering> offerings = AppStorage.appRoot().offerings;
+    offerings.remove(id);
+    AppStorage.app().store(offerings);
+  }
 }

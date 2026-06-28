@@ -155,4 +155,23 @@ class CatalogTest {
     assertTrue(p.isComplete(Set.of(core.id())), "the mandatory done → complete");
     assertTrue(p.isComplete(Set.of(core.id(), bonus.id())), "all done → complete");
   }
+
+  @Test
+  @DisplayName("withDetails replaces editable fields but keeps identity + editorial state")
+  void withDetailsKeepsIdentity() {
+    Offering draft = Offering.publicPath("Old", "olddesc", path());
+    LearningPath newPath = new LearningPath("New", List.of(Module.mandatory("M2", "c2")));
+
+    Offering edited = draft.withDetails("New title", "newdesc",
+        OfferingVisibility.CODE, "C0DE", null, newPath);
+
+    assertEquals(draft.id(), edited.id());
+    assertEquals(draft.lineageId(), edited.lineageId());
+    assertEquals(draft.version(), edited.version());
+    assertEquals(draft.status(), edited.status());
+    assertEquals("New title", edited.title());
+    assertEquals(OfferingVisibility.CODE, edited.visibility());
+    assertEquals("C0DE", edited.accessCode());
+    assertEquals(List.of("M2"), edited.path().modules().stream().map(Module::title).toList());
+  }
 }
