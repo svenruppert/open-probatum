@@ -25,6 +25,7 @@ import com.svenruppert.dependencies.core.logger.HasLogger;
 
 import java.util.EnumSet;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Public self-registration (concept §5.1): a visitor creates an account and is
@@ -61,10 +62,26 @@ public final class RegistrationService implements HasLogger {
    * length checks first, the username-taken check next, then the (possibly
    * network-bound) compromised-password preflight last.
    */
+  public RegistrationResult register(String username, String password, String displayName) {
+    return register(username, password, displayName, EnumSet.of(AuthorizationRole.LEARNER));
+  }
+
+  /**
+   * Validates and creates an account with the given {@code roles} — the
+   * role-aware path used by the user-provisioning wizard (§5). Same validation as
+   * the learner self-registration (length → username → display-name → breach
+   * preflight); an empty role set is rejected as {@link RegistrationResult.InvalidInput}.
+   *
+   * @since V00.80.00
+   */
   public synchronized RegistrationResult register(String username, String password,
-                                                  String displayName) {
+                                                  String displayName,
+                                                  Set<AuthorizationRole> roles) {
     if (username == null || username.isBlank()) {
       return new RegistrationResult.InvalidInput("username must not be blank");
+    }
+    if (roles == null || roles.isEmpty()) {
+      return new RegistrationResult.InvalidInput("at least one role is required");
     }
     if (password == null || password.length() < minPasswordLength) {
       return new RegistrationResult.WeakPassword(
@@ -74,7 +91,7 @@ public final class RegistrationService implements HasLogger {
       return new RegistrationResult.UsernameTaken();
     }
     // The display name is the credential recipient key — it must be unique so one
-    // learner's wallet/credentials can never match another's (exit-review HIGH-1).
+    // user's wallet/credentials can never match another's (exit-review HIGH-1).
     String name = (displayName == null || displayName.isBlank()) ? username : displayName;
     if (directory.displayNameExists(name)) {
       return new RegistrationResult.NameTaken();
@@ -84,9 +101,9 @@ public final class RegistrationService implements HasLogger {
           "password appears on a breach/blocklist");
     }
     long id = directory.all().mapToLong(AppUser::id).max().orElse(ID_FLOOR) + 1;
-    AppUser user = new AppUser(id, name, EnumSet.of(AuthorizationRole.LEARNER));
+    AppUser user = new AppUser(id, name, EnumSet.copyOf(roles));
     directory.addUser(username, password, user);
-    logger().info("Registered new learner: id={}, username={}", id, username);
+    logger().info("Registered new user: id={}, username={}, roles={}", id, username, roles);
     return new RegistrationResult.Success(user);
   }
 }
