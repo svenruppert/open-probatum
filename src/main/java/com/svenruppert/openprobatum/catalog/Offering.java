@@ -135,6 +135,10 @@ public record Offering(UUID id, UUID lineageId, int version, ContentStatus statu
   public Offering withDetails(String newTitle, String newDescription,
                               OfferingVisibility newVisibility, String newAccessCode,
                               UUID newPrerequisiteOfferingId, LearningPath newPath) {
+    if (status != ContentStatus.DRAFT) {
+      throw new IllegalStateException(
+          "only a DRAFT may be edited in place; branch a new version (asNewVersion) first");
+    }
     return new Offering(id, lineageId, version, status, newTitle, newDescription, type, newPath,
         newVisibility, newAccessCode, newPrerequisiteOfferingId);
   }

@@ -174,4 +174,13 @@ class CatalogTest {
     assertEquals("C0DE", edited.accessCode());
     assertEquals(List.of("M2"), edited.path().modules().stream().map(Module::title).toList());
   }
+
+  @Test
+  @DisplayName("withDetails refuses to edit a non-DRAFT in place (must branch a new version)")
+  void withDetailsRefusesNonDraft() {
+    Offering published = Offering.publicPath("Live", "d", path())
+        .withStatus(com.svenruppert.openprobatum.content.ContentStatus.PUBLISHED);
+    assertThrows(IllegalStateException.class, () -> published.withDetails(
+        "x", "y", OfferingVisibility.PUBLIC, null, null, path()));
+  }
 }

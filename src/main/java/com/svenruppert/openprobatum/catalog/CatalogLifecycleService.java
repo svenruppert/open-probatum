@@ -36,12 +36,15 @@ import java.util.UUID;
 public final class CatalogLifecycleService implements HasLogger {
 
   /**
-   * Process-wide monitor for the check-then-act in {@link #transition}. Views create
-   * a fresh {@code CatalogLifecycleService} per action, so an instance lock would
-   * serialise nothing across callers/threads; a shared static lock does (the same
-   * mint-once pattern used by {@code CoachingSlotService.SLOT_LOCK}).
+   * Process-wide monitor for catalog mutations — the check-then-act in
+   * {@link #transition} and the guarded hard-delete in
+   * {@link OfferingAuthoringService#delete(java.util.UUID)}. Views create a fresh
+   * service per action, so an instance lock would serialise nothing across
+   * callers/threads; this shared static lock does (the mint-once pattern, like
+   * {@code CoachingSlotService.SLOT_LOCK}). Package-private so the offering-delete
+   * path can serialise against a concurrent transition on the same monitor.
    */
-  private static final Object LOCK = new Object();
+  static final Object LOCK = new Object();
 
   private final CatalogRepository repository;
 

@@ -118,15 +118,20 @@ public final class OfferingAuthoringService {
    * blocked delete nothing is removed and the verdict carries the blocking references.
    */
   public CatalogIntegrityService.IntegrityVerdict delete(UUID id) {
-    Optional<Offering> offering = catalog.findById(id);
-    if (offering.isEmpty()) {
-      return new CatalogIntegrityService.IntegrityVerdict(false, List.of("offering not found"));
+    // Serialise the find→check→delete against a concurrent lifecycle transition on
+    // the shared catalog-mutation monitor, so the integrity verdict cannot be made
+    // stale by a status change between the check and the remove (exit-review #2).
+    synchronized (CatalogLifecycleService.LOCK) {
+      Optional<Offering> offering = catalog.findById(id);
+      if (offering.isEmpty()) {
+        return new CatalogIntegrityService.IntegrityVerdict(false, List.of("offering not found"));
+      }
+      CatalogIntegrityService.IntegrityVerdict verdict = integrity.checkHardDelete(offering.get());
+      if (verdict.allowed()) {
+        catalog.delete(id);
+      }
+      return verdict;
     }
-    CatalogIntegrityService.IntegrityVerdict verdict = integrity.checkHardDelete(offering.get());
-    if (verdict.allowed()) {
-      catalog.delete(id);
-    }
-    return verdict;
   }
 
   /** The author's own offerings, latest version per lineage, sorted by title. */
