@@ -56,6 +56,9 @@ public final class UserProvisioningService {
    */
   public record UserSpec(String username, String password, String displayName,
                          Set<AuthorizationRole> roles) {
+    public UserSpec {
+      roles = roles == null ? Set.of() : Set.copyOf(roles);
+    }
   }
 
   /**

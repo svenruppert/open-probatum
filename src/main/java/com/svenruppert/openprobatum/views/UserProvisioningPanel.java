@@ -52,8 +52,11 @@ import java.util.Set;
 public final class UserProvisioningPanel extends Composite<VerticalLayout>
     implements I18nSupport {
 
+  private static final long serialVersionUID = 1L;
+
   /** A mutable editor row backing one user to provision. */
-  static final class UserDraft {
+  static final class UserDraft implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
     private final AuthorizationRole role;
     private String username;
     private String password = "";
@@ -64,7 +67,7 @@ public final class UserProvisioningPanel extends Composite<VerticalLayout>
     }
   }
 
-  private final UserProvisioningService service;
+  private final transient UserProvisioningService service;
   private final List<AuthorizationRole> personas;
   private final List<UserDraft> drafts = new ArrayList<>();
   private final Div results = new Div();

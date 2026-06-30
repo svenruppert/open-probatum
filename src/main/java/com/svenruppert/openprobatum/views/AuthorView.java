@@ -68,8 +68,11 @@ public class AuthorView extends Composite<VerticalLayout> implements I18nSupport
 
   public static final String NAV = "author";
 
+  private static final long serialVersionUID = 1L;
+
   /** A mutable editor row backing the module table (assembled into a {@link Module} on save). */
-  static final class ModuleRow {
+  static final class ModuleRow implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
     private String title = "";
     private String content = "";
     private boolean mandatory = true;
@@ -77,13 +80,14 @@ public class AuthorView extends Composite<VerticalLayout> implements I18nSupport
   }
 
   /** A mutable editor row backing a module's resource table (→ {@link LearningResource}). */
-  static final class ResourceRow {
+  static final class ResourceRow implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
     private ResourceType type = ResourceType.ARTICLE;
     private String title = "";
     private String payload = "";
   }
 
-  private final OfferingAuthoringService service = new OfferingAuthoringService();
+  private final transient OfferingAuthoringService service = new OfferingAuthoringService();
 
   private final TextField title = new TextField();
   private final TextArea description = new TextArea();
@@ -100,10 +104,10 @@ public class AuthorView extends Composite<VerticalLayout> implements I18nSupport
   private final H3 editorHeading = new H3();
 
   /** The offering currently being edited, or {@code null} when creating a new one. */
-  private Offering editing;
-  private ModuleRow dragged;
+  private transient Offering editing;
+  private transient ModuleRow dragged;
   /** The module whose resources are being edited below the module table, or {@code null}. */
-  private ModuleRow selectedModule;
+  private transient ModuleRow selectedModule;
 
   public AuthorView() {
     VerticalLayout root = getContent();

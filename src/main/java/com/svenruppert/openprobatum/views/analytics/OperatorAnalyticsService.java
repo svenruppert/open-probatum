@@ -67,6 +67,10 @@ public final class OperatorAnalyticsService {
    */
   public record CredentialStats(int total, Map<EffectiveStatus, Long> byStatus,
                                 Map<Evidence.Type, Long> byEvidence) {
+    public CredentialStats {
+      byStatus = Map.copyOf(byStatus);
+      byEvidence = Map.copyOf(byEvidence);
+    }
   }
 
   /**
@@ -77,6 +81,9 @@ public final class OperatorAnalyticsService {
    * @param byStatus count by {@link ContentStatus}
    */
   public record ContentPipeline(String type, int total, Map<ContentStatus, Long> byStatus) {
+    public ContentPipeline {
+      byStatus = Map.copyOf(byStatus);
+    }
   }
 
   /**
