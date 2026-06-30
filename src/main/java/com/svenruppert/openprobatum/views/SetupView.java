@@ -74,6 +74,7 @@ public class SetupView extends Composite<Div>
   private static final String K_F_DN = "setup.field.displayName";
   private static final String K_F_EMAIL = "setup.field.email";
   private static final String K_SUBMIT = "setup.action.submit";
+  private static final String K_ADVANCED = "setup.advanced";
   private static final String K_E_REQ = "setup.error.required";
   private static final String K_E_MISMATCH = "setup.error.mismatch";
   private static final String K_E_TOOSHORT = "setup.error.tooShort";
@@ -124,13 +125,20 @@ public class SetupView extends Composite<Div>
         e -> submit());
     submit.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_LARGE);
 
+    // Optional onboarding: provision the team's users (each persona skippable) while
+    // setting up the instance. Collapsed by default so the minimal admin-only setup
+    // is not crowded; the operator chooses the passwords (nothing is seeded).
+    com.vaadin.flow.component.details.Details advanced = new com.vaadin.flow.component.details.Details(
+        tr(K_ADVANCED, "Advanced: create users"), UserProvisioningPanel.forOnboarding());
+    advanced.getElement().setAttribute("data-advanced", "provision");
+
     VerticalLayout form = new VerticalLayout(
         new BrandMark(),
         heading, hint,
         tokenField, usernameField,
         passwordField, confirmField,
         displayNameField, emailField,
-        submit);
+        submit, advanced);
     form.setMaxWidth("520px");
     form.setSpacing(true);
     form.setAlignItems(FlexComponent.Alignment.STRETCH);

@@ -229,6 +229,24 @@ class SetupViewBrowserlessTest extends BrowserlessTest {
         "an InvalidUsername result must NOT create an admin");
   }
 
+  @Test
+  @DisplayName("setup form offers the optional user-provisioning wizard (V00.80.00 P003b)")
+  void offersProvisioningWizard() {
+    SetupView view = constructWithBootstrapRequired();
+    assertTrue(hasAttribute(view, "data-advanced", "provision"),
+        "SetupView must offer the advanced 'create users' section");
+    assertTrue(hasAttribute(view, "data-persona", "AUTHOR"),
+        "the wizard inside lists the author persona");
+  }
+
+  private static boolean hasAttribute(com.vaadin.flow.component.Component root,
+                                      String name, String value) {
+    if (value.equals(root.getElement().getAttribute(name))) {
+      return true;
+    }
+    return root.getChildren().anyMatch(c -> hasAttribute(c, name, value));
+  }
+
   // ── helpers ──────────────────────────────────────────────────
 
   private static SetupView constructWithBootstrapRequired() {
