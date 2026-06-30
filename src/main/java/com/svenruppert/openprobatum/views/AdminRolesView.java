@@ -139,13 +139,16 @@ public class AdminRolesView extends Composite<VerticalLayout>
     Button newUser = new Button(tr(K_NEW_USER, "New user"),
         VaadinIcon.PLUS_CIRCLE.create(), e -> openCreateUserDialog());
     newUser.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+    Button wizard = new Button(tr("roles.action.wizard", "Create users"),
+        VaadinIcon.USERS.create(), e -> openProvisioningWizard());
+    wizard.getElement().setAttribute("data-action", "wizard");
     PageHeader header = new PageHeader(
         tr(K_HEADING, "Role administration"),
         tr(K_SUBTITLE,
             "Admin-only. Mutations emit RoleAssigned / RoleRevoked / "
                 + "UserCreated / UserDeleted audit events, visible in "
                 + "the /audit grid."))
-        .withActions(newUser);
+        .withActions(newUser, wizard);
     HomeButton.forStandalone(getClass()).ifPresent(header::add);
     root.add(header);
 
@@ -243,6 +246,24 @@ public class AdminRolesView extends Composite<VerticalLayout>
       success(tr(K_DEL_SUCCESS, "Deleted user {0}.", user.name()));
       refresh();
     });
+    dialog.open();
+  }
+
+  /**
+   * Opens the guided multi-user wizard (concept §5): one section per persona, each
+   * skippable, real validated accounts created via {@link UserProvisioningPanel}.
+   * Refreshes the grid on close so freshly provisioned users appear.
+   */
+  private void openProvisioningWizard() {
+    Dialog dialog = new Dialog();
+    dialog.setHeaderTitle(tr("roles.wizard.title", "Create users"));
+    dialog.setWidth("720px");
+    dialog.add(UserProvisioningPanel.forOnboarding());
+    Button close = new Button(tr("common.close", "Close"), e -> {
+      dialog.close();
+      refresh();
+    });
+    dialog.getFooter().add(close);
     dialog.open();
   }
 

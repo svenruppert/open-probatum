@@ -88,6 +88,15 @@ class AdminRolesViewBrowserlessTest extends BrowserlessTest {
   }
 
   @Test
+  @DisplayName("toolbar contains the user-provisioning wizard button (V00.80.00 P003)")
+  void wizardButtonPresent() {
+    navigate(AdminRolesView.class);
+    boolean hasWizard = $view(Button.class).all().stream()
+        .anyMatch(b -> "wizard".equals(b.getElement().getAttribute("data-action")));
+    assertTrue(hasWizard, "AdminRolesView toolbar must include the user-provisioning wizard");
+  }
+
+  @Test
   @DisplayName("Grid has five columns: Id, Name, Roles, Modify, Delete")
   void gridColumns() {
     navigate(AdminRolesView.class);
