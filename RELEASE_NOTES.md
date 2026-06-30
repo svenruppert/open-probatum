@@ -2,6 +2,56 @@
 
 ## Unreleased
 
+## 00.70.10 — Authoring & review hardening (2026-06-30)
+
+A collection patch on the V00.70 line: it bundles the entry-review findings, a
+role-model fix, and the offering-authoring rework that lets an author build a real
+multi-module learning path. All V00.10–V00.70.00 invariants carry over; no new
+persistence beyond a catalog `delete`. No live deployment (per policy, before
+V01.00.00 the release is finalize + tag + production WAR + GitHub release only).
+
+### Authoring
+
+- **Offering management end-to-end** (§16.1): the author's surface is rebuilt as an
+  **inventory** of their own offerings (status + per-status actions) plus an editor
+  that composes the learning path from **multiple modules** in a drag-reorderable,
+  inline-editable table. Create produces a DRAFT (submitted for review explicitly);
+  editing a DRAFT updates it in place, editing a PUBLISHED offering branches a fresh
+  draft version (so a published record an issued credential pins is never rewritten).
+- **Deactivate / delete with a referential-integrity guard**: deactivation
+  (DEPRECATED) is the reference-preserving default; hard delete is allowed only for a
+  DRAFT that no other offering lists as a prerequisite and no issued credential
+  references (`CatalogIntegrityService`).
+- **Learning resources per module**: each module carries typed resources (article /
+  checklist inline, video / download / external-link as URLs), authored in a
+  master-detail table; URL-type payloads are validated.
+
+### Review & assessment
+
+- **Reviewers see the full content they judge**: each review-queue card now shows the
+  reviewable substance per type (question options + correct answer, offering modules,
+  lab instructions/acceptance, bundle members, workshop schedule, coaching details).
+- **Assessors see the lab spec**: each submission card shows the lab's instructions +
+  acceptance criteria the assessor judges against.
+
+### Roles & access
+
+- **Dedicated COACH role** (the seventh role): coaching is now authored *and*
+  delivered by one role (`coaching:author` + `coaching:provide`); `coaching:provide`
+  is removed from Reviewer. This resolves the prior incoherence where a coach had to
+  hold both AUTHOR and REVIEWER.
+- **Authorization gate consistency**: every permission-gated authoring/governance view
+  now admits PLATFORM_ADMIN (no more dead admin nav links); a new `metrics:read`
+  permission lets authors **and** reviewers reach the Quality metrics consistently.
+
+### Platform
+
+- `CatalogLifecycleService.transition` now serialises on a process-wide lock (the
+  mint-once pattern), and `CatalogRepository` gains `delete`. Entry review #1 rated
+  4/5; exit review #2 before close. EN + DE i18n throughout (British English). The
+  mutation-coverage gate is paused at the maintainer's request; acceptance rests on
+  the full test suite (573 green) and the two review gates.
+
 ## 00.70.00 — Operator Analytics (2026-06-27)
 
 The academy gains an **academy-wide operator dashboard** (concept §20.x, drafted
