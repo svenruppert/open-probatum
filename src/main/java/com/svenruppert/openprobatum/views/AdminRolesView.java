@@ -309,8 +309,9 @@ public class AdminRolesView extends Composite<VerticalLayout>
         warn(tr(K_CR_E_TAKEN, "That username or display name is already taken."));
         return;
       }
-      AppUser created = new AppUser(nextId(), display,
-          EnumSet.of(AuthorizationRole.LEARNER, r));
+      // Exactly the chosen role — the same contract as the provisioning wizard;
+      // LEARNER is never added implicitly (assign it explicitly when wanted).
+      AppUser created = new AppUser(nextId(), display, EnumSet.of(r));
       try {
         UserDirectoryProvider.directory().addUser(u, p, created);
         success(tr(K_CR_SUCCESS, "Created user {0}.", u));

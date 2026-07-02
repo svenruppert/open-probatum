@@ -24,6 +24,7 @@ import com.svenruppert.openprobatum.security.AppClock;
 import com.svenruppert.openprobatum.security.bootstrap.BootstrapWiring;
 import com.svenruppert.openprobatum.security.model.AppUser;
 import com.svenruppert.openprobatum.security.model.Credentials;
+import com.svenruppert.openprobatum.security.roles.AuthorizationRole;
 import com.svenruppert.openprobatum.security.services.AppAuthenticationService;
 import com.svenruppert.openprobatum.security.services.SessionStoreProvider;
 import com.svenruppert.openprobatum.security.services.SessionVersionResolver;
@@ -160,7 +161,29 @@ public class AppLoginView
 
   @Override
   public void navigateToApp() {
-    UI.getCurrent().navigate(DashboardView.class);
+    Class<? extends Component> landing = SubjectStores.subjectStore()
+        .currentSubject(AppUser.class)
+        .<Class<? extends Component>>map(AppLoginView::landingViewFor)
+        .orElse(PublicHomeView.class);
+    UI.getCurrent().navigate(landing);
+  }
+
+  /**
+   * The post-login landing view — the first view the subject's roles may
+   * actually open. The dashboard is learner-gated ({@code @VisibleFor(LEARNER)}),
+   * so a pure author/reviewer/coach/… must land on their working view instead;
+   * navigating them to the dashboard would bounce straight to the public home.
+   */
+  static Class<? extends Component> landingViewFor(AppUser user) {
+    var roles = user.roles();
+    if (roles.contains(AuthorizationRole.LEARNER)) return DashboardView.class;
+    if (roles.contains(AuthorizationRole.PLATFORM_ADMIN)) return AdminRolesView.class;
+    if (roles.contains(AuthorizationRole.AUTHOR)) return AuthorView.class;
+    if (roles.contains(AuthorizationRole.REVIEWER)) return ReviewView.class;
+    if (roles.contains(AuthorizationRole.COACH)) return CoachingSlotsView.class;
+    if (roles.contains(AuthorizationRole.CREDENTIAL_MANAGER)) return GovernanceView.class;
+    // VERIFIER (and any roleless subject): the public verification page.
+    return ValidationView.class;
   }
 
   private static void recordSession(AppUser user) {

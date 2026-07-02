@@ -19,6 +19,8 @@ package com.svenruppert.openprobatum.views;
 import com.svenruppert.dependencies.core.logger.HasLogger;
 import com.svenruppert.openprobatum.i18n.I18nSupport;
 import com.svenruppert.openprobatum.security.model.AppUser;
+import com.svenruppert.openprobatum.security.roles.AuthorizationRole;
+import com.svenruppert.openprobatum.security.roles.VisibleFor;
 import com.svenruppert.openprobatum.views.analytics.OperatorDashboardView;
 import com.svenruppert.openprobatum.views.main.PushDemoView;
 import com.svenruppert.openprobatum.views.ui.BrandMark;
@@ -156,6 +158,7 @@ public class MainLayout extends AppLayout
 
   private Component buildDrawer() {
     Set<String> grants = currentGrants();
+    Set<AuthorizationRole> roles = currentRoles();
     Div container = new Div();
     container.getStyle().set("padding", "var(--lumo-space-s)");
     container.getStyle().set("display", "flex");
@@ -165,72 +168,72 @@ public class MainLayout extends AppLayout
     // Public — always.
     container.add(section(tr(K_NAV_SECTION_PUBLIC, "Public"),
         item(tr(K_NAV_HOME, "Home"), VaadinIcon.HOME,
-            PublicHomeView.class, null, grants),
+            PublicHomeView.class, null, grants, roles),
         item(tr(K_NAV_ABOUT, "About"), VaadinIcon.INFO_CIRCLE,
-            AboutView.class, null, grants),
+            AboutView.class, null, grants, roles),
         item(tr(K_NAV_YOUTUBE, "Youtube"), VaadinIcon.PLAY_CIRCLE,
-            YoutubeView.class, null, grants),
+            YoutubeView.class, null, grants, roles),
         item(tr(K_NAV_SECURITY, "Security features"), VaadinIcon.SHIELD,
-            SecurityFeaturesView.class, null, grants)));
+            SecurityFeaturesView.class, null, grants, roles)));
 
     // Application — any subject with app:view.
     SideNav app = section(tr(K_NAV_SECTION_APPLICATION, "Application"),
         item(tr(K_NAV_DASHBOARD, "Dashboard"), VaadinIcon.DASHBOARD,
-            DashboardView.class, "app:view", grants),
+            DashboardView.class, "app:view", grants, roles),
         item(tr(K_NAV_CATALOG, "Catalog"), VaadinIcon.OPEN_BOOK,
-            CatalogView.class, "app:view", grants),
+            CatalogView.class, "app:view", grants, roles),
         item(tr(K_NAV_WALLET, "My credentials"), VaadinIcon.DIPLOMA,
-            WalletView.class, "app:view", grants),
+            WalletView.class, "app:view", grants, roles),
         item(tr(K_NAV_LABS, "Labs"), VaadinIcon.FLASK,
-            LabView.class, "app:view", grants),
+            LabView.class, "app:view", grants, roles),
         item(tr(K_NAV_BUNDLES, "Bundles"), VaadinIcon.PACKAGE,
-            BundleView.class, "app:view", grants),
+            BundleView.class, "app:view", grants, roles),
         item(tr(K_NAV_WORKSHOPS, "Workshops"), VaadinIcon.CALENDAR_CLOCK,
-            WorkshopView.class, "app:view", grants),
+            WorkshopView.class, "app:view", grants, roles),
         item(tr(K_NAV_COACHING, "Coaching"), VaadinIcon.COMMENTS,
-            CoachingView.class, "app:view", grants),
+            CoachingView.class, "app:view", grants, roles),
         item(tr(K_NAV_AUTHOR, "Author"), VaadinIcon.EDIT,
-            AuthorView.class, "author:content", grants),
+            AuthorView.class, "author:content", grants, roles),
         item(tr(K_NAV_QUESTIONS, "Question bank"), VaadinIcon.QUESTION,
-            QuestionBankView.class, "author:content", grants),
+            QuestionBankView.class, "author:content", grants, roles),
         item(tr(K_NAV_LABS_AUTHOR, "Lab authoring"), VaadinIcon.FLASK,
-            LabBankView.class, "author:content", grants),
+            LabBankView.class, "author:content", grants, roles),
         item(tr(K_NAV_BUNDLES_AUTHOR, "Bundle authoring"), VaadinIcon.PACKAGE,
-            BundleAuthorView.class, "author:content", grants),
+            BundleAuthorView.class, "author:content", grants, roles),
         item(tr(K_NAV_WORKSHOPS_AUTHOR, "Workshop authoring"), VaadinIcon.CALENDAR_CLOCK,
-            WorkshopAuthorView.class, "author:content", grants),
+            WorkshopAuthorView.class, "author:content", grants, roles),
         item(tr(K_NAV_COACHING_AUTHOR, "Coaching authoring"), VaadinIcon.COMMENTS,
-            CoachingAuthorView.class, "coaching:author", grants),
+            CoachingAuthorView.class, "coaching:author", grants, roles),
         item(tr(K_NAV_REVIEW, "Review queue"), VaadinIcon.CHECK_SQUARE_O,
-            ReviewView.class, "author:review", grants),
+            ReviewView.class, "author:review", grants, roles),
         item(tr(K_NAV_ASSESS, "Assessment queue"), VaadinIcon.CLIPBOARD_CHECK,
-            AssessmentQueueView.class, "lab:assess", grants),
+            AssessmentQueueView.class, "lab:assess", grants, roles),
         item(tr(K_NAV_ATTENDANCE, "Attendance"), VaadinIcon.CLIPBOARD_USER,
-            WorkshopAttendanceView.class, "workshop:run", grants),
+            WorkshopAttendanceView.class, "workshop:run", grants, roles),
         item(tr(K_NAV_COACHING_SLOTS, "Coaching slots"), VaadinIcon.COMMENTS,
-            CoachingSlotsView.class, "coaching:provide", grants),
+            CoachingSlotsView.class, "coaching:provide", grants, roles),
         item(tr(K_NAV_COACHING_SESSIONS, "Coaching sessions"), VaadinIcon.HANDSHAKE,
-            CoachingSessionView.class, "coaching:provide", grants),
+            CoachingSessionView.class, "coaching:provide", grants, roles),
         item(tr(K_NAV_METRICS, "Quality metrics"), VaadinIcon.CHART,
-            MetricsView.class, "metrics:read", grants),
+            MetricsView.class, "metrics:read", grants, roles),
         item(tr(K_NAV_PUSHDEMO, "Push demo"), VaadinIcon.BELL,
-            PushDemoView.class, "app:view", grants));
+            PushDemoView.class, "app:view", grants, roles));
     if (app != null) container.add(app);
 
     // Administration — only when at least one admin permission is held.
     SideNav admin = section(tr(K_NAV_SECTION_ADMINISTRATION, "Administration"),
         item(tr(K_NAV_AUDIT, "Audit log"), VaadinIcon.RECORDS,
-            AuditView.class, "audit:read", grants),
+            AuditView.class, "audit:read", grants, roles),
         item(tr(K_NAV_SESSIONS, "Active sessions"), VaadinIcon.USERS,
-            SessionsView.class, "admin:sessions", grants),
+            SessionsView.class, "admin:sessions", grants, roles),
         item(tr(K_NAV_ROLES, "Role administration"), VaadinIcon.SHIELD,
-            AdminRolesView.class, "admin:roles", grants),
+            AdminRolesView.class, "admin:roles", grants, roles),
         item(tr(K_NAV_GOVERNANCE, "Credential governance"), VaadinIcon.DIPLOMA,
-            GovernanceView.class, "credential:manage", grants),
+            GovernanceView.class, "credential:manage", grants, roles),
         item(tr(K_NAV_CRED_AUDIT, "Credential audit"), VaadinIcon.RECORDS,
-            CredentialAuditView.class, "credential:manage", grants),
+            CredentialAuditView.class, "credential:manage", grants, roles),
         item(tr(K_NAV_OPERATOR, "Operator dashboard"), VaadinIcon.DASHBOARD,
-            OperatorDashboardView.class, "analytics:read", grants));
+            OperatorDashboardView.class, "analytics:read", grants, roles));
     if (admin != null) container.add(admin);
 
     return container;
@@ -257,15 +260,25 @@ public class MainLayout extends AppLayout
 
   /**
    * Builds a {@link SideNavItem} when the current subject holds the
-   * required permission (or when no permission is required). Returns
-   * {@code null} otherwise — {@link #section(String, SideNavItem...)}
+   * required permission (or when no permission is required) AND may
+   * actually open the target route: when the target view carries
+   * {@link VisibleFor @VisibleFor}, the subject needs one of those
+   * roles — otherwise the link would be dead (the route evaluator
+   * bounces the click to the public home). Returns {@code null} when
+   * either gate fails — {@link #section(String, SideNavItem...)}
    * drops nulls.
    */
   private static SideNavItem item(String label, VaadinIcon icon,
                                   Class<? extends Component> target,
                                   String requiredPermission,
-                                  Set<String> grants) {
+                                  Set<String> grants,
+                                  Set<AuthorizationRole> roles) {
     if (requiredPermission != null && !grants.contains(requiredPermission)) {
+      return null;
+    }
+    VisibleFor visibleFor = target.getAnnotation(VisibleFor.class);
+    if (visibleFor != null
+        && java.util.Arrays.stream(visibleFor.value()).noneMatch(roles::contains)) {
       return null;
     }
     SideNavItem nav = new SideNavItem(label, target, icon.create());
@@ -281,6 +294,13 @@ public class MainLayout extends AppLayout
   private static Set<String> currentGrants() {
     return SubjectStores.subjectStore().currentSubject(AppUser.class)
         .map(MainLayout::permissionsOf)
+        .orElseGet(Set::of);
+  }
+
+  /** The current subject's roles — empty set when nobody is signed in. */
+  private static Set<AuthorizationRole> currentRoles() {
+    return SubjectStores.subjectStore().currentSubject(AppUser.class)
+        .map(AppUser::roles)
         .orElseGet(Set::of);
   }
 

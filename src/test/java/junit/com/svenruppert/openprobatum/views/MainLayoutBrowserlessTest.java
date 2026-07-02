@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("MainLayout — auth-action button + role-gated drawer sections")
@@ -88,6 +89,39 @@ class MainLayoutBrowserlessTest extends BrowserlessTest {
     assertTrue(adminItems.contains("Audit log"));
     assertTrue(adminItems.contains("Active sessions"));
     assertTrue(adminItems.contains("Role administration"));
+  }
+
+  @Test
+  @DisplayName("staff-only AUTHOR sees no learner links — drawer matches the route gates (P008)")
+  void staffOnlyUserSeesNoDeadLearnerLinks() throws Exception {
+    AppUser author = new AppUser(14L, "Ann", EnumSet.of(AuthorizationRole.AUTHOR));
+    SubjectStores.subjectStore().setCurrentSubject(author, AppUser.class);
+
+    MainLayout layout = new MainLayout();
+
+    List<String> app = drawerItemsIn(layout, "Application");
+    assertTrue(app.contains("Author"), "the author's working views stay linked");
+    assertTrue(app.contains("Quality metrics"), "metrics:read views stay linked");
+    assertFalse(app.contains("Dashboard"),
+        "learner-gated route must not be linked — the click would bounce (dead link)");
+    assertFalse(app.contains("Catalog"));
+    assertFalse(app.contains("Push demo"));
+  }
+
+  @Test
+  @DisplayName("admin WITHOUT the LEARNER role sees no learner links either (consistent gate)")
+  void adminWithoutLearnerRoleSeesNoLearnerLinks() throws Exception {
+    AppUser admin = new AppUser(15L, "Root",
+        EnumSet.of(AuthorizationRole.PLATFORM_ADMIN));
+    SubjectStores.subjectStore().setCurrentSubject(admin, AppUser.class);
+
+    MainLayout layout = new MainLayout();
+
+    List<String> app = drawerItemsIn(layout, "Application");
+    assertFalse(app.contains("Dashboard"),
+        "DashboardView is @VisibleFor(LEARNER) — an admin without that role gets bounced");
+    assertTrue(app.contains("Author"), "admin keeps every permission-and-role-granted link");
+    assertTrue(drawerItemsIn(layout, "Administration").contains("Role administration"));
   }
 
   @Test
