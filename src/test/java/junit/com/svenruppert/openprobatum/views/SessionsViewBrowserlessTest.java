@@ -16,7 +16,9 @@
 
 package junit.com.svenruppert.openprobatum.views;
 
+import com.svenruppert.openprobatum.security.AppTenant;
 import com.svenruppert.openprobatum.security.model.AppUser;
+import com.svenruppert.openprobatum.security.model.UserDirectoryProvider;
 import com.svenruppert.openprobatum.security.roles.AuthorizationRole;
 import com.svenruppert.openprobatum.security.services.SessionStoreProvider;
 import com.svenruppert.openprobatum.views.SessionsView;
@@ -28,7 +30,10 @@ import com.svenruppert.jsentinel.authorization.api.JSentinelServiceResolver;
 import com.svenruppert.jsentinel.authorization.api.SubjectStores;
 import com.svenruppert.jsentinel.authorization.api.tenant.TenantId;
 import com.svenruppert.jsentinel.logout.SubjectId;
+import com.svenruppert.jsentinel.session.InMemoryJSentinelVersionStore;
 import com.svenruppert.jsentinel.session.JSentinelVersion;
+import com.svenruppert.jsentinel.session.JSentinelVersionKey;
+import com.svenruppert.jsentinel.session.JSentinelVersionStore;
 import com.svenruppert.jsentinel.session.SessionId;
 import com.svenruppert.jsentinel.session.SessionRecord;
 import com.svenruppert.jsentinel.session.SessionStatus;
@@ -45,6 +50,7 @@ import java.util.EnumSet;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -111,6 +117,65 @@ class SessionsViewBrowserlessTest extends BrowserlessTest {
         .orElseThrow();
     assertEquals(SessionStatus.REVOKED, updated.status(),
         "revoke callback must persist a REVOKED status on the SessionRecord");
+  }
+
+  @Test
+  @DisplayName("logout's store-backed registry clears the subject's ACTIVE record — no lingering session (P006)")
+  void logoutRegistryClearsActiveRecord() {
+    // MainLayout's LOGOUT_SERVICE is wired with exactly this registry over the
+    // app's SessionStore; a CurrentSession logout calls unregister(subject,
+    // sessionId). Verify that mechanism against the real store so a logged-out
+    // session no longer lingers as ACTIVE (which had inflated the dashboard count).
+    var registry = new com.svenruppert.jsentinel.logout.StoreBackedSubjectSessionRegistry(
+        SessionStoreProvider.sessionStore());
+    Instant now = Instant.now();
+    SessionRecord active = new SessionRecord(
+        SessionId.of("logout-session"), SubjectId.of("500"), TenantId.DEFAULT,
+        now, now, JSentinelVersion.INITIAL, SessionStatus.ACTIVE);
+    SessionStoreProvider.sessionStore().save(active);
+
+    registry.unregister(SubjectId.of("500"), "logout-session");
+
+    boolean stillActive = SessionStoreProvider.sessionStore()
+        .findById(SessionId.of("logout-session"))
+        .map(r -> r.status() == SessionStatus.ACTIVE)
+        .orElse(false);
+    assertFalse(stillActive,
+        "after logout the session record must not remain ACTIVE in the store");
+  }
+
+  @Test
+  @DisplayName("revoke bumps the subject's JSentinel version so the drift enforcer ends the session (P005)")
+  void revokeBumpsSubjectVersion() throws Exception {
+    JSentinelVersionStore previousVersionStore =
+        JSentinelServiceResolver.findJSentinelVersionStore().orElse(null);
+    JSentinelVersionStore versions = new InMemoryJSentinelVersionStore();
+    JSentinelServiceResolver.setJSentinelVersionStore(versions);
+    try {
+      // The revoked session must resolve to a real user for the version bump.
+      UserDirectoryProvider.directory().addUser("kate", "correct-horse-battery-staple",
+          new AppUser(4242L, "Kate", EnumSet.of(AuthorizationRole.LEARNER)));
+      JSentinelVersionKey key =
+          new JSentinelVersionKey(AppTenant.ID, SubjectId.of("4242"));
+      long before = versions.current(key).value();
+
+      Instant now = Instant.now();
+      SessionRecord active = new SessionRecord(
+          SessionId.of("kate-session"), SubjectId.of("4242"), TenantId.DEFAULT,
+          now, now, JSentinelVersion.INITIAL, SessionStatus.ACTIVE);
+      SessionStoreProvider.sessionStore().save(active);
+
+      SessionsView view = navigate(SessionsView.class);
+      java.lang.reflect.Method m = SessionsView.class
+          .getDeclaredMethod("revoke", SessionRecord.class);
+      m.setAccessible(true);
+      m.invoke(view, active);
+
+      assertTrue(versions.current(key).value() > before,
+          "revoke must increment the subject's version so the enforcer bounces the session");
+    } finally {
+      JSentinelServiceResolver.setJSentinelVersionStore(previousVersionStore);
+    }
   }
 
   @Test

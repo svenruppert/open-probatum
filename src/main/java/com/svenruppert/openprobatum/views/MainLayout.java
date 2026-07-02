@@ -31,9 +31,11 @@ import com.svenruppert.jsentinel.authorization.api.JSentinelServiceResolver;
 import com.svenruppert.jsentinel.authorization.api.SubjectStores;
 import com.svenruppert.jsentinel.logout.LogoutScope;
 import com.svenruppert.jsentinel.logout.LogoutService;
+import com.svenruppert.jsentinel.logout.StoreBackedSubjectSessionRegistry;
 import com.svenruppert.jsentinel.logout.SubjectId;
 import com.svenruppert.jsentinel.logout.vaadin.DefaultVaadinLogoutGateway;
 import com.svenruppert.jsentinel.logout.vaadin.VaadinLogoutService;
+import com.svenruppert.openprobatum.security.services.SessionStoreProvider;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -112,7 +114,13 @@ public class MainLayout extends AppLayout
           new DefaultVaadinLogoutGateway(),
           "/" + AppLoginView.NAV,
           /* closeVaadinSession= */ true,
-          /* invalidateHttpSession= */ true);
+          /* invalidateHttpSession= */ true,
+          // Without a registry the logout invalidates the HTTP/Vaadin session but
+          // leaves the persistent SessionRecord on ACTIVE forever — every past
+          // login then lingers in SessionsView and inflates the Dashboard's
+          // "active sessions" count. The store-backed registry clears the
+          // subject's records on logout so the store reflects reality (P006).
+          new StoreBackedSubjectSessionRegistry(SessionStoreProvider.sessionStore()));
 
   private final Div authActionSlot = new Div();
   private final Div drawerSlot = new Div();

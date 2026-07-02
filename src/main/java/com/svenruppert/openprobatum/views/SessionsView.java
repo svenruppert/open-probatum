@@ -20,6 +20,8 @@ import com.svenruppert.openprobatum.i18n.I18nSupport;
 import com.svenruppert.openprobatum.security.AppClock;
 import com.svenruppert.openprobatum.security.SessionAccess;
 import com.svenruppert.openprobatum.security.model.AppUser;
+import com.svenruppert.openprobatum.security.model.UserDirectoryProvider;
+import com.svenruppert.openprobatum.security.services.VersionBumper;
 import com.svenruppert.openprobatum.security.permissions.AppPermission;
 import com.svenruppert.openprobatum.security.services.SessionStoreProvider;
 import com.svenruppert.openprobatum.views.ui.EmptyState;
@@ -252,6 +254,14 @@ public class SessionsView extends Composite<VerticalLayout>
   private void revoke(SessionRecord record) {
     SessionStoreProvider.sessionStore()
         .save(record.withStatus(SessionStatus.REVOKED));
+    // Marking the record REVOKED is only a store flag — nothing enforces it per
+    // request. Bump the subject's JSentinel version so the drift enforcer
+    // (JSentinelVersionEnforcerListener, already wired) bounces the session to
+    // the login view on its next navigation. NOTE: version drift is per SUBJECT,
+    // so this ends ALL of that user's sessions, not selectively the one row —
+    // jSentinel 00.75.20 offers no per-session request enforcement.
+    parseSubjectId(record).flatMap(UserDirectoryProvider.directory()::findById)
+        .ifPresent(VersionBumper::bump);
     // Emit the audit event the subtitle promises, so the revoke is
     // recorded as a SessionInvalidated in the audit trail.
     try {
@@ -262,5 +272,14 @@ public class SessionsView extends Composite<VerticalLayout>
       // audit must never block the admin action
     }
     refresh();
+  }
+
+  /** The numeric user id stored in the session record's subject id, if parseable. */
+  private static java.util.Optional<Long> parseSubjectId(SessionRecord record) {
+    try {
+      return java.util.Optional.of(Long.valueOf(record.subjectId().value()));
+    } catch (NumberFormatException e) {
+      return java.util.Optional.empty();
+    }
   }
 }
