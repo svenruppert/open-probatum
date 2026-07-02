@@ -31,6 +31,16 @@ import java.util.UUID;
  */
 public final class ProgressService {
 
+  /**
+   * Serialises the find→add→save read-modify-write across ALL callers. The views
+   * build a {@code new ProgressService()} per click, so an instance
+   * {@code synchronized} would lock a throw-away monitor — two near-simultaneous
+   * completions could then each read the same snapshot and the second save would
+   * clobber the first, silently dropping a completed module (the same reason
+   * {@code WorkshopEnrolmentService.SEAT_LOCK} is static).
+   */
+  private static final Object PROGRESS_LOCK = new Object();
+
   private final ProgressRepository repository;
 
   public ProgressService(ProgressRepository repository) {
@@ -42,10 +52,12 @@ public final class ProgressService {
   }
 
   /** Marks {@code moduleId} complete for {@code userId} on {@code offeringId}. */
-  public synchronized void markModuleComplete(Long userId, UUID offeringId, UUID moduleId) {
-    LearnerProgress current = repository.find(userId, offeringId)
-        .orElseGet(() -> LearnerProgress.empty(userId, offeringId));
-    repository.save(current.withModuleCompleted(moduleId));
+  public void markModuleComplete(Long userId, UUID offeringId, UUID moduleId) {
+    synchronized (PROGRESS_LOCK) {
+      LearnerProgress current = repository.find(userId, offeringId)
+          .orElseGet(() -> LearnerProgress.empty(userId, offeringId));
+      repository.save(current.withModuleCompleted(moduleId));
+    }
   }
 
   /** The set of modules the learner has completed on the offering. */
@@ -73,6 +85,8 @@ public final class ProgressService {
     }
     Set<UUID> done = completedModules(userId, offering.id());
     long completed = mandatory.stream().map(m -> m.id()).filter(done::contains).count();
-    return (int) (completed * 100 / mandatory.size());
+    // Round to nearest, not truncate: 2 of 3 mandatory modules is 67 %, not 66 %.
+    // The 0 % and 100 % edges are exact either way.
+    return (int) Math.round(completed * 100.0 / mandatory.size());
   }
 }

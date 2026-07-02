@@ -20,6 +20,7 @@ import com.svenruppert.openprobatum.catalog.LearningPath;
 import com.svenruppert.openprobatum.catalog.Module;
 import com.svenruppert.openprobatum.catalog.Offering;
 import com.svenruppert.openprobatum.progress.InMemoryProgressRepository;
+import com.svenruppert.openprobatum.progress.ProgressRepository;
 import com.svenruppert.openprobatum.progress.ProgressService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -88,5 +89,56 @@ class ProgressServiceTest {
     service.markModuleComplete(ALICE, offering.id(), core1.id());
     assertTrue(service.completedModules(BOB, offering.id()).isEmpty());
     assertEquals(0, service.percentComplete(BOB, offering));
+  }
+
+  @Test
+  @DisplayName("the completion percent rounds to nearest — 1 of 3 is 33 %, 2 of 3 is 67 % (P019)")
+  void percentRoundsToNearest() {
+    Module m1 = Module.mandatory("A", "c");
+    Module m2 = Module.mandatory("B", "c");
+    Module m3 = Module.mandatory("C", "c");
+    Offering threeMandatory = Offering.publicPath("Triple", "d",
+        new LearningPath("T", List.of(m1, m2, m3)));
+
+    service.markModuleComplete(ALICE, threeMandatory.id(), m1.id());
+    assertEquals(33, service.percentComplete(ALICE, threeMandatory), "1 of 3 → 33 %");
+
+    service.markModuleComplete(ALICE, threeMandatory.id(), m2.id());
+    assertEquals(67, service.percentComplete(ALICE, threeMandatory),
+        "2 of 3 → 67 % (rounded), not the truncated 66 %");
+
+    service.markModuleComplete(ALICE, threeMandatory.id(), m3.id());
+    assertEquals(100, service.percentComplete(ALICE, threeMandatory), "3 of 3 → exactly 100 %");
+  }
+
+  @Test
+  @DisplayName("concurrent completions of distinct modules never lose an update (P011)")
+  void concurrentCompletionsDoNotLoseUpdates() throws InterruptedException {
+    // Each request builds its own ProgressService over the shared repository —
+    // an instance lock would not serialise the read-modify-write. Fire all the
+    // module completions concurrently; every one must survive.
+    ProgressRepository shared = new InMemoryProgressRepository();
+    List<Module> modules = List.of(core1, core2, bonus);
+    java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+    List<Thread> workers = new java.util.ArrayList<>();
+    for (Module m : modules) {
+      Thread t = new Thread(() -> {
+        try {
+          start.await();
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          return;
+        }
+        new ProgressService(shared).markModuleComplete(ALICE, offering.id(), m.id());
+      });
+      workers.add(t);
+      t.start();
+    }
+    start.countDown();
+    for (Thread t : workers) {
+      t.join();
+    }
+    assertEquals(3, new ProgressService(shared).completedModules(ALICE, offering.id()).size(),
+        "all three concurrent completions must be recorded — none clobbered");
   }
 }
