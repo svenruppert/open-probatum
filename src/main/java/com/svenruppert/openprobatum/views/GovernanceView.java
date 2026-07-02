@@ -107,7 +107,10 @@ public class GovernanceView extends Composite<VerticalLayout> implements I18nSup
           () -> new CredentialGovernance(repository)
               .reissue(credential.id(), carriedOverExpiry(credential)), false));
     }
-    if (stored != CredentialStatus.REVOKED) {
+    // Revoke only for a still-live credential (VALID/SUSPENDED); a SUPERSEDED or
+    // REVOKED credential is terminal, so the button would be inert (matches the
+    // CredentialGovernance state guards).
+    if (stored == CredentialStatus.VALID || stored == CredentialStatus.SUSPENDED) {
       actions.add(action(tr("governance.revoke", "Revoke"),
           () -> new CredentialGovernance(repository).revoke(credential.id()), true));
     }

@@ -133,4 +133,20 @@ class EntitlementServiceTest {
     // Once published, the normal visibility rules apply again.
     assertEquals(AccessDecision.GRANTED, service.canAccess(learner, published(draft)));
   }
+
+  @Test
+  @DisplayName("a DEPRECATED offering stays reachable — it is reference-preserving, not withdrawn (exit-review F1)")
+  void deprecatedStaysReachable() {
+    // DEPRECATED = "being phased out, still reachable": a learner mid-path must not
+    // be locked out, so access follows the normal visibility rules.
+    Offering deprecated = Offering.publicPath("Phasing out", "d", path())
+        .withStatus(ContentStatus.DEPRECATED);
+    assertEquals(AccessDecision.GRANTED, service.canAccess(learner, deprecated));
+
+    // ARCHIVED / REPLACED, by contrast, are never reachable.
+    assertEquals(AccessDecision.UNAVAILABLE, service.canAccess(learner,
+        Offering.publicPath("Archived", "d", path()).withStatus(ContentStatus.ARCHIVED)));
+    assertEquals(AccessDecision.UNAVAILABLE, service.canAccess(learner,
+        Offering.publicPath("Replaced", "d", path()).withStatus(ContentStatus.REPLACED)));
+  }
 }

@@ -112,6 +112,24 @@ class ProgressServiceTest {
   }
 
   @Test
+  @DisplayName("rounding never reports 100 % while a module is still outstanding (exit-review F4)")
+  void roundingNeverFakesCompletion() {
+    // 199 of 200 mandatory modules rounds to 100 %, but the path is not complete —
+    // the display must cap at 99 % so 100 % always means actually done.
+    List<Module> modules = new java.util.ArrayList<>();
+    for (int i = 0; i < 200; i++) {
+      modules.add(Module.mandatory("M" + i, "c"));
+    }
+    Offering big = Offering.publicPath("Big", "d", new LearningPath("B", modules));
+    for (int i = 0; i < 199; i++) {
+      service.markModuleComplete(ALICE, big.id(), modules.get(i).id());
+    }
+    assertFalse(service.isPathComplete(ALICE, big), "one module still outstanding");
+    assertEquals(99, service.percentComplete(ALICE, big),
+        "must not round up to 100 % while incomplete");
+  }
+
+  @Test
   @DisplayName("concurrent completions of distinct modules never lose an update (P011)")
   void concurrentCompletionsDoNotLoseUpdates() throws InterruptedException {
     // Each request builds its own ProgressService over the shared repository —

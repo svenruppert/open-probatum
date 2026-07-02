@@ -143,9 +143,21 @@ public record Offering(UUID id, UUID lineageId, int version, ContentStatus statu
         newVisibility, newAccessCode, newPrerequisiteOfferingId);
   }
 
-  /** @return {@code true} when this offering is PUBLISHED (learner-visible). */
+  /** @return {@code true} when this offering is PUBLISHED (learner-visible in the catalogue). */
   public boolean isPublished() {
     return status == ContentStatus.PUBLISHED;
+  }
+
+  /**
+   * @return {@code true} when a learner may still <em>enter</em> this offering:
+   *         {@link ContentStatus#PUBLISHED} or {@link ContentStatus#DEPRECATED}.
+   *         DEPRECATED is reference-preserving ("being phased out, still
+   *         reachable"), so a learner already working a now-deprecated path is not
+   *         locked out — unlike DRAFT / IN_REVIEW / ARCHIVED / REPLACED, which are
+   *         never learner-reachable.
+   */
+  public boolean isLearnerReachable() {
+    return status == ContentStatus.PUBLISHED || status == ContentStatus.DEPRECATED;
   }
 
   /**

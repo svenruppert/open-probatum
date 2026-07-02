@@ -86,7 +86,12 @@ public final class ProgressService {
     Set<UUID> done = completedModules(userId, offering.id());
     long completed = mandatory.stream().map(m -> m.id()).filter(done::contains).count();
     // Round to nearest, not truncate: 2 of 3 mandatory modules is 67 %, not 66 %.
-    // The 0 % and 100 % edges are exact either way.
-    return (int) Math.round(completed * 100.0 / mandatory.size());
+    int percent = (int) Math.round(completed * 100.0 / mandatory.size());
+    // ...but never round UP to 100 % while a module is still outstanding (e.g.
+    // 199 of 200 → 99.5 → 100): 100 % must mean actually complete.
+    if (percent >= 100 && completed < mandatory.size()) {
+      return 99;
+    }
+    return percent;
   }
 }

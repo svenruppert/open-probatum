@@ -108,6 +108,14 @@ public class AdminRolesView extends Composite<VerticalLayout>
   private static final String K_EMPTY_BODY = "roles.empty.body";
   private static final String K_UNIT_USERS = "roles.unit.users";
 
+  /**
+   * Serialises the last-administrator check-then-act across the per-request view
+   * instances, so two concurrent admin sessions removing each other cannot both
+   * pass the "another admin still exists" check and leave the instance with zero
+   * administrators.
+   */
+  private static final Object ADMIN_MUTATION_LOCK = new Object();
+
   private final Grid<AppUser> grid = new Grid<>(AppUser.class, false);
   private final FilterBar filterBar = new FilterBar();
 
@@ -216,15 +224,19 @@ public class AdminRolesView extends Composite<VerticalLayout>
         return;
       }
       // Refuse to remove the last administrator — otherwise the instance drops
-      // back into the (token-gated, unreachable) bootstrap flow for everyone.
-      if (role == AuthorizationRole.PLATFORM_ADMIN
-          && UserDirectoryProvider.directory().isLastAdministrator(user.id())) {
-        warn(tr(K_LAST_ADMIN,
-            "Cannot remove the last administrator — assign the role to another "
-                + "user first."));
-        return;
+      // back into the (token-gated, unreachable) bootstrap flow for everyone. The
+      // check + revoke run under one lock so two concurrent admin sessions cannot
+      // both pass and leave zero admins.
+      synchronized (ADMIN_MUTATION_LOCK) {
+        if (role == AuthorizationRole.PLATFORM_ADMIN
+            && UserDirectoryProvider.directory().isLastAdministrator(user.id())) {
+          warn(tr(K_LAST_ADMIN,
+              "Cannot remove the last administrator — assign the role to another "
+                  + "user first."));
+          return;
+        }
+        UserDirectoryProvider.directory().revokeRole(user.id(), role);
       }
-      UserDirectoryProvider.directory().revokeRole(user.id(), role);
       VersionBumper.bump(user);
       success(tr(K_ED_REVOKED, "Revoked {0} from {1}.", role.name(), user.name()));
       refresh();
@@ -259,7 +271,17 @@ public class AdminRolesView extends Composite<VerticalLayout>
     dialog.setConfirmText(tr(K_DEL_BTN, "Delete"));
     dialog.setConfirmButtonTheme("error primary");
     dialog.addConfirmListener(e -> {
-      UserDirectoryProvider.directory().deleteUser(user.id());
+      // Re-check under the lock at confirm time — the pre-dialog check can go stale
+      // while the dialog is open (another admin could be removed meanwhile).
+      synchronized (ADMIN_MUTATION_LOCK) {
+        if (UserDirectoryProvider.directory().isLastAdministrator(user.id())) {
+          warn(tr(K_LAST_ADMIN,
+              "Cannot remove the last administrator — assign the role to another "
+                  + "user first."));
+          return;
+        }
+        UserDirectoryProvider.directory().deleteUser(user.id());
+      }
       VersionBumper.bump(user);
       success(tr(K_DEL_SUCCESS, "Deleted user {0}.", user.name()));
       refresh();
