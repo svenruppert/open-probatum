@@ -34,6 +34,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -113,6 +114,22 @@ class UserProvisioningPanelBrowserlessTest extends BrowserlessTest {
         "the surviving filled row provisions its user");
     assertFalse(directory.usernameExists("author1"),
         "the removed row provisions nothing");
+  }
+
+  @Test
+  @DisplayName("generated usernames stay unique after removing a middle row (monotonic suffix)")
+  void generatedUsernamesDoNotCollideAfterRemove() {
+    UserProvisioningPanel panel = new UserProvisioningPanel(
+        List.of(AuthorizationRole.AUTHOR), service);
+    com.vaadin.flow.component.button.Button add = buttons(panel, "add").get(0);
+    add.click();
+    add.click();                                   // author1, author2, author3
+    buttons(panel, "remove").get(1).click();       // drop the MIDDLE row (author2)
+    add.click();                                   // must NOT regenerate author3
+
+    List<String> names = prefilledUsernames(panel);
+    assertEquals(names.size(), names.stream().distinct().count(),
+        "no two rows may share a generated username: " + names);
   }
 
   // ── reflection + tree helpers ──────────────────────────────────────

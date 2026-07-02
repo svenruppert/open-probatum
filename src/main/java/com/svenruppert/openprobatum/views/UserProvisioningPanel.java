@@ -70,6 +70,10 @@ public final class UserProvisioningPanel extends Composite<VerticalLayout>
   private final transient UserProvisioningService service;
   private final List<AuthorizationRole> personas;
   private final List<UserDraft> drafts = new ArrayList<>();
+  /** Monotonic per-persona suffix — never decreases, so removing a middle row
+   * cannot make the next generated username collide with a surviving one. */
+  private final java.util.Map<AuthorizationRole, Integer> personaSeq =
+      new java.util.EnumMap<>(AuthorizationRole.class);
   private final Div results = new Div();
 
   public UserProvisioningPanel(List<AuthorizationRole> personas) {
@@ -132,8 +136,8 @@ public final class UserProvisioningPanel extends Composite<VerticalLayout>
   }
 
   private void addRow(AuthorizationRole persona, VerticalLayout rows) {
-    long sameRole = drafts.stream().filter(d -> d.role == persona).count();
-    String generic = persona.name().toLowerCase(java.util.Locale.ROOT) + (sameRole + 1);
+    int next = personaSeq.merge(persona, 1, Integer::sum);
+    String generic = persona.name().toLowerCase(java.util.Locale.ROOT) + next;
     UserDraft draft = new UserDraft(persona, generic);
     drafts.add(draft);
 
