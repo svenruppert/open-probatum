@@ -91,18 +91,63 @@ class UserProvisioningPanelBrowserlessTest extends BrowserlessTest {
         .orElseThrow().roles().contains(AuthorizationRole.AUTHOR));
   }
 
+  @Test
+  @DisplayName("removing a middle row removes THAT row — the survivors stay bound to live drafts (P007)")
+  void removeDeletesTheClickedRow() throws Exception {
+    UserProvisioningPanel panel = new UserProvisioningPanel(
+        List.of(AuthorizationRole.AUTHOR), service);
+    // Grow to three rows: author1, author2, author3.
+    com.vaadin.flow.component.button.Button add = buttons(panel, "add").get(0);
+    add.click();
+    add.click();
+    // Only the LAST row carries a password; then remove the FIRST row.
+    setDraftPassword(panel, 2, "good-password");
+    buttons(panel, "remove").get(0).click();
+
+    List<String> visible = prefilledUsernames(panel);
+    assertFalse(visible.contains("author1"), "the clicked row disappears");
+    assertTrue(visible.contains("author3"), "the last row must NOT vanish instead");
+
+    invokeProvision(panel);
+    assertTrue(directory.usernameExists("author3"),
+        "the surviving filled row provisions its user");
+    assertFalse(directory.usernameExists("author1"),
+        "the removed row provisions nothing");
+  }
+
   // ── reflection + tree helpers ──────────────────────────────────────
 
-  @SuppressWarnings("unchecked")
   private static void setFirstDraftPassword(UserProvisioningPanel panel, String password)
+      throws Exception {
+    setDraftPassword(panel, 0, password);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static void setDraftPassword(UserProvisioningPanel panel, int index, String password)
       throws Exception {
     Field draftsF = UserProvisioningPanel.class.getDeclaredField("drafts");
     draftsF.setAccessible(true);
     List<Object> drafts = (List<Object>) draftsF.get(panel);
-    Object draft = drafts.get(0);
+    Object draft = drafts.get(index);
     Field pw = draft.getClass().getDeclaredField("password");
     pw.setAccessible(true);
     pw.set(draft, password);
+  }
+
+  private static List<com.vaadin.flow.component.button.Button> buttons(
+      Component root, String action) {
+    List<com.vaadin.flow.component.button.Button> out = new ArrayList<>();
+    collectButtons(root, action, out);
+    return out;
+  }
+
+  private static void collectButtons(Component c, String action,
+                                     List<com.vaadin.flow.component.button.Button> out) {
+    if (c instanceof com.vaadin.flow.component.button.Button button
+        && action.equals(button.getElement().getAttribute("data-action"))) {
+      out.add(button);
+    }
+    c.getChildren().forEach(child -> collectButtons(child, action, out));
   }
 
   private static void invokeProvision(UserProvisioningPanel panel) throws Exception {

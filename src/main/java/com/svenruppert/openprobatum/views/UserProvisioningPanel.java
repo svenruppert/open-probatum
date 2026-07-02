@@ -148,15 +148,17 @@ public final class UserProvisioningPanel extends Composite<VerticalLayout>
     password.addValueChangeListener(e -> draft.password = e.getValue() == null ? "" : e.getValue());
     password.getElement().setAttribute("data-password", persona.name());
 
-    Button remove = new Button(tr("provision.action.remove", "Remove"), e -> {
-      drafts.remove(draft);
-      rows.remove(rows.getComponentAt(rows.getComponentCount() - 1));
-    });
+    Button remove = new Button(tr("provision.action.remove", "Remove"));
     remove.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ERROR,
         ButtonVariant.LUMO_SMALL);
+    remove.getElement().setAttribute("data-action", "remove");
 
     HorizontalLayout row = new HorizontalLayout(username, password, remove);
     row.setWidthFull();
+    remove.addClickListener(e -> {
+      drafts.remove(draft);
+      rows.remove(row);
+    });
     rows.add(row);
   }
 
