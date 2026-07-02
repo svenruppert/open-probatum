@@ -40,9 +40,6 @@ import java.util.Set;
  */
 public final class RegistrationService implements HasLogger {
 
-  /** Registered learners start above the bootstrap admin id band (which starts at 1000). */
-  private static final long ID_FLOOR = 1000L;
-
   private final UserDirectory directory;
   private final int minPasswordLength;
 
@@ -100,7 +97,8 @@ public final class RegistrationService implements HasLogger {
       return new RegistrationResult.WeakPassword(
           "password appears on a breach/blocklist");
     }
-    long id = directory.all().mapToLong(AppUser::id).max().orElse(ID_FLOOR) + 1;
+    // Single id source (directory high-water) — never reuses a deleted user's id.
+    long id = directory.nextUserId();
     AppUser user = new AppUser(id, name, EnumSet.copyOf(roles));
     directory.addUser(username, password, user);
     logger().info("Registered new user: id={}, username={}, roles={}", id, username, roles);

@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 /**
@@ -64,6 +65,7 @@ public final class PersistentUserDirectory implements UserDirectory, HasLogger {
   private final Map<String, StoredUser> byUsername = new ConcurrentHashMap<>();
   private final Map<Long, AppUser> byId = new ConcurrentHashMap<>();
   private final Map<Long, String> usernameById = new ConcurrentHashMap<>();
+  private final AtomicLong idHighWater = new AtomicLong(FIRST_USER_ID - 1);
 
   public PersistentUserDirectory(UserDirectoryPersistence persistence,
                                  PasswordHashingService hashingService) {
@@ -75,6 +77,7 @@ public final class PersistentUserDirectory implements UserDirectory, HasLogger {
       AppUser u = entry.getValue().user();
       byId.put(u.id(), u);
       usernameById.put(u.id(), entry.getKey());
+      raiseIdHighWater(u.id());
     }
     logger().info("PersistentUserDirectory loaded: {} users from {}",
         byUsername.size(), persistence.getClass().getSimpleName());
@@ -86,6 +89,16 @@ public final class PersistentUserDirectory implements UserDirectory, HasLogger {
   }
 
   // ── UserDirectory ──────────────────────────────────────────────
+
+  /**
+   * Monotonic high-water allocation — the id of a deleted user is never
+   * handed out again, so historic authorship / audit records can never
+   * point at a different present-day account.
+   */
+  @Override
+  public long nextUserId() {
+    return idHighWater.incrementAndGet();
+  }
 
   @Override
   public Optional<AppUser> findByCredentials(Credentials credentials) {
@@ -150,6 +163,7 @@ public final class PersistentUserDirectory implements UserDirectory, HasLogger {
     byUsername.put(username, new StoredUser(user, hash));
     byId.put(user.id(), user);
     usernameById.put(user.id(), username);
+    raiseIdHighWater(user.id());
     persist();
     audit(new UserCreated(AppClock.now(), username, firstRoleOf(user), null));
   }
@@ -162,6 +176,7 @@ public final class PersistentUserDirectory implements UserDirectory, HasLogger {
     byUsername.put(username, new StoredUser(user, passwordHash));
     byId.put(user.id(), user);
     usernameById.put(user.id(), username);
+    raiseIdHighWater(user.id());
     persist();
   }
 
@@ -243,6 +258,11 @@ public final class PersistentUserDirectory implements UserDirectory, HasLogger {
           byUsername.size(), persistence.getClass().getSimpleName(), failure);
       throw failure;
     }
+  }
+
+  /** Never lowered — deleting a user must not free its id for reuse. */
+  private void raiseIdHighWater(long id) {
+    idHighWater.accumulateAndGet(id, Math::max);
   }
 
   private void replace(AppUser oldUser, AppUser newUser) {

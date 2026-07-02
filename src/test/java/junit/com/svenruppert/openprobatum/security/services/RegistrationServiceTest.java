@@ -74,11 +74,12 @@ class RegistrationServiceTest {
   @Test
   @DisplayName("a duplicate username is rejected and does not overwrite the first user")
   void duplicateUsernameRejected() {
-    service.register("carol", STRONG, "Carol");
+    AppUser carol = assertInstanceOf(RegistrationResult.Success.class,
+        service.register("carol", STRONG, "Carol")).user();
     RegistrationResult second = service.register("carol", STRONG + "X", "Impostor");
 
     assertInstanceOf(RegistrationResult.UsernameTaken.class, second);
-    assertEquals("Carol", directory.findById(1001L).map(AppUser::name).orElse(null));
+    assertEquals("Carol", directory.findById(carol.id()).map(AppUser::name).orElse(null));
   }
 
   @Test
@@ -117,10 +118,14 @@ class RegistrationServiceTest {
   }
 
   @Test
-  @DisplayName("registered learner ids start above the bootstrap admin band (1000)")
-  void idsStartAboveAdminBand() {
+  @DisplayName("ids come from the directory's single monotonic source (floor 1000, distinct)")
+  void idsComeFromTheDirectorySequence() {
     AppUser first = assertInstanceOf(RegistrationResult.Success.class,
         service.register("frank", STRONG, "Frank")).user();
-    assertEquals(1001L, first.id());
+    AppUser second = assertInstanceOf(RegistrationResult.Success.class,
+        service.register("grace", STRONG, "Grace")).user();
+
+    assertEquals(1000L, first.id(), "empty directory starts at the bootstrap floor");
+    assertTrue(second.id() > first.id(), "sequential registrations get distinct, increasing ids");
   }
 }

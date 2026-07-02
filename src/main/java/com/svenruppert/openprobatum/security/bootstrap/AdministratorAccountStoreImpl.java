@@ -25,7 +25,6 @@ import com.svenruppert.jsentinel.bootstrap.NewAdministrator;
 
 import java.util.EnumSet;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Adapter from {@link AdministratorAccountStore} (the bootstrap-flow
@@ -42,7 +41,6 @@ public final class AdministratorAccountStoreImpl
     implements AdministratorAccountStore, HasLogger {
 
   private final UserDirectory directory;
-  private final AtomicLong idSequence = new AtomicLong(1000);
 
   public AdministratorAccountStoreImpl(UserDirectory directory) {
     this.directory = Objects.requireNonNull(directory, "directory");
@@ -60,7 +58,7 @@ public final class AdministratorAccountStoreImpl
         ? newAdministrator.username()
         : newAdministrator.displayName();
     AppUser user = new AppUser(
-        idSequence.getAndIncrement(),
+        directory.nextUserId(),
         displayName,
         EnumSet.of(AuthorizationRole.PLATFORM_ADMIN, AuthorizationRole.LEARNER));
     logger().debug("Persisting initial administrator: id={}, roles={}",

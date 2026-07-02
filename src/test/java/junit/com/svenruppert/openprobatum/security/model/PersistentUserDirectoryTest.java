@@ -22,6 +22,7 @@ import com.svenruppert.openprobatum.security.model.Credentials;
 import com.svenruppert.openprobatum.security.model.InMemoryUserDirectoryPersistence;
 import com.svenruppert.openprobatum.security.model.PersistentUserDirectory;
 import com.svenruppert.openprobatum.security.model.StoredUser;
+import com.svenruppert.openprobatum.security.model.UserDirectory;
 import com.svenruppert.openprobatum.security.model.UserDirectoryPersistence;
 import com.svenruppert.openprobatum.security.roles.AuthorizationRole;
 import com.svenruppert.jsentinel.audit.AuditEvent;
@@ -153,6 +154,47 @@ class PersistentUserDirectoryTest {
         new Credentials("carol", "trustno1-trustno1"));
     assertTrue(found.isPresent());
     assertEquals(carol, found.get());
+  }
+
+  // ── id allocation (monotonic high-water; V00.80.00 BUG) ────────
+
+  @Test
+  @DisplayName("the very first allocated id is the bootstrap floor (1000)")
+  void firstAllocatedIdIsFloor() {
+    assertEquals(UserDirectory.FIRST_USER_ID, directory.nextUserId());
+  }
+
+  @Test
+  @DisplayName("sequential allocations yield distinct, increasing ids")
+  void sequentialAllocationsAreDistinct() {
+    long first = directory.nextUserId();
+    long second = directory.nextUserId();
+    assertTrue(second > first);
+  }
+
+  @Test
+  @DisplayName("the id of a deleted user is never reused — old authorship/audit records must not point at a new account")
+  void deletedIdsAreNeverReused() {
+    long highest = directory.nextUserId();
+    directory.addUser("victim", "correct-horse-battery-staple",
+        new AppUser(highest, "Victim", EnumSet.of(AuthorizationRole.LEARNER)));
+    directory.deleteUser(highest);
+
+    assertTrue(directory.nextUserId() > highest,
+        "freed id must not be handed out again");
+  }
+
+  @Test
+  @DisplayName("a reloaded directory resumes allocation above the highest persisted id")
+  void reloadedDirectoryResumesAboveHighestId() {
+    long id = directory.nextUserId();
+    directory.addUser("dora", "correct-horse-battery-staple",
+        new AppUser(id, "Dora", EnumSet.of(AuthorizationRole.LEARNER)));
+
+    PersistentUserDirectory reloaded = new PersistentUserDirectory(
+        persistence, BouncyCastleHashingServices.modern());
+
+    assertTrue(reloaded.nextUserId() > id);
   }
 
   @Test

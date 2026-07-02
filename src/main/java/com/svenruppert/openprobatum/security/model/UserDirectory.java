@@ -34,7 +34,22 @@ import java.util.stream.Stream;
  */
 public interface UserDirectory {
 
+  /** The id handed to the very first user (the bootstrap administrator). */
+  long FIRST_USER_ID = 1000L;
+
   Optional<AppUser> findByCredentials(Credentials credentials);
+
+  /**
+   * Allocates the next user id. The default implementation derives it from
+   * the current maximum (floor {@link #FIRST_USER_ID}). Durable
+   * implementations SHOULD override this with a monotonic, non-reusing
+   * source: a {@code max+1} scheme hands the id of a deleted user to the
+   * next account, so historic authorship / audit records suddenly point at
+   * the wrong present-day user (e.g. a false segregation-of-duties block).
+   */
+  default long nextUserId() {
+    return all().mapToLong(AppUser::id).max().orElse(FIRST_USER_ID - 1) + 1;
+  }
 
   default boolean checkCredentials(Credentials credentials) {
     return findByCredentials(credentials).isPresent();

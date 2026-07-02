@@ -331,10 +331,8 @@ public class AdminRolesView extends Composite<VerticalLayout>
   }
 
   private static Long nextId() {
-    return UserDirectoryProvider.directory().all()
-        .mapToLong(AppUser::id)
-        .max()
-        .orElse(0L) + 1L;
+    // Single id source (directory high-water) — never reuses a deleted user's id.
+    return UserDirectoryProvider.directory().nextUserId();
   }
 
   private void refresh() {
