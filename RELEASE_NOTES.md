@@ -2,6 +2,76 @@
 
 ## Unreleased
 
+## 00.80.10 — Application-logic hardening (2026-07-02)
+
+A bugfix patch on the V00.80 line: it works through the findings of a full
+application-logic review (2026-07-02, four-agent pass) — 24 user-facing logic
+bugs across access control, session management, the learning flow, the catalogue
+and credential governance. All V00.10–V00.80.00 invariants carry over; no new
+persistence. No live deployment (per policy, before V01.00.00 the release is
+finalize + tag + production WAR + GitHub release only).
+
+### Access & content safety
+
+- **Unpublished offerings are never learner-accessible**: access is gated on
+  editorial status before visibility, so a public draft — or a bundle grant for a
+  not-yet-published member — can no longer let a learner into unreviewed content.
+- **The prerequisite gate finally opens**: completing a prerequisite offering now
+  grants the dependent offerings (a `PathCompletionService` wired into the learn
+  path); previously no code ever created a prerequisite grant, so the gate stayed
+  shut forever.
+- **Publishing a new version retires the old one** to `REPLACED`, so the catalogue
+  no longer shows two versions of the same offering side by side.
+- **Deleting a draft that a bundle references is blocked**, so a bundle can no
+  longer become permanently unclaimable.
+
+### Security & session management
+
+- **The last administrator cannot be removed** (role-revoke or delete) — that
+  previously forced the whole instance back into an unreachable bootstrap flow.
+- **Revoking a session actually ends it**: revoke now bumps the subject's version
+  so the drift enforcer bounces the session on its next navigation (per-subject,
+  documented). **Logout clears the session store**, so logged-out sessions no
+  longer linger as ACTIVE and inflate the dashboard count.
+- **User registration is race-safe**: the uniqueness check-then-act runs under a
+  shared lock, so concurrent sign-ups of the same username can no longer both slip
+  through.
+- **The `SecurityHeadersFilter` declares async support**, so server push keeps
+  working when it falls back to long-polling.
+
+### Learning flow correctness
+
+- **A passing check mints its certificate exactly once**, even under concurrent
+  submits (the first-pass decision is now atomic across requests).
+- **Module completion no longer loses updates** under concurrent completions, and
+  the progress percentage rounds to nearest (2 of 3 is 67 %, not 66 %).
+- **Workshop enrolment respects the schedule**: no enrolling into a finished
+  workshop, no cancelling after it started (which dodged the no-show), no recording
+  attendance before it began.
+- **Single-choice and true/false questions render as a radio group**, so a learner
+  can no longer tick two options and have a right answer graded wrong.
+
+### Governance & UI polish
+
+- **Re-issuing a time-limited credential keeps it time-limited** (the validity
+  period carries over) instead of turning it permanent.
+- **Credential governance guards its state transitions** — a revoked or superseded
+  credential can no longer be resurrected.
+- **The admin sessions view shows its own text again** (duplicate i18n keys had let
+  the coaching view's text win), and the public `/security` and `/youtube` pages no
+  longer show stray doubled apostrophes.
+- Smaller fixes: registration display-name error clears correctly; the dashboard
+  drops a fabricated "+0 in the last 24h" metric; enrol/join actions confirm via a
+  notification; lab submissions show the lab title, not a UUID; the PWA manifest
+  uses the product name.
+
+### Platform
+
+- Acceptance rests on the full test suite (618 green) and the two review gates; the
+  mutation-coverage gate remains paused at the maintainer's request. EN + DE i18n
+  throughout (British English). New guard tests pin no-duplicate-i18n-keys,
+  no-stray-MessageFormat-escapes and the async-supported filter declaration.
+
 ## 00.80.00 — "Create users" wizard + provisioning hardening (2026-07-02)
 
 Adds a guided **user-provisioning wizard** (one skippable section per persona,
