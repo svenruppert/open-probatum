@@ -104,7 +104,8 @@ public class GovernanceView extends Composite<VerticalLayout> implements I18nSup
       actions.add(action(tr("governance.suspend", "Suspend"),
           () -> new CredentialGovernance(repository).suspend(credential.id()), false));
       actions.add(action(tr("governance.reissue", "Re-issue"),
-          () -> new CredentialGovernance(repository).reissue(credential.id(), null), false));
+          () -> new CredentialGovernance(repository)
+              .reissue(credential.id(), carriedOverExpiry(credential)), false));
     }
     if (stored != CredentialStatus.REVOKED) {
       actions.add(action(tr("governance.revoke", "Revoke"),
@@ -113,6 +114,20 @@ public class GovernanceView extends Composite<VerticalLayout> implements I18nSup
 
     card.add(title, statusBadge, actions);
     return card;
+  }
+
+  /**
+   * The successor's expiry when renewing {@code credential}: a fresh validity
+   * period of the SAME length as the predecessor's, starting now. Passing
+   * {@code null} (the old behaviour) turned a time-limited credential into a
+   * permanent one on every renewal (P014) — the opposite of what a renewal means.
+   * A predecessor that never expired stays unbounded.
+   */
+  private static java.time.Instant carriedOverExpiry(Credential credential) {
+    return credential.expiry()
+        .map(expiry -> AppClock.now().plus(
+            java.time.Duration.between(credential.issuedAt(), expiry)))
+        .orElse(null);
   }
 
   private Button action(String label, Runnable op, boolean danger) {

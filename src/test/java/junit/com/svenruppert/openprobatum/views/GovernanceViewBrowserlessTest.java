@@ -109,6 +109,36 @@ class GovernanceViewBrowserlessTest extends BrowserlessTest {
   }
 
   @Test
+  @DisplayName("re-issuing a time-limited credential carries over its validity period, staying finite (P014)")
+  void reissueCarriesOverExpiry() {
+    java.time.Instant issued = Instant.parse("2026-01-01T00:00:00Z");
+    java.time.Instant expires = Instant.parse("2027-01-01T00:00:00Z"); // 1-year validity
+    Credential timeLimited = Credential.issue("Vaadin Certified",
+        CredentialType.COMPLETION_CERTIFICATE, "Alice", "Open Probatum Academy",
+        issued, expires).withStatus(CredentialStatus.VALID);
+    credentials.save(timeLimited);
+
+    java.time.Instant now = Instant.parse("2026-06-01T00:00:00Z");
+    com.svenruppert.openprobatum.security.AppClock.setClock(
+        java.time.Clock.fixed(now, java.time.ZoneOffset.UTC));
+    try {
+      GovernanceView view = new GovernanceView();
+      click(view, "Re-issue");
+
+      Credential successor = credentials.all().stream()
+          .filter(c -> c.status() == CredentialStatus.VALID)
+          .findFirst().orElseThrow();
+      assertTrue(successor.expiry().isPresent(),
+          "a renewed time-limited credential must stay time-limited, not become permanent");
+      assertEquals(now.plus(java.time.Duration.between(issued, expires)),
+          successor.expiry().orElseThrow(),
+          "the successor gets a fresh validity period of the same length, starting now");
+    } finally {
+      com.svenruppert.openprobatum.security.AppClock.reset();
+    }
+  }
+
+  @Test
   @DisplayName("the empty registry shows an empty state")
   void emptyRegistry() {
     GovernanceView view = new GovernanceView();
