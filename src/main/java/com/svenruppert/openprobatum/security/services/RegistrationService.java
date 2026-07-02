@@ -40,6 +40,17 @@ import java.util.Set;
  */
 public final class RegistrationService implements HasLogger {
 
+  /**
+   * Serialises the uniqueness check-then-act (username / display-name lookup →
+   * id allocation → add) across ALL callers. The views build a
+   * {@code new RegistrationService()} per submit, so an instance
+   * {@code synchronized} would lock a throw-away monitor and two concurrent
+   * registrations of the same username could both pass {@code usernameExists ==
+   * false} and race into {@code addUser} (which overwrites on a clash). The lock
+   * is static so it protects the shared directory regardless of instance.
+   */
+  private static final Object REGISTER_LOCK = new Object();
+
   private final UserDirectory directory;
   private final int minPasswordLength;
 
@@ -71,9 +82,9 @@ public final class RegistrationService implements HasLogger {
    *
    * @since V00.80.00
    */
-  public synchronized RegistrationResult register(String username, String password,
-                                                  String displayName,
-                                                  Set<AuthorizationRole> roles) {
+  public RegistrationResult register(String username, String password,
+                                     String displayName,
+                                     Set<AuthorizationRole> roles) {
     if (username == null || username.isBlank()) {
       return new RegistrationResult.InvalidInput("username must not be blank");
     }
@@ -84,24 +95,31 @@ public final class RegistrationService implements HasLogger {
       return new RegistrationResult.WeakPassword(
           "password must be at least " + minPasswordLength + " characters");
     }
-    if (directory.usernameExists(username)) {
-      return new RegistrationResult.UsernameTaken();
-    }
-    // The display name is the credential recipient key — it must be unique so one
-    // user's wallet/credentials can never match another's (exit-review HIGH-1).
-    String name = (displayName == null || displayName.isBlank()) ? username : displayName;
-    if (directory.displayNameExists(name)) {
-      return new RegistrationResult.NameTaken();
-    }
+    // Run the (possibly network-bound) breach preflight BEFORE taking the lock,
+    // so a slow HIBP call never serialises unrelated registrations.
     if (!PasswordPreflight.isAcceptable(password)) {
       return new RegistrationResult.WeakPassword(
           "password appears on a breach/blocklist");
     }
-    // Single id source (directory high-water) — never reuses a deleted user's id.
-    long id = directory.nextUserId();
-    AppUser user = new AppUser(id, name, EnumSet.copyOf(roles));
-    directory.addUser(username, password, user);
-    logger().info("Registered new user: id={}, username={}, roles={}", id, username, roles);
-    return new RegistrationResult.Success(user);
+    String name = (displayName == null || displayName.isBlank()) ? username : displayName;
+    // The uniqueness check-then-act must be atomic across callers (P015): the
+    // lookups + id allocation + add happen under one lock so two concurrent
+    // registrations of the same username/display name cannot both slip through.
+    synchronized (REGISTER_LOCK) {
+      if (directory.usernameExists(username)) {
+        return new RegistrationResult.UsernameTaken();
+      }
+      // The display name is the credential recipient key — it must be unique so one
+      // user's wallet/credentials can never match another's (exit-review HIGH-1).
+      if (directory.displayNameExists(name)) {
+        return new RegistrationResult.NameTaken();
+      }
+      // Single id source (directory high-water) — never reuses a deleted user's id.
+      long id = directory.nextUserId();
+      AppUser user = new AppUser(id, name, EnumSet.copyOf(roles));
+      directory.addUser(username, password, user);
+      logger().info("Registered new user: id={}, username={}, roles={}", id, username, roles);
+      return new RegistrationResult.Success(user);
+    }
   }
 }

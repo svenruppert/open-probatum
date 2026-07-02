@@ -138,6 +138,41 @@ class RegistrationServiceTest {
   }
 
   @Test
+  @DisplayName("concurrent registrations of the same username yield exactly one account (P015)")
+  void concurrentSameUsernameRegistersOnce() throws InterruptedException {
+    int threads = 8;
+    java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+    java.util.concurrent.atomic.AtomicInteger successes =
+        new java.util.concurrent.atomic.AtomicInteger();
+    java.util.List<Thread> workers = new java.util.ArrayList<>();
+    for (int i = 0; i < threads; i++) {
+      Thread t = new Thread(() -> {
+        try {
+          start.await();
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          return;
+        }
+        // Fresh service per thread — like the per-request views; only the static
+        // lock serialises the shared-directory check-then-act.
+        if (new RegistrationService(directory, MIN_LEN)
+            .register("racer", STRONG, "Racer") instanceof RegistrationResult.Success) {
+          successes.incrementAndGet();
+        }
+      });
+      workers.add(t);
+      t.start();
+    }
+    start.countDown();
+    for (Thread t : workers) {
+      t.join();
+    }
+    assertEquals(1, successes.get(), "exactly one concurrent registration may succeed");
+    assertEquals(1, directory.all().filter(u -> "Racer".equals(u.name())).count(),
+        "only one account exists — no overwrite from a lost check-then-act race");
+  }
+
+  @Test
   @DisplayName("ids come from the directory's single monotonic source (floor 1000, distinct)")
   void idsComeFromTheDirectorySequence() {
     AppUser first = assertInstanceOf(RegistrationResult.Success.class,
