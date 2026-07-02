@@ -8,6 +8,11 @@
     <filter>
         <filter-name>SecurityHeadersFilter</filter-name>
         <filter-class>com.svenruppert.openprobatum.security.SecurityHeadersFilter</filter-class>
+        <!-- The Vaadin servlet is async (@Push); a filter in its chain must also
+             declare async support, otherwise startAsync() throws IllegalStateException
+             when push falls back to long-polling (behind proxies/firewalls) and the
+             UI stops updating. web.xml filters default to async-unsupported. -->
+        <async-supported>true</async-supported>
     </filter>
     <filter-mapping>
         <filter-name>SecurityHeadersFilter</filter-name>

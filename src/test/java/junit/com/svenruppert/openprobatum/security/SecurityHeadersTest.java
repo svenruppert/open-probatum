@@ -20,11 +20,14 @@ import com.svenruppert.openprobatum.security.SecurityHeaders;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("SecurityHeaders — baseline response hardening")
 class SecurityHeadersTest {
@@ -40,6 +43,26 @@ class SecurityHeadersTest {
     assertEquals("nosniff", h.get(SecurityHeaders.CONTENT_TYPE_OPTIONS));
     assertEquals("strict-origin-when-cross-origin", h.get(SecurityHeaders.REFERRER_POLICY));
     assertEquals("DENY", h.get(SecurityHeaders.FRAME_OPTIONS));
+  }
+
+  @Test
+  @DisplayName("the SecurityHeadersFilter declares async-supported so @Push long-polling works (P017)")
+  void filterIsAsyncSupported() throws Exception {
+    // The filter sits in front of the async Vaadin servlet (@Push). Without an
+    // async-supported declaration, startAsync() throws once push falls back to
+    // long-polling. web.xml filters default to async-unsupported, so it must be
+    // explicit.
+    Path webXml = Path.of("src/main/webapp/WEB-INF/web.xml");
+    assertTrue(Files.exists(webXml), "web.xml must exist at " + webXml.toAbsolutePath());
+    String xml = Files.readString(webXml).replaceAll("\\s+", " ");
+    int filterStart = xml.indexOf("<filter>");
+    int filterEnd = xml.indexOf("</filter>");
+    assertTrue(filterStart >= 0 && filterEnd > filterStart, "a <filter> block must exist");
+    String filterBlock = xml.substring(filterStart, filterEnd);
+    assertTrue(filterBlock.contains("SecurityHeadersFilter"),
+        "the first filter block is the SecurityHeadersFilter");
+    assertTrue(filterBlock.contains("<async-supported>true</async-supported>"),
+        "the SecurityHeadersFilter must declare <async-supported>true</async-supported>");
   }
 
   @Test
