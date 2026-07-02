@@ -17,16 +17,20 @@
 package junit.com.svenruppert.openprobatum.workshop;
 
 import com.svenruppert.openprobatum.content.ContentStatus;
+import com.svenruppert.openprobatum.security.AppClock;
 import com.svenruppert.openprobatum.workshop.EnrolmentStatus;
 import com.svenruppert.openprobatum.workshop.InMemoryWorkshopEnrolmentRepository;
 import com.svenruppert.openprobatum.workshop.InMemoryWorkshopRepository;
 import com.svenruppert.openprobatum.workshop.Workshop;
 import com.svenruppert.openprobatum.workshop.WorkshopEnrolmentService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -40,20 +44,35 @@ class WorkshopEnrolmentServiceTest {
 
   private static final Instant START = Instant.parse("2026-09-01T09:00:00Z");
   private static final Instant END = Instant.parse("2026-09-01T17:00:00Z");
+  private static final Instant BEFORE = Instant.parse("2026-08-31T09:00:00Z");
+  private static final Instant DURING = Instant.parse("2026-09-01T10:00:00Z");
+  private static final Instant AFTER = Instant.parse("2026-09-01T18:00:00Z");
 
   private InMemoryWorkshopRepository workshops;
   private InMemoryWorkshopEnrolmentRepository enrolments;
   private WorkshopEnrolmentService service;
   private Workshop workshop;
 
+  private static void clockAt(Instant instant) {
+    AppClock.setClock(Clock.fixed(instant, ZoneOffset.UTC));
+  }
+
   @BeforeEach
   void setUp() {
+    // Default the clock to before the session so enrol/cancel are open; the
+    // time-guard tests move it forward explicitly.
+    clockAt(BEFORE);
     workshops = new InMemoryWorkshopRepository();
     enrolments = new InMemoryWorkshopEnrolmentRepository();
     service = new WorkshopEnrolmentService(workshops, enrolments);
     workshop = Workshop.draft("Vaadin Day", "d", START, END, 2, "Sven")
         .withStatus(ContentStatus.PUBLISHED);
     workshops.save(workshop);
+  }
+
+  @AfterEach
+  void tearDown() {
+    AppClock.reset();
   }
 
   @Test
@@ -94,15 +113,51 @@ class WorkshopEnrolmentServiceTest {
   @Test
   @DisplayName("recordAttendance fires only on the ENROLLED→ATTENDED edge (idempotent)")
   void attendanceEdge() {
+    // Enrol both before the session, then record verdicts once it is running.
     var e = service.enrol(workshop.id(), 1L, "Ada").orElseThrow();
+    var bob = service.enrol(workshop.id(), 2L, "Bob").orElseThrow();
+    clockAt(DURING);
+
     assertEquals(EnrolmentStatus.ATTENDED,
         service.recordAttendance(e.id(), 9L).orElseThrow().status());
     // Re-recording a now-ATTENDED enrolment does nothing (no double-mint upstream).
     assertTrue(service.recordAttendance(e.id(), 9L).isEmpty());
     assertTrue(service.markNoShow(e.id(), 9L).isEmpty());
 
-    var bob = service.enrol(workshop.id(), 2L, "Bob").orElseThrow();
     assertEquals(EnrolmentStatus.NO_SHOW, service.markNoShow(bob.id(), 9L).orElseThrow().status());
+  }
+
+  @Test
+  @DisplayName("enrolment is refused once the session has started or ended (P010)")
+  void enrolRefusedAfterStart() {
+    clockAt(DURING);
+    assertTrue(service.enrol(workshop.id(), 1L, "Ada").isEmpty(),
+        "cannot enrol into a running workshop");
+    clockAt(AFTER);
+    assertTrue(service.enrol(workshop.id(), 2L, "Bob").isEmpty(),
+        "cannot enrol into a finished workshop");
+  }
+
+  @Test
+  @DisplayName("attendance / no-show cannot be recorded before the session starts (P010)")
+  void verdictRefusedBeforeStart() {
+    var e = service.enrol(workshop.id(), 1L, "Ada").orElseThrow(); // clock BEFORE
+    assertTrue(service.recordAttendance(e.id(), 9L).isEmpty(),
+        "attendance is refused before the session begins");
+    assertTrue(service.markNoShow(e.id(), 9L).isEmpty(),
+        "no-show is refused before the session begins");
+    assertEquals(EnrolmentStatus.ENROLLED,
+        enrolments.findById(e.id()).orElseThrow().status(), "still just ENROLLED");
+  }
+
+  @Test
+  @DisplayName("a seat cannot be cancelled after the session started — no dodging the NO_SHOW (P010)")
+  void cancelRefusedAfterStart() {
+    var e = service.enrol(workshop.id(), 1L, "Ada").orElseThrow(); // clock BEFORE
+    clockAt(DURING);
+    assertTrue(service.cancel(e.id(), 1L).isEmpty(), "cannot cancel once the session has started");
+    assertEquals(EnrolmentStatus.ENROLLED,
+        enrolments.findById(e.id()).orElseThrow().status(), "seat stays ENROLLED for the NO_SHOW record");
   }
 
   @Test

@@ -23,6 +23,7 @@ import com.svenruppert.openprobatum.credential.CredentialRepositoryProvider;
 import com.svenruppert.openprobatum.credential.Evidence;
 import com.svenruppert.openprobatum.credential.InMemoryCredentialEventRepository;
 import com.svenruppert.openprobatum.credential.InMemoryCredentialRepository;
+import com.svenruppert.openprobatum.security.AppClock;
 import com.svenruppert.openprobatum.security.model.AppUser;
 import com.svenruppert.openprobatum.security.roles.AuthorizationRole;
 import com.svenruppert.openprobatum.views.WorkshopAttendanceView;
@@ -71,12 +72,17 @@ class WorkshopAttendanceViewBrowserlessTest extends BrowserlessTest {
         Instant.parse("2026-09-01T09:00:00Z"), Instant.parse("2026-09-01T17:00:00Z"), 10, "Sven")
         .withStatus(ContentStatus.PUBLISHED);
     workshops.save(workshop);
+    // Attendance is only recordable once the session has started (P010) — run the
+    // clock during the session.
+    AppClock.setClock(java.time.Clock.fixed(
+        Instant.parse("2026-09-01T10:00:00Z"), java.time.ZoneOffset.UTC));
     SubjectStores.subjectStore().setCurrentSubject(
         new AppUser(2002L, "Instructor", EnumSet.of(AuthorizationRole.REVIEWER)), AppUser.class);
   }
 
   @AfterEach
   void tearDown() {
+    AppClock.reset();
     WorkshopRepositoryProvider.reset();
     WorkshopEnrolmentRepositoryProvider.reset();
     CredentialRepositoryProvider.reset();

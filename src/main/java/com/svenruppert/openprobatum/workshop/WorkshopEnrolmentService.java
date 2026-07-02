@@ -16,6 +16,7 @@
 
 package com.svenruppert.openprobatum.workshop;
 
+import com.svenruppert.openprobatum.security.AppClock;
 import com.svenruppert.dependencies.core.logger.HasLogger;
 
 import java.util.Objects;
@@ -65,6 +66,12 @@ public final class WorkshopEnrolmentService implements HasLogger {
       if (workshop == null) {
         return Optional.empty();
       }
+      // Enrolment is a "before the session" action — refuse once the session has
+      // started (and therefore once it is over), so a learner cannot enrol into a
+      // running or past workshop, nor re-enrol into a finished one after a NO_SHOW.
+      if (!AppClock.now().isBefore(workshop.startsAt())) {
+        return Optional.empty();
+      }
       boolean already = enrolments.forWorkshop(workshopId).stream()
           .anyMatch(e -> e.isHeldBy(recipientId) && (e.isActive() || e.isAttended()));
       if (already || enrolments.activeCount(workshopId) >= workshop.capacity()) {
@@ -104,6 +111,9 @@ public final class WorkshopEnrolmentService implements HasLogger {
     synchronized (SEAT_LOCK) {
       return enrolments.findById(enrolmentId)
           .filter(WorkshopEnrolment::isActive)
+          // An attendance / no-show verdict is a "session has run" fact — refuse
+          // it before the session has started, so it cannot be recorded early.
+          .filter(this::sessionHasStarted)
           .map(e -> {
             WorkshopEnrolment decided = verdict.apply(e);
             enrolments.save(decided);
@@ -119,6 +129,9 @@ public final class WorkshopEnrolmentService implements HasLogger {
     synchronized (SEAT_LOCK) {
       return enrolments.findById(enrolmentId)
           .filter(e -> e.isHeldBy(recipientId) && e.isActive())
+          // Cancellation is only allowed before the session — otherwise a
+          // no-show could cancel after the fact to dodge the NO_SHOW record.
+          .filter(e -> !sessionHasStarted(e))
           .map(e -> {
             WorkshopEnrolment cancelled = e.cancelled();
             enrolments.save(cancelled);
@@ -126,5 +139,16 @@ public final class WorkshopEnrolmentService implements HasLogger {
             return cancelled;
           });
     }
+  }
+
+  /**
+   * Whether the enrolment's workshop session has already begun ({@code now} is at
+   * or after {@code startsAt}). An unknown workshop is treated as not-started so a
+   * verdict is refused rather than recorded against a missing schedule.
+   */
+  private boolean sessionHasStarted(WorkshopEnrolment enrolment) {
+    return workshops.findById(enrolment.workshopId())
+        .map(w -> !AppClock.now().isBefore(w.startsAt()))
+        .orElse(false);
   }
 }
