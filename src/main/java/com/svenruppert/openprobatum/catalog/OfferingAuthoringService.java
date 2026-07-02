@@ -59,7 +59,9 @@ public final class OfferingAuthoringService {
     this.authorship = Objects.requireNonNull(authorship, "authorship");
     this.lifecycle = new CatalogLifecycleService(catalog);
     this.integrity = new CatalogIntegrityService(catalog,
-        Objects.requireNonNull(credentials, "credentials"));
+        Objects.requireNonNull(credentials, "credentials"),
+        id -> com.svenruppert.openprobatum.bundle.BundleRepositoryProvider.repository().all()
+            .stream().anyMatch(b -> b.contains(id)));
   }
 
   public OfferingAuthoringService() {

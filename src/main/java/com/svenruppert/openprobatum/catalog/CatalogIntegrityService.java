@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 /**
  * Referential-integrity guard for destructive offering operations (entry-review #1,
@@ -57,14 +58,21 @@ public final class CatalogIntegrityService {
 
   private final CatalogRepository catalog;
   private final CredentialRepository credentials;
+  /** Whether an offering id is a member of any bundle — kept as a predicate so
+   * the catalog package need not depend on the bundle package's types. */
+  private final Predicate<UUID> referencedByBundle;
 
-  public CatalogIntegrityService(CatalogRepository catalog, CredentialRepository credentials) {
+  public CatalogIntegrityService(CatalogRepository catalog, CredentialRepository credentials,
+                                 Predicate<UUID> referencedByBundle) {
     this.catalog = Objects.requireNonNull(catalog, "catalog");
     this.credentials = Objects.requireNonNull(credentials, "credentials");
+    this.referencedByBundle = Objects.requireNonNull(referencedByBundle, "referencedByBundle");
   }
 
   public CatalogIntegrityService() {
-    this(CatalogRepositoryProvider.repository(), CredentialRepositoryProvider.repository());
+    this(CatalogRepositoryProvider.repository(), CredentialRepositoryProvider.repository(),
+        id -> com.svenruppert.openprobatum.bundle.BundleRepositoryProvider.repository().all()
+            .stream().anyMatch(b -> b.contains(id)));
   }
 
   /**
@@ -123,6 +131,14 @@ public final class CatalogIntegrityService {
         .count();
     if (credentialRefs > 0) {
       blockers.add(credentialRefs + " issued credential(s) reference this offering");
+    }
+
+    // A DRAFT can still be a bundle member (BundleAuthorView offers all offerings),
+    // and deleting it would strand the bundle: BundleCompletionService.isComplete
+    // keys on the missing offering and can never complete, so the credential is
+    // never claimable. Block the delete while any bundle lists it.
+    if (referencedByBundle.test(id)) {
+      blockers.add("this offering is a member of at least one bundle");
     }
 
     return new IntegrityVerdict(blockers.isEmpty(), blockers);

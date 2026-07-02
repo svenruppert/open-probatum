@@ -42,13 +42,16 @@ class CatalogIntegrityServiceTest {
 
   private InMemoryCatalogRepository catalog;
   private InMemoryCredentialRepository credentials;
+  private java.util.Set<java.util.UUID> bundleMembers;
   private CatalogIntegrityService service;
 
   @BeforeEach
   void setUp() {
     catalog = new InMemoryCatalogRepository();
     credentials = new InMemoryCredentialRepository();
-    service = new CatalogIntegrityService(catalog, credentials);
+    // A simple in-test bundle-membership set stands in for the BundleRepository scan.
+    bundleMembers = new java.util.HashSet<>();
+    service = new CatalogIntegrityService(catalog, credentials, bundleMembers::contains);
   }
 
   private static Offering draftOffering(String title) {
@@ -107,6 +110,19 @@ class CatalogIntegrityServiceTest {
     var verdict = service.checkHardDelete(draft);
     assertFalse(verdict.allowed());
     assertTrue(verdict.blockers().stream().anyMatch(b -> b.contains("credential")));
+  }
+
+  @Test
+  @DisplayName("a DRAFT that a bundle lists as a member may not be deleted — it would strand the bundle (P012)")
+  void bundleMembershipBlocksDelete() {
+    Offering member = draftOffering("Module A");
+    catalog.save(member);
+    bundleMembers.add(member.id()); // a published bundle references this draft
+
+    var verdict = service.checkHardDelete(member);
+    assertFalse(verdict.allowed());
+    assertTrue(verdict.blockers().stream().anyMatch(b -> b.contains("bundle")),
+        "the bundle reference must block the delete: " + verdict.blockers());
   }
 
   @Test
