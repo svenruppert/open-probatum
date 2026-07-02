@@ -27,9 +27,9 @@ import java.util.Objects;
  * REGISTERED access is derived from the offering visibility; CODE / PREREQUISITE
  * / MANUAL access requires a stored {@link Entitlement} grant.
  *
- * <p>A prerequisite grant is created once the learner completes the prerequisite
- * offering (wired by the issuance/progress flow) or manually by an author; until
- * then a PREREQUISITE offering reports {@link AccessDecision#PREREQUISITE_REQUIRED}.
+ * <p>A prerequisite grant is created by {@link PathCompletionService} once the
+ * learner completes the prerequisite offering's path; until then a PREREQUISITE
+ * offering reports {@link AccessDecision#PREREQUISITE_REQUIRED}.
  *
  * @since V00.20.00
  */

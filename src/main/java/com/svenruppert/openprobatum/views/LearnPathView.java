@@ -128,6 +128,10 @@ public class LearnPathView extends Composite<VerticalLayout>
       AppUser user = currentUser();
       Button mark = new Button(tr("learn.module.complete", "Mark complete"), e -> {
         new ProgressService().markModuleComplete(user == null ? null : user.id(), offering.id(), module.id());
+        // Completing the last mandatory module may finish the path — unlock any
+        // offering that lists this one as a prerequisite (P003).
+        new com.svenruppert.openprobatum.access.PathCompletionService()
+            .unlockDependents(user, offering);
         setParameter(null, offering.id().toString()); // re-render with updated progress
       });
       mark.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
