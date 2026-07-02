@@ -2,6 +2,52 @@
 
 ## Unreleased
 
+## 00.80.00 — "Create users" wizard + provisioning hardening (2026-07-02)
+
+Adds a guided **user-provisioning wizard** (one skippable section per persona,
+operator-typed passwords, real validated accounts) reachable both from the
+bootstrap onboarding (`SetupView`, "Advanced") and as an admin action
+(`AdminRolesView`). Alongside the feature, this cycle folds in the exit-review
+findings on the delivered user-management paths. All V00.10–V00.70.10 invariants
+carry over; no new persistence. No live deployment (per policy, before V01.00.00
+the release is finalize + tag + production WAR + GitHub release only).
+
+### User provisioning
+
+- **Guided "Create users" wizard** (§5): a reusable `UserProvisioningPanel` renders
+  one section per role with a pre-filled generic username and an empty password;
+  "Create users" provisions every filled row through the validated
+  `UserProvisioningService` (operator-chosen passwords — nothing is shipped) and
+  reports the outcome per row. Available in bootstrap onboarding and as a
+  single-role admin action.
+
+### Fixes on the delivered user-management paths (exit review)
+
+- **User ids are never reused** — a single monotonic id source (`UserDirectory.
+  nextUserId()`, high-water in `PersistentUserDirectory`) replaces three
+  uncoordinated `max+1` / `AtomicLong` allocators. Previously a deleted user's id
+  could be handed to the next account, so historic authorship records pointed at
+  the wrong present-day user (a reviewer could be refused as the "author" of
+  content they never wrote).
+- **Wizard row removal deletes the clicked row**, not the last one — the earlier
+  behaviour could silently provision a user the operator no longer saw on screen.
+- **No denied-bounce for staff-only accounts** — the drawer now renders a link only
+  when the subject may actually open the route (`@VisibleFor` roles are consulted
+  next to the permission), and post-login navigation lands each subject on a
+  role-appropriate view. A pure author/reviewer/coach no longer bounces to the
+  public home right after signing in.
+- **The admin "New user" dialog now enforces the full password policy** — it routes
+  through `RegistrationService`, so the 12-char minimum, blocklist/HIBP preflight
+  and username + display-name uniqueness apply, and exactly the chosen role is
+  created (no implicit LEARNER — the single-role contract matches the wizard).
+
+### Platform
+
+- Acceptance rests on the full test suite (596 green) and the two review gates; the
+  mutation-coverage gate remains paused at the maintainer's request. EN + DE i18n
+  throughout (British English). Entry review #1 surfaced the delta findings
+  (2026-07-02, four-agent pass); exit review #2 before close.
+
 ## 00.70.10 — Authoring & review hardening (2026-06-30)
 
 A collection patch on the V00.70 line: it bundles the entry-review findings, a
