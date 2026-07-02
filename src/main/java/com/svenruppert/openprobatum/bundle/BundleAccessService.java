@@ -62,12 +62,17 @@ public final class BundleAccessService implements HasLogger {
         bundle.id(), user.id(), bundle.offeringIds().size());
   }
 
-  /** The member offerings of {@code bundle} that resolve in the catalog. */
+  /**
+   * The <em>published</em> member offerings of {@code bundle} that resolve in the
+   * catalog. Draft / withdrawn members are excluded so the learner-facing bundle
+   * view never leaks unpublished content (§16.2).
+   */
   public List<Offering> members(Bundle bundle) {
     Objects.requireNonNull(bundle, "bundle");
     return bundle.offeringIds().stream()
         .map(catalog::findById)
         .flatMap(Optional::stream)
+        .filter(Offering::isPublished)
         .toList();
   }
 }

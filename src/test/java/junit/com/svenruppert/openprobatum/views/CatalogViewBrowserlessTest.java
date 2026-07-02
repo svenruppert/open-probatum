@@ -94,7 +94,8 @@ class CatalogViewBrowserlessTest extends BrowserlessTest {
   @Test
   @DisplayName("an offering detail reflects the learner's entitlement state")
   void offeringGateReflectsEntitlement() {
-    Offering gated = Offering.codePath("Gated", "d", path(), "SECRET");
+    Offering gated = Offering.codePath("Gated", "d", path(), "SECRET")
+        .withStatus(com.svenruppert.openprobatum.content.ContentStatus.PUBLISHED);
     catalog.save(gated);
 
     OfferingView locked = new OfferingView();

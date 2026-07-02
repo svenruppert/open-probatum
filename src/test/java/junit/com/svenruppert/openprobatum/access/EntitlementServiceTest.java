@@ -23,6 +23,7 @@ import com.svenruppert.openprobatum.access.InMemoryEntitlementRepository;
 import com.svenruppert.openprobatum.catalog.LearningPath;
 import com.svenruppert.openprobatum.catalog.Module;
 import com.svenruppert.openprobatum.catalog.Offering;
+import com.svenruppert.openprobatum.content.ContentStatus;
 import com.svenruppert.openprobatum.security.model.AppUser;
 import com.svenruppert.openprobatum.security.roles.AuthorizationRole;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,10 +53,15 @@ class EntitlementServiceTest {
     return new LearningPath("P", List.of(Module.mandatory("M", "c")));
   }
 
+  /** Factories mint DRAFTs; access decisions below assume a learner-visible (PUBLISHED) offering. */
+  private static Offering published(Offering draft) {
+    return draft.withStatus(ContentStatus.PUBLISHED);
+  }
+
   @Test
   @DisplayName("PUBLIC is granted to everyone, including anonymous")
   void publicIsOpen() {
-    Offering o = Offering.publicPath("Open", "d", path());
+    Offering o = published(Offering.publicPath("Open", "d", path()));
     assertEquals(AccessDecision.GRANTED, service.canAccess(learner, o));
     assertEquals(AccessDecision.GRANTED, service.canAccess(null, o));
   }
@@ -63,7 +69,7 @@ class EntitlementServiceTest {
   @Test
   @DisplayName("REGISTERED requires a logged-in user")
   void registeredRequiresLogin() {
-    Offering o = Offering.registeredPath("Members", "d", path());
+    Offering o = published(Offering.registeredPath("Members", "d", path()));
     assertEquals(AccessDecision.GRANTED, service.canAccess(learner, o));
     assertEquals(AccessDecision.LOGIN_REQUIRED, service.canAccess(null, o));
   }
@@ -71,7 +77,7 @@ class EntitlementServiceTest {
   @Test
   @DisplayName("a CODE offering is reachable only after redeeming the correct code")
   void codeGate() {
-    Offering o = Offering.codePath("Gated", "d", path(), "OPEN-SESAME");
+    Offering o = published(Offering.codePath("Gated", "d", path(), "OPEN-SESAME"));
 
     assertEquals(AccessDecision.CODE_REQUIRED, service.canAccess(learner, o));
     assertFalse(service.redeemCode(learner, o, "wrong"), "wrong code grants nothing");
@@ -84,17 +90,17 @@ class EntitlementServiceTest {
   @Test
   @DisplayName("redeemCode rejects an anonymous user and a non-CODE offering")
   void redeemCodeGuards() {
-    Offering coded = Offering.codePath("Gated", "d", path(), "X");
+    Offering coded = published(Offering.codePath("Gated", "d", path(), "X"));
     assertFalse(service.redeemCode(null, coded, "X"));
 
-    Offering open = Offering.publicPath("Open", "d", path());
+    Offering open = published(Offering.publicPath("Open", "d", path()));
     assertFalse(service.redeemCode(learner, open, "X"));
   }
 
   @Test
   @DisplayName("a PREREQUISITE offering needs a grant; manual/prerequisite grant opens it")
   void prerequisiteGate() {
-    Offering o = Offering.prerequisitePath("Advanced", "d", path(), UUID.randomUUID());
+    Offering o = published(Offering.prerequisitePath("Advanced", "d", path(), UUID.randomUUID()));
 
     assertEquals(AccessDecision.PREREQUISITE_REQUIRED, service.canAccess(learner, o));
     service.grant(learner, o, EntitlementReason.PREREQUISITE);
@@ -104,10 +110,27 @@ class EntitlementServiceTest {
   @Test
   @DisplayName("a grant for one learner does not leak to another")
   void grantsArePerUser() {
-    Offering o = Offering.codePath("Gated", "d", path(), "C");
+    Offering o = published(Offering.codePath("Gated", "d", path(), "C"));
     service.redeemCode(learner, o, "C");
 
     AppUser other = new AppUser(1002L, "Other", EnumSet.of(AuthorizationRole.LEARNER));
     assertEquals(AccessDecision.CODE_REQUIRED, service.canAccess(other, o));
+  }
+
+  @Test
+  @DisplayName("an unpublished offering is UNAVAILABLE even when PUBLIC and even with a stored grant (P004)")
+  void unpublishedIsNeverAccessible() {
+    // A DRAFT with PUBLIC visibility must not leak to a learner...
+    Offering draft = Offering.publicPath("Sneak preview", "d", path());
+    assertEquals(AccessDecision.UNAVAILABLE, service.canAccess(learner, draft));
+    assertEquals(AccessDecision.UNAVAILABLE, service.canAccess(null, draft));
+
+    // ...and a stored grant (e.g. a bundle entitlement for a not-yet-published
+    // member) must not override the editorial gate.
+    service.grant(learner, draft, EntitlementReason.BUNDLE);
+    assertEquals(AccessDecision.UNAVAILABLE, service.canAccess(learner, draft));
+
+    // Once published, the normal visibility rules apply again.
+    assertEquals(AccessDecision.GRANTED, service.canAccess(learner, published(draft)));
   }
 }

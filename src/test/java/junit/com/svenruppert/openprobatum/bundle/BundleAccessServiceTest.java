@@ -51,8 +51,11 @@ class BundleAccessServiceTest {
     EntitlementService entitlements = new EntitlementService(entRepo);
     BundleAccessService access = new BundleAccessService(catalog, entitlements);
 
-    Offering a = Offering.codePath("Gated A", "d", path(), "AAA");
-    Offering b = Offering.codePath("Gated B", "d", path(), "BBB");
+    // Members must be PUBLISHED to be learner-accessible (P004).
+    Offering a = Offering.codePath("Gated A", "d", path(), "AAA")
+        .withStatus(com.svenruppert.openprobatum.content.ContentStatus.PUBLISHED);
+    Offering b = Offering.codePath("Gated B", "d", path(), "BBB")
+        .withStatus(com.svenruppert.openprobatum.content.ContentStatus.PUBLISHED);
     catalog.save(a);
     catalog.save(b);
     Bundle bundle = Bundle.draft("Pack", "d", Set.of(a.id(), b.id()));
@@ -73,10 +76,12 @@ class BundleAccessServiceTest {
     InMemoryCatalogRepository catalog = new InMemoryCatalogRepository();
     BundleAccessService access = new BundleAccessService(catalog,
         new EntitlementService(new InMemoryEntitlementRepository()));
-    Offering a = Offering.publicPath("A", "d", path());
+    Offering a = Offering.publicPath("A", "d", path())
+        .withStatus(com.svenruppert.openprobatum.content.ContentStatus.PUBLISHED);
     catalog.save(a);
     Bundle bundle = Bundle.draft("Pack", "d", Set.of(a.id(), java.util.UUID.randomUUID()));
-    // Only the resolvable member is returned (the random id has no offering).
+    // Only the resolvable, PUBLISHED member is returned (the random id has no
+    // offering; a draft member would be filtered out — P004).
     assertEquals(List.of(a), access.members(bundle));
   }
 }

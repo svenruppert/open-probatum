@@ -71,7 +71,8 @@ class LearnPathViewBrowserlessTest extends BrowserlessTest {
     Offering o = Offering.publicPath("Course", "d",
         new LearningPath("P", List.of(
             Module.mandatory("Core 1", "c"),
-            Module.mandatory("Core 2", "c"))));
+            Module.mandatory("Core 2", "c"))))
+        .withStatus(com.svenruppert.openprobatum.content.ContentStatus.PUBLISHED);
     catalog.save(o);
     return o;
   }
@@ -96,7 +97,8 @@ class LearnPathViewBrowserlessTest extends BrowserlessTest {
   @DisplayName("an offering the learner is not entitled to is not workable")
   void deniedOfferingIsNotWorkable() {
     Offering gated = Offering.codePath("Gated", "d",
-        new LearningPath("P", List.of(Module.mandatory("M", "c"))), "SECRET");
+        new LearningPath("P", List.of(Module.mandatory("M", "c"))), "SECRET")
+        .withStatus(com.svenruppert.openprobatum.content.ContentStatus.PUBLISHED);
     catalog.save(gated);
 
     LearnPathView view = new LearnPathView();

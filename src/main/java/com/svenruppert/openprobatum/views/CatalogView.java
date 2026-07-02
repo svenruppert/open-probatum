@@ -117,6 +117,7 @@ public class CatalogView extends Composite<VerticalLayout> implements I18nSuppor
       case LOGIN_REQUIRED -> tr("catalog.access.login", "Sign in required");
       case CODE_REQUIRED -> tr("catalog.access.code", "Access code required");
       case PREREQUISITE_REQUIRED -> tr("catalog.access.prerequisite", "Prerequisite required");
+      case UNAVAILABLE -> tr("catalog.access.unavailable", "Not available");
     };
   }
 

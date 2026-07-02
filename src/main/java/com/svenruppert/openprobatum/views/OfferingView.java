@@ -114,6 +114,8 @@ public class OfferingView extends Composite<VerticalLayout>
       case PREREQUISITE_REQUIRED -> box.add(new Paragraph(
           tr("offering.prerequisite", "Complete the prerequisite offering to unlock this one.")));
       case CODE_REQUIRED -> box.add(codeGate(root, offering, user));
+      case UNAVAILABLE -> box.add(new Paragraph(
+          tr("offering.unavailable", "This offering is not currently available.")));
       default -> throw new IllegalStateException("unhandled access decision: " + decision);
     }
     return box;

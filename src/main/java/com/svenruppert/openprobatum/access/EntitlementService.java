@@ -48,6 +48,13 @@ public final class EntitlementService implements HasLogger {
   /** Resolves the access decision for {@code user} (may be {@code null} = anonymous). */
   public AccessDecision canAccess(AppUser user, Offering offering) {
     Objects.requireNonNull(offering, "offering");
+    // Gate on editorial status FIRST: an unpublished offering (DRAFT / IN_REVIEW
+    // / ARCHIVED / REPLACED) is never accessible, whatever its visibility or any
+    // stored grant — otherwise a PUBLIC draft, or a bundle grant for a not-yet-
+    // published member, would let learners into unreviewed content (§16.2).
+    if (!offering.isPublished()) {
+      return AccessDecision.UNAVAILABLE;
+    }
     return switch (offering.visibility()) {
       case PUBLIC -> AccessDecision.GRANTED;
       case REGISTERED -> user != null ? AccessDecision.GRANTED : AccessDecision.LOGIN_REQUIRED;

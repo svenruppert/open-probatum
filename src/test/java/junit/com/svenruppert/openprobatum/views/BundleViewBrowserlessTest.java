@@ -71,7 +71,8 @@ class BundleViewBrowserlessTest extends BrowserlessTest {
     com.svenruppert.openprobatum.credential.CredentialEventRepositoryProvider.setRepository(
         new com.svenruppert.openprobatum.credential.InMemoryCredentialEventRepository());
     gated = Offering.codePath("Gated", "d",
-        new LearningPath("P", List.of(Module.mandatory("M", "c"))), "SECRET");
+        new LearningPath("P", List.of(Module.mandatory("M", "c"))), "SECRET")
+        .withStatus(ContentStatus.PUBLISHED);   // learner-accessible only when published (P004)
     catalog.save(gated);
     SubjectStores.subjectStore().setCurrentSubject(
         new AppUser(1001L, "Ada", EnumSet.of(AuthorizationRole.LEARNER)), AppUser.class);

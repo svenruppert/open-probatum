@@ -33,7 +33,14 @@ public enum AccessDecision {
   CODE_REQUIRED,
 
   /** A prerequisite-gated offering — the prerequisite must be completed first. */
-  PREREQUISITE_REQUIRED;
+  PREREQUISITE_REQUIRED,
+
+  /**
+   * The offering is not published (DRAFT / IN_REVIEW / ARCHIVED / REPLACED) and
+   * is therefore never accessible to a learner, regardless of visibility or any
+   * stored grant — learners only ever see PUBLISHED content (§16.2).
+   */
+  UNAVAILABLE;
 
   public boolean isGranted() {
     return this == GRANTED;
