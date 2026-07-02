@@ -20,7 +20,8 @@ import com.svenruppert.openprobatum.security.model.AppUser;
 import com.svenruppert.openprobatum.security.model.UserDirectory;
 import com.svenruppert.openprobatum.security.model.UserDirectoryProvider;
 import com.svenruppert.openprobatum.security.roles.AuthorizationRole;
-import com.svenruppert.openprobatum.security.services.PasswordPreflight;
+import com.svenruppert.openprobatum.security.services.RegistrationResult;
+import com.svenruppert.openprobatum.security.services.RegistrationService;
 import com.svenruppert.openprobatum.security.services.VersionBumper;
 import com.svenruppert.openprobatum.i18n.I18nSupport;
 import com.svenruppert.openprobatum.views.ui.EmptyState;
@@ -296,30 +297,29 @@ public class AdminRolesView extends Composite<VerticalLayout>
             "Username, password and initial role are required."));
         return;
       }
-      if (!PasswordPreflight.isAcceptable(p)) {
-        warn(tr(K_CR_E_WEAK, "Password rejected — pick a stronger one."));
-        return;
-      }
       String display = displayName.getValue() == null || displayName.getValue().isBlank()
           ? u : displayName.getValue();
-      // The display name is the credential recipient key — it must be unique
-      // (exit-review HIGH-1), and addUser silently overwrites on a username clash.
-      if (UserDirectoryProvider.directory().usernameExists(u)
-          || UserDirectoryProvider.directory().displayNameExists(display)) {
-        warn(tr(K_CR_E_TAKEN, "That username or display name is already taken."));
-        return;
-      }
-      // Exactly the chosen role — the same contract as the provisioning wizard;
+      // Route through RegistrationService so the SAME validation as everywhere
+      // else applies — length policy (12), blocklist/HIBP preflight, and the
+      // username + display-name uniqueness checks (the display name is the
+      // credential recipient key, exit-review HIGH-1). Exactly the chosen role;
       // LEARNER is never added implicitly (assign it explicitly when wanted).
-      AppUser created = new AppUser(nextId(), display, EnumSet.of(r));
-      try {
-        UserDirectoryProvider.directory().addUser(u, p, created);
-        success(tr(K_CR_SUCCESS, "Created user {0}.", u));
-        dialog.close();
-        refresh();
-      } catch (RuntimeException failure) {
-        warn(tr(K_CR_E_FAIL,
-            "Could not create user: {0}", failure.getMessage()));
+      RegistrationResult result = new RegistrationService()
+          .register(u, p, display, EnumSet.of(r));
+      switch (result) {
+        case RegistrationResult.Success ignored -> {
+          success(tr(K_CR_SUCCESS, "Created user {0}.", u));
+          dialog.close();
+          refresh();
+        }
+        case RegistrationResult.WeakPassword ignored ->
+            warn(tr(K_CR_E_WEAK, "Password rejected — pick a stronger one."));
+        case RegistrationResult.UsernameTaken ignored ->
+            warn(tr(K_CR_E_TAKEN, "That username or display name is already taken."));
+        case RegistrationResult.NameTaken ignored ->
+            warn(tr(K_CR_E_TAKEN, "That username or display name is already taken."));
+        case RegistrationResult.InvalidInput invalid ->
+            warn(tr(K_CR_E_FAIL, "Could not create user: {0}", invalid.reason()));
       }
     });
     save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -329,11 +329,6 @@ public class AdminRolesView extends Composite<VerticalLayout>
 
     dialog.getFooter().add(cancel, save);
     dialog.open();
-  }
-
-  private static Long nextId() {
-    // Single id source (directory high-water) — never reuses a deleted user's id.
-    return UserDirectoryProvider.directory().nextUserId();
   }
 
   private void refresh() {

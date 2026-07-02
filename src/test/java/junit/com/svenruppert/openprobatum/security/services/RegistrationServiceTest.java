@@ -118,6 +118,26 @@ class RegistrationServiceTest {
   }
 
   @Test
+  @DisplayName("the role-aware register path (used by the admin 'New user' dialog) also enforces the length policy (P016)")
+  void roleAwareRegisterEnforcesLengthPolicy() {
+    // The admin single-user dialog now routes through this overload; a short
+    // password must be refused exactly as in the wizard, and nothing persists.
+    RegistrationResult result = service.register(
+        "shorty", "abc123", "Shorty", java.util.EnumSet.of(AuthorizationRole.AUTHOR));
+    assertInstanceOf(RegistrationResult.WeakPassword.class, result);
+    assertFalse(directory.usernameExists("shorty"), "nothing persisted");
+  }
+
+  @Test
+  @DisplayName("the role-aware register path creates exactly the chosen roles — no implicit LEARNER (P027)")
+  void roleAwareRegisterCreatesExactRoles() {
+    AppUser user = assertInstanceOf(RegistrationResult.Success.class,
+        service.register("reviewer-jo", STRONG, "Reviewer Jo",
+            java.util.EnumSet.of(AuthorizationRole.REVIEWER))).user();
+    assertEquals(java.util.Set.of(AuthorizationRole.REVIEWER), user.roles());
+  }
+
+  @Test
   @DisplayName("ids come from the directory's single monotonic source (floor 1000, distinct)")
   void idsComeFromTheDirectorySequence() {
     AppUser first = assertInstanceOf(RegistrationResult.Success.class,
