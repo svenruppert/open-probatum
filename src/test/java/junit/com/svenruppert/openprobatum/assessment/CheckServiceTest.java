@@ -100,4 +100,40 @@ class CheckServiceTest {
     assertEquals(assessment.version(), a.assessmentVersion());
     assertEquals(1, repo.forLearner("alice", assessment.id()).size());
   }
+
+  @Test
+  @DisplayName("concurrent passing submits signal firstPass exactly once — static lock, per-request instances (P002)")
+  void firstPassIsExactlyOnceUnderConcurrency() throws InterruptedException {
+    // Mimic production: each request builds its own CheckService over the shared
+    // repository. An instance lock would protect nothing — only the static
+    // DECISION_LOCK makes save+count+decide atomic across threads.
+    int threads = 8;
+    java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+    java.util.concurrent.atomic.AtomicInteger firstPasses =
+        new java.util.concurrent.atomic.AtomicInteger();
+    List<Thread> workers = new java.util.ArrayList<>();
+    for (int i = 0; i < threads; i++) {
+      Thread t = new Thread(() -> {
+        try {
+          start.await();
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          return;
+        }
+        if (new CheckService(repo).submit("carol", assessment, answers(1, 1)).firstPass()) {
+          firstPasses.incrementAndGet();
+        }
+      });
+      workers.add(t);
+      t.start();
+    }
+    start.countDown();
+    for (Thread t : workers) {
+      t.join();
+    }
+    assertEquals(1, firstPasses.get(),
+        "exactly one of the concurrent passing submits may signal firstPass");
+    assertEquals(threads, repo.forLearner("carol", assessment.id()).size(),
+        "every attempt is still recorded");
+  }
 }

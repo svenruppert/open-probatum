@@ -30,6 +30,19 @@ import java.util.UUID;
  */
 public final class CheckService {
 
+  /**
+   * Serialises the grade→save→first-pass decision across ALL callers. The
+   * service is created per request (the views do {@code new CheckService()}),
+   * so an instance {@code synchronized} would lock a throw-away monitor and
+   * protect nothing — the same reason {@code WorkshopEnrolmentService.SEAT_LOCK}
+   * and {@code LabSubmissionService.DECISION_LOCK} are static. Without a shared
+   * lock, two concurrent passing submits from the same learner can interleave
+   * as save(A)→save(B)→count(A)=2→count(B)=2, so BOTH report firstPass=false
+   * and the credential is never minted (and can never be, since passedAttemptCount
+   * is then permanently &gt; 1).
+   */
+  private static final Object DECISION_LOCK = new Object();
+
   private final AttemptRepository attempts;
 
   public CheckService(AttemptRepository attempts) {
@@ -50,21 +63,23 @@ public final class CheckService {
 
   /**
    * Grades {@code answers}, records the attempt for {@code learnerName}, and
-   * decides — atomically, under this method's lock — whether it is the first
-   * passing attempt. Computing {@code firstPass} inside the same synchronized
-   * block as the save closes the issuance double-mint race (no TOCTOU between
-   * "did it pass first?" and recording the attempt).
+   * decides — atomically, under {@link #DECISION_LOCK} — whether it is the first
+   * passing attempt. Computing {@code firstPass} inside the same locked block as
+   * the save closes the issuance double-mint race (no TOCTOU between "did it pass
+   * first?" and recording the attempt), across concurrent per-request instances.
    */
-  public synchronized SubmitOutcome submit(String learnerName, Assessment assessment,
-                                           Map<UUID, Set<Integer>> answers) {
+  public SubmitOutcome submit(String learnerName, Assessment assessment,
+                              Map<UUID, Set<Integer>> answers) {
     Objects.requireNonNull(learnerName, "learnerName");
     Objects.requireNonNull(assessment, "assessment");
     AssessmentResult result = assessment.grade(answers);
-    Attempt attempt = Attempt.record(learnerName, assessment, result);
-    attempts.save(attempt);
-    boolean firstPass = attempt.passed()
-        && passedAttemptCount(learnerName, assessment.id()) == 1;
-    return new SubmitOutcome(attempt, firstPass);
+    synchronized (DECISION_LOCK) {
+      Attempt attempt = Attempt.record(learnerName, assessment, result);
+      attempts.save(attempt);
+      boolean firstPass = attempt.passed()
+          && passedAttemptCount(learnerName, assessment.id()) == 1;
+      return new SubmitOutcome(attempt, firstPass);
+    }
   }
 
   /** How many times {@code learnerName} has attempted the assessment. */
