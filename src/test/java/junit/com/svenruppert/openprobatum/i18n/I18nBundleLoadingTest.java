@@ -121,6 +121,48 @@ class I18nBundleLoadingTest {
   }
 
   @Test
+  @DisplayName("a value with no {n} placeholder must not contain doubled apostrophes — they show literally (P018)")
+  void noStrayMessageFormatEscapes() throws Exception {
+    for (String bundle : List.of(
+        "vaadin-i18n/translations.properties",
+        "vaadin-i18n/translations_de.properties")) {
+      List<String> offenders = strayDoubledApostropheKeys(bundle);
+      assertEquals(List.of(), offenders,
+          bundle + " has doubled apostrophes ('') in values with no {n} placeholder — such "
+              + "values are shown raw (no MessageFormat pass), so the '' renders literally: "
+              + offenders);
+    }
+  }
+
+  private List<String> strayDoubledApostropheKeys(String resource) throws Exception {
+    ClassLoader cl = getClass().getClassLoader();
+    List<String> offenders = new java.util.ArrayList<>();
+    try (InputStream in = cl.getResourceAsStream(resource);
+         java.io.BufferedReader r = new java.io.BufferedReader(
+             new java.io.InputStreamReader(java.util.Objects.requireNonNull(in), StandardCharsets.UTF_8))) {
+      String line;
+      while ((line = r.readLine()) != null) {
+        String trimmed = line.strip();
+        if (trimmed.isEmpty() || trimmed.startsWith("#") || trimmed.startsWith("!")) {
+          continue;
+        }
+        int eq = trimmed.indexOf('=');
+        if (eq <= 0) {
+          continue;
+        }
+        String key = trimmed.substring(0, eq).strip();
+        String value = trimmed.substring(eq + 1);
+        // A doubled apostrophe is only meaningful when the value is MessageFormat-ted,
+        // which only happens when it carries a {n} placeholder and is consumed with args.
+        if (value.contains("''") && !value.matches(".*\\{\\d+}.*")) {
+          offenders.add(key);
+        }
+      }
+    }
+    return offenders;
+  }
+
+  @Test
   @DisplayName("Vaadin's DefaultI18NProvider has the JVM-fallback bug — diagnostic only")
   void defaultProviderHasJvmFallbackBug() {
     // This test DOCUMENTS the bug we're fixing. On a German JVM,
