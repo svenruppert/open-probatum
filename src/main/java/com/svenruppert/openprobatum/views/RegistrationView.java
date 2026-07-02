@@ -159,6 +159,7 @@ public class RegistrationView extends Composite<Div> implements I18nSupport {
 
   private void clearErrors() {
     usernameField.setInvalid(false);
+    displayNameField.setInvalid(false);
     passwordField.setInvalid(false);
     confirmField.setInvalid(false);
     status.setVisible(false);

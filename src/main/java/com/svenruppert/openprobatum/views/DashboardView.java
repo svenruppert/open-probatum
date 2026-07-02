@@ -188,7 +188,7 @@ public class DashboardView extends Composite<VerticalLayout>
             String.valueOf(users),
             users == 1
                 ? tr(K_TILE_USERS_HINT_SINGULAR, "Only the bootstrap admin so far")
-                : tr(K_TILE_USERS_HINT_PLURAL, "+0 in the last 24h")),
+                : tr(K_TILE_USERS_HINT_PLURAL, "Across all roles")),
         new MetricTile(VaadinIcon.CONNECT,
             tr(K_TILE_SESS_LABEL, "Active sessions"),
             String.valueOf(activeSessions),

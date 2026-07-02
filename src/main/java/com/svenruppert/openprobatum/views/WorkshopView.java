@@ -38,6 +38,7 @@ import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
 
@@ -103,7 +104,13 @@ public class WorkshopView extends Composite<VerticalLayout> implements I18nSuppo
     Button enrol = new Button(tr("workshops.action.enrol", "Enrol"), e -> {
       Long me = currentLearnerId();
       if (me != null) {
-        new WorkshopEnrolmentService().enrol(workshop.id(), me, currentLearnerName());
+        boolean enrolled = new WorkshopEnrolmentService()
+            .enrol(workshop.id(), me, currentLearnerName()).isPresent();
+        Notification.show(enrolled
+            ? tr("workshops.enrol.success", "Enrolled — see you there.")
+            : tr("workshops.enrol.refused",
+                "Could not enrol — the workshop is full, has started, or you are "
+                    + "already enrolled."));
       }
       render();
     });

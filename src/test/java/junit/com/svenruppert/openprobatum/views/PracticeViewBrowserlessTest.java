@@ -24,7 +24,7 @@ import com.svenruppert.openprobatum.views.PracticeView;
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.checkbox.CheckboxGroup;
+import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -77,8 +77,10 @@ class PracticeViewBrowserlessTest extends BrowserlessTest {
     PracticeView view = new PracticeView();
     view.setParameter(null, a.id().toString());
 
-    CheckboxGroup<Integer> group = first(view, CheckboxGroup.class);
-    group.select(1); // the correct option
+    // Single-choice questions render as a radio group (P021).
+    @SuppressWarnings("unchecked")
+    RadioButtonGroup<Integer> group = first(view, RadioButtonGroup.class);
+    group.setValue(1); // the correct option
     first(view, Button.class).click();
 
     assertEquals(List.of("CORRECT"), attributes(view, "data-feedback"));

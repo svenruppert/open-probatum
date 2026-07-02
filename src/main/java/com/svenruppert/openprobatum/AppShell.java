@@ -31,7 +31,7 @@ import com.vaadin.flow.theme.Theme;
  */
 @Meta(name = "author", content = "Sven Ruppert")
 @Viewport("width=device-width, initial-scale=1.0")
-@PWA(name = "Project Base for Vaadin", shortName = "Project Base")
+@PWA(name = "open probatum", shortName = "open probatum")
 @Theme("my-theme")
 @Push
 public class AppShell

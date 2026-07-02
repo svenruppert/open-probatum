@@ -26,9 +26,11 @@ import com.svenruppert.openprobatum.security.roles.AuthorizationRole;
 import com.svenruppert.openprobatum.security.roles.VisibleFor;
 import com.svenruppert.openprobatum.views.ui.PageHeader;
 import com.vaadin.flow.component.Composite;
+import com.svenruppert.openprobatum.assessment.QuestionType;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.CheckboxGroup;
+import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Span;
@@ -95,15 +97,28 @@ public class PracticeView extends Composite<VerticalLayout>
     block.getElement().setAttribute("data-question", question.id().toString());
     block.add(new H4(question.text()));
 
-    CheckboxGroup<Integer> choices = new CheckboxGroup<>();
-    choices.setItems(IntStream.range(0, question.options().size()).boxed().toList());
-    choices.setItemLabelGenerator(i -> question.options().get(i));
+    var indices = IntStream.range(0, question.options().size()).boxed().toList();
+    java.util.function.Supplier<Set<Integer>> chosenSupplier;
+    if (question.type() == QuestionType.MULTIPLE_CHOICE) {
+      CheckboxGroup<Integer> choices = new CheckboxGroup<>();
+      choices.setItems(indices);
+      choices.setItemLabelGenerator(i -> question.options().get(i));
+      chosenSupplier = choices::getSelectedItems;
+      block.add(choices);
+    } else {
+      // SINGLE_CHOICE / TRUE_FALSE — one pick only.
+      RadioButtonGroup<Integer> choices = new RadioButtonGroup<>();
+      choices.setItems(indices);
+      choices.setItemLabelGenerator(i -> question.options().get(i));
+      chosenSupplier = () -> choices.getValue() == null ? Set.of() : Set.of(choices.getValue());
+      block.add(choices);
+    }
 
     Span result = new Span();
     result.setVisible(false);
 
     Button check = new Button(tr("practice.check", "Check"), e -> {
-      Set<Integer> chosen = choices.getSelectedItems();
+      Set<Integer> chosen = chosenSupplier.get();
       QuestionFeedback fb = question.feedback(chosen);
       result.getElement().setAttribute("data-feedback", fb.correct() ? "CORRECT" : "INCORRECT");
       result.getElement().getThemeList().clear();
@@ -116,7 +131,7 @@ public class PracticeView extends Composite<VerticalLayout>
     });
     check.addThemeVariants(ButtonVariant.LUMO_SMALL);
 
-    block.add(choices, check, result);
+    block.add(check, result);
     return block;
   }
 

@@ -88,6 +88,26 @@ class CredentialGovernanceTest {
   }
 
   @Test
+  @DisplayName("illegal source-state transitions are refused — no resurrecting a terminal credential (P022)")
+  void illegalTransitionsAreRefused() {
+    Credential c = issued();
+    governance.revoke(c.id()); // now REVOKED (terminal)
+
+    // A REVOKED credential must not be reinstatable, re-suspendable or supersedable.
+    assertTrue(governance.reinstate(c.id()).isEmpty(), "a revoked credential cannot be reinstated");
+    assertTrue(governance.suspend(c.id()).isEmpty(), "a revoked credential cannot be suspended");
+    assertTrue(governance.supersede(c.id(), UUID.randomUUID()).isEmpty(),
+        "a revoked credential cannot be superseded");
+    assertEquals(CredentialStatus.REVOKED, repo.findById(c.id()).orElseThrow().status(),
+        "the status stays REVOKED");
+
+    // reinstate is only valid from SUSPENDED: a VALID credential is not reinstatable.
+    Credential valid = issued();
+    assertTrue(governance.reinstate(valid.id()).isEmpty(), "a VALID credential is already valid");
+    assertEquals(CredentialStatus.VALID, repo.findById(valid.id()).orElseThrow().status());
+  }
+
+  @Test
   @DisplayName("supersede → SUPERSEDED and records the replacing id")
   void supersede() {
     Credential c = issued();

@@ -33,9 +33,11 @@ import com.svenruppert.openprobatum.security.roles.VisibleFor;
 import com.svenruppert.openprobatum.views.ui.PageHeader;
 import com.svenruppert.jsentinel.authorization.api.SubjectStores;
 import com.vaadin.flow.component.Composite;
+import com.svenruppert.openprobatum.assessment.QuestionType;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.CheckboxGroup;
+import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Span;
@@ -69,7 +71,9 @@ public class CheckView extends Composite<VerticalLayout>
   public static final String NAV = "check";
 
   private final AssessmentRepository assessments = AssessmentRepositoryProvider.repository();
-  private final Map<UUID, CheckboxGroup<Integer>> answers = new LinkedHashMap<>();
+  /** Per question, a supplier of the selected option indices (a set of one for
+   * single-choice, any number for multiple-choice). */
+  private final Map<UUID, java.util.function.Supplier<Set<Integer>>> answers = new LinkedHashMap<>();
 
   @Override
   public void setParameter(BeforeEvent event, @OptionalParameter String id) {
@@ -109,18 +113,29 @@ public class CheckView extends Composite<VerticalLayout>
     block.getStyle().set("margin-bottom", "var(--lumo-space-m)");
     block.add(new H4(question.text()));
 
-    CheckboxGroup<Integer> choices = new CheckboxGroup<>();
-    choices.setItems(IntStream.range(0, question.options().size()).boxed().toList());
-    choices.setItemLabelGenerator(i -> question.options().get(i));
-    answers.put(question.id(), choices);
-
-    block.add(choices);
+    var indices = IntStream.range(0, question.options().size()).boxed().toList();
+    if (question.type() == QuestionType.MULTIPLE_CHOICE) {
+      CheckboxGroup<Integer> choices = new CheckboxGroup<>();
+      choices.setItems(indices);
+      choices.setItemLabelGenerator(i -> question.options().get(i));
+      answers.put(question.id(), choices::getSelectedItems);
+      block.add(choices);
+    } else {
+      // SINGLE_CHOICE / TRUE_FALSE — enforce a single pick with a radio group, so a
+      // learner cannot select two options and have the exact-match grading fail them.
+      RadioButtonGroup<Integer> choices = new RadioButtonGroup<>();
+      choices.setItems(indices);
+      choices.setItemLabelGenerator(i -> question.options().get(i));
+      answers.put(question.id(),
+          () -> choices.getValue() == null ? Set.of() : Set.of(choices.getValue()));
+      block.add(choices);
+    }
     return block;
   }
 
   private void grade(Assessment assessment, Span result) {
     Map<UUID, Set<Integer>> given = new HashMap<>();
-    answers.forEach((qid, group) -> given.put(qid, group.getSelectedItems()));
+    answers.forEach((qid, selection) -> given.put(qid, selection.get()));
 
     String learner = currentLearnerName();
     CheckService checkService = new CheckService();

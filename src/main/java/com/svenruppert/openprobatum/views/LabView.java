@@ -178,8 +178,14 @@ public class LabView extends Composite<VerticalLayout> implements I18nSupport {
     Span statusBadge = new Span(submission.status().name());
     statusBadge.getElement().setAttribute("data-status", submission.status().name());
     statusBadge.getElement().getThemeList().add("badge pill contrast");
-    card.add(new H4(tr("labs.mine.lab", "Lab {0} v{1}",
-        submission.labId().toString(), submission.labVersion())), statusBadge);
+    // Resolve the lab's title (like AssessmentQueueView) — the raw UUID is
+    // meaningless to the learner; fall back to the id only if the lab is gone.
+    String labName = com.svenruppert.openprobatum.lab.LabRepositoryProvider.repository()
+        .findById(submission.labId())
+        .map(Lab::title)
+        .orElse(submission.labId().toString());
+    card.add(new H4(tr("labs.mine.lab", "{0} v{1}",
+        labName, submission.labVersion())), statusBadge);
     if (!submission.assessorFeedback().isBlank()) {
       Span feedback = new Span(submission.assessorFeedback());
       feedback.getElement().setAttribute("data-feedback", submission.assessorFeedback());

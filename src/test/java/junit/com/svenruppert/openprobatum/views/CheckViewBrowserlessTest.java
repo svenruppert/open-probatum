@@ -34,7 +34,7 @@ import com.svenruppert.jsentinel.authorization.api.SubjectStores;
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.checkbox.CheckboxGroup;
+import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -91,7 +91,7 @@ class CheckViewBrowserlessTest extends BrowserlessTest {
     CheckView view = new CheckView();
     view.setParameter(null, a.id().toString());
 
-    first(view, CheckboxGroup.class).select(1); // correct
+    first(view, RadioButtonGroup.class).setValue(1); // correct (single-choice → radio, P021)
     first(view, Button.class).click();
 
     assertEquals(List.of("PASSED"), attributes(view, "data-check-result"));
@@ -114,7 +114,7 @@ class CheckViewBrowserlessTest extends BrowserlessTest {
     CheckView view = new CheckView();
     view.setParameter(null, a.id().toString());
 
-    first(view, CheckboxGroup.class).select(0); // wrong
+    first(view, RadioButtonGroup.class).setValue(0); // wrong
     first(view, Button.class).click();
 
     assertEquals(List.of("FAILED"), attributes(view, "data-check-result"));
@@ -129,12 +129,12 @@ class CheckViewBrowserlessTest extends BrowserlessTest {
 
     CheckView firstView = new CheckView();
     firstView.setParameter(null, a.id().toString());
-    first(firstView, CheckboxGroup.class).select(1);
+    first(firstView, RadioButtonGroup.class).setValue(1);
     first(firstView, Button.class).click();
 
     CheckView secondView = new CheckView();
     secondView.setParameter(null, a.id().toString());
-    first(secondView, CheckboxGroup.class).select(1);
+    first(secondView, RadioButtonGroup.class).setValue(1);
     first(secondView, Button.class).click();
 
     assertEquals(1, credentials.all().size(), "re-passing must not duplicate the credential");

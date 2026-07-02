@@ -41,30 +41,47 @@ public final class CredentialGovernance implements HasLogger {
     this.repository = Objects.requireNonNull(repository, "repository");
   }
 
-  /** Revokes a credential ({@code VALID/...} → {@code REVOKED}). */
+  /**
+   * Revokes a live credential ({@code VALID}/{@code SUSPENDED} → {@code REVOKED}).
+   * A no-op (empty) on an already {@code REVOKED} or {@code SUPERSEDED} credential —
+   * those are terminal.
+   */
   public Optional<Credential> revoke(UUID id) {
-    return transition(id, c -> c.withStatus(CredentialStatus.REVOKED),
+    return transition(id, LIVE, c -> c.withStatus(CredentialStatus.REVOKED),
         CredentialEvent.Action.REVOKED, "");
   }
 
-  /** Suspends a credential (temporary deactivation). */
+  /** Suspends a {@code VALID} credential. No-op on any other status. */
   public Optional<Credential> suspend(UUID id) {
-    return transition(id, c -> c.withStatus(CredentialStatus.SUSPENDED),
+    return transition(id, c -> c.status() == CredentialStatus.VALID,
+        c -> c.withStatus(CredentialStatus.SUSPENDED),
         CredentialEvent.Action.SUSPENDED, "");
   }
 
-  /** Reinstates a suspended credential back to {@code VALID}. */
+  /**
+   * Reinstates a {@code SUSPENDED} credential back to {@code VALID}. No-op on any
+   * other status — a {@code REVOKED} or {@code SUPERSEDED} credential must never be
+   * resurrected (a resurrected SUPERSEDED would keep a dangling replacement pointer).
+   */
   public Optional<Credential> reinstate(UUID id) {
-    return transition(id, c -> c.withStatus(CredentialStatus.VALID),
+    return transition(id, c -> c.status() == CredentialStatus.SUSPENDED,
+        c -> c.withStatus(CredentialStatus.VALID),
         CredentialEvent.Action.REINSTATED, "");
   }
 
-  /** Marks a credential {@code SUPERSEDED}, pointing at the replacing credential. */
+  /**
+   * Marks a live credential {@code SUPERSEDED}, pointing at the replacing credential.
+   * No-op on an already {@code REVOKED} or {@code SUPERSEDED} credential.
+   */
   public Optional<Credential> supersede(UUID id, UUID replacementId) {
     Objects.requireNonNull(replacementId, "replacementId");
-    return transition(id, c -> c.supersededByCredential(replacementId),
+    return transition(id, LIVE, c -> c.supersededByCredential(replacementId),
         CredentialEvent.Action.SUPERSEDED, "by " + replacementId);
   }
+
+  /** A credential that may still be governed — not yet in a terminal state. */
+  private static final java.util.function.Predicate<Credential> LIVE =
+      c -> c.status() == CredentialStatus.VALID || c.status() == CredentialStatus.SUSPENDED;
 
   /**
    * Re-issues (renews) a credential (concept §10.9): mints a fresh {@code VALID}
@@ -91,16 +108,20 @@ public final class CredentialGovernance implements HasLogger {
     });
   }
 
-  private Optional<Credential> transition(UUID id, UnaryOperator<Credential> change,
+  private Optional<Credential> transition(UUID id,
+                                          java.util.function.Predicate<Credential> allowed,
+                                          UnaryOperator<Credential> change,
                                           CredentialEvent.Action action, String detail) {
     Objects.requireNonNull(id, "id");
-    return repository.findById(id).map(current -> {
-      Credential updated = change.apply(current);
-      repository.save(updated);
-      logger().info("Credential {} {}", id, action);
-      appendEvent(id, action, detail);
-      return updated;
-    });
+    return repository.findById(id)
+        .filter(allowed)   // refuse an illegal source-state transition (no-op)
+        .map(current -> {
+          Credential updated = change.apply(current);
+          repository.save(updated);
+          logger().info("Credential {} {}", id, action);
+          appendEvent(id, action, detail);
+          return updated;
+        });
   }
 
   /** Appends one audit-trail event for a governance action (§17.3). */

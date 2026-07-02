@@ -37,6 +37,7 @@ import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
 
@@ -106,6 +107,8 @@ public class BundleView extends Composite<VerticalLayout> implements I18nSupport
       AppUser user = currentUser();
       if (user != null) {
         new BundleAccessService().grant(user, bundle);
+        Notification.show(tr("bundles.join.success",
+            "Bundle joined — its offerings are now unlocked."));
       }
       render();
     });
