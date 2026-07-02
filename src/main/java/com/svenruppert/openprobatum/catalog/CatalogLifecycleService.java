@@ -100,8 +100,34 @@ public final class CatalogLifecycleService implements HasLogger {
     return transition(id, ContentStatus.DRAFT);
   }
 
+  /**
+   * Publishes {@code id} and, atomically under the same lock, retires every older
+   * version of the same lineage that is still live (PUBLISHED/DEPRECATED) to
+   * {@link ContentStatus#REPLACED}. Without this a freshly published v2 left v1
+   * PUBLISHED, so the learner catalogue showed both versions of the same offering
+   * and a learner could still enter (and buy a code for) the stale v1.
+   */
   public Optional<Offering> publish(UUID id) {
-    return transition(id, ContentStatus.PUBLISHED);
+    synchronized (LOCK) {
+      Optional<Offering> published = transition(id, ContentStatus.PUBLISHED);
+      published.ifPresent(this::replacePredecessors);
+      return published;
+    }
+  }
+
+  /** Moves the now-superseded live predecessors of {@code current}'s lineage to REPLACED. */
+  private void replacePredecessors(Offering current) {
+    repository.all().stream()
+        .filter(o -> o.lineageId().equals(current.lineageId())
+            && !o.id().equals(current.id())
+            && o.version() < current.version()
+            && (o.status() == ContentStatus.PUBLISHED || o.status() == ContentStatus.DEPRECATED))
+        .toList()
+        .forEach(old -> {
+          repository.save(old.withStatus(ContentStatus.REPLACED));
+          logger().info("Offering {} (v{}) → REPLACED (superseded by v{})",
+              old.id(), old.version(), current.version());
+        });
   }
 
   public Optional<Offering> deprecate(UUID id) {

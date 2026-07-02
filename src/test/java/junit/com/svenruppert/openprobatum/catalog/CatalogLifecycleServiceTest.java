@@ -135,4 +135,36 @@ class CatalogLifecycleServiceTest {
     assertEquals(threads - 1, illegal.get(), "every other thread is refused");
     assertEquals(ContentStatus.IN_REVIEW, repo.findById(draft.id()).orElseThrow().status());
   }
+
+  @Test
+  @DisplayName("publishing a new version retires the previous PUBLISHED version to REPLACED (P013/P020)")
+  void publishRetiresPredecessor() {
+    InMemoryCatalogRepository repo = new InMemoryCatalogRepository();
+    CatalogLifecycleService service = new CatalogLifecycleService(repo);
+
+    // v1 published.
+    Offering v1 = draftIn(repo);
+    service.submitForReview(v1.id());
+    service.approve(v1.id());
+    service.publish(v1.id());
+    assertEquals(ContentStatus.PUBLISHED, repo.findById(v1.id()).orElseThrow().status());
+
+    // Branch + publish v2 of the same lineage.
+    Offering v2 = repo.findById(v1.id()).orElseThrow().asNewVersion();
+    repo.save(v2);
+    assertEquals(v1.lineageId(), v2.lineageId());
+    service.submitForReview(v2.id());
+    service.approve(v2.id());
+    Offering publishedV2 = service.publish(v2.id()).orElseThrow();
+
+    assertEquals(ContentStatus.PUBLISHED, publishedV2.status(), "v2 is published");
+    assertEquals(ContentStatus.REPLACED, repo.findById(v1.id()).orElseThrow().status(),
+        "v1 is retired to REPLACED — no longer learner-visible, so the catalogue "
+            + "does not show both versions");
+    // Only the latest version remains PUBLISHED for the lineage.
+    long publishedInLineage = repo.all().stream()
+        .filter(o -> o.lineageId().equals(v1.lineageId()) && o.isPublished())
+        .count();
+    assertEquals(1, publishedInLineage);
+  }
 }

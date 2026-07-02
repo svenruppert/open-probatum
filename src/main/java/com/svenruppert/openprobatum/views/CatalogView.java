@@ -66,7 +66,17 @@ public class CatalogView extends Composite<VerticalLayout> implements I18nSuppor
         tr("catalog.subtitle", "Browse offerings and start learning.")));
 
     // Learners browse only PUBLISHED offerings (§16.2); drafts/archived are hidden.
-    var offerings = catalog.all().stream().filter(Offering::isPublished).toList();
+    // Deduplicate by lineage, keeping the highest version — publish() already
+    // retires predecessors to REPLACED, but this is the same defensive
+    // latest-per-lineage collapse that OfferingAuthoringService.myOfferings uses,
+    // so a legacy double-published lineage never shows twice.
+    var offerings = catalog.all().stream()
+        .filter(Offering::isPublished)
+        .collect(java.util.stream.Collectors.toMap(
+            Offering::lineageId, o -> o,
+            (a, b) -> a.version() >= b.version() ? a : b,
+            java.util.LinkedHashMap::new))
+        .values().stream().toList();
     if (offerings.isEmpty()) {
       root.add(new EmptyState(VaadinIcon.OPEN_BOOK,
           tr("catalog.empty.title", "No offerings yet"),
