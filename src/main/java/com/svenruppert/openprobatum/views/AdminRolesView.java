@@ -86,6 +86,7 @@ public class AdminRolesView extends Composite<VerticalLayout>
   private static final String K_ED_NOTASSIGNED = "roles.editor.notAssigned";
   private static final String K_ED_GRANTED = "roles.editor.granted";
   private static final String K_ED_REVOKED = "roles.editor.revoked";
+  private static final String K_LAST_ADMIN = "roles.editor.lastAdmin";
   private static final String K_DEL_HEADER = "roles.delete.confirm.header";
   private static final String K_DEL_TEXT = "roles.delete.confirm.text";
   private static final String K_DEL_BTN = "roles.delete.confirm.button";
@@ -214,6 +215,15 @@ public class AdminRolesView extends Composite<VerticalLayout>
         warn(tr(K_ED_NOTASSIGNED, "Not assigned."));
         return;
       }
+      // Refuse to remove the last administrator — otherwise the instance drops
+      // back into the (token-gated, unreachable) bootstrap flow for everyone.
+      if (role == AuthorizationRole.PLATFORM_ADMIN
+          && UserDirectoryProvider.directory().isLastAdministrator(user.id())) {
+        warn(tr(K_LAST_ADMIN,
+            "Cannot remove the last administrator — assign the role to another "
+                + "user first."));
+        return;
+      }
       UserDirectoryProvider.directory().revokeRole(user.id(), role);
       VersionBumper.bump(user);
       success(tr(K_ED_REVOKED, "Revoked {0} from {1}.", role.name(), user.name()));
@@ -234,6 +244,13 @@ public class AdminRolesView extends Composite<VerticalLayout>
   }
 
   private void confirmDelete(AppUser user) {
+    // Refuse to delete the last administrator (same lockout guard as revoke).
+    if (UserDirectoryProvider.directory().isLastAdministrator(user.id())) {
+      warn(tr(K_LAST_ADMIN,
+          "Cannot remove the last administrator — assign the role to another "
+              + "user first."));
+      return;
+    }
     ConfirmDialog dialog = new ConfirmDialog();
     dialog.setHeader(tr(K_DEL_HEADER, "Delete user"));
     dialog.setText(tr(K_DEL_TEXT,

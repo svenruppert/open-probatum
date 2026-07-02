@@ -156,6 +156,28 @@ class PersistentUserDirectoryTest {
     assertEquals(carol, found.get());
   }
 
+  // ── last-administrator guard (V00.80.10 P001) ──────────────────
+
+  @Test
+  @DisplayName("isLastAdministrator is true for the sole admin and false once a second admin exists")
+  void lastAdministratorGuard() {
+    AppUser admin = new AppUser(1000L, "Root",
+        EnumSet.of(AuthorizationRole.PLATFORM_ADMIN, AuthorizationRole.LEARNER));
+    directory.addUser("root", "correct-horse-battery-staple", admin);
+    assertTrue(directory.isLastAdministrator(1000L), "the only admin is the last one");
+
+    AppUser learner = new AppUser(1001L, "Lea", EnumSet.of(AuthorizationRole.LEARNER));
+    directory.addUser("lea", "correct-horse-battery-staple", learner);
+    assertFalse(directory.isLastAdministrator(1001L), "a non-admin is never the last admin");
+    assertTrue(directory.isLastAdministrator(1000L), "still the only admin");
+
+    AppUser admin2 = new AppUser(1002L, "Max",
+        EnumSet.of(AuthorizationRole.PLATFORM_ADMIN, AuthorizationRole.LEARNER));
+    directory.addUser("max", "correct-horse-battery-staple", admin2);
+    assertFalse(directory.isLastAdministrator(1000L), "a second admin exists now");
+    assertFalse(directory.isLastAdministrator(1002L), "either admin may be removed");
+  }
+
   // ── id allocation (monotonic high-water; V00.80.00 BUG) ────────
 
   @Test

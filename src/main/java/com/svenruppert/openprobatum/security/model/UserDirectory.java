@@ -67,6 +67,26 @@ public interface UserDirectory {
    */
   boolean hasAnyAdministrator();
 
+  /**
+   * @return {@code true} when the user {@code id} holds
+   *         {@link AuthorizationRole#PLATFORM_ADMIN} and <em>no other</em> user
+   *         does — i.e. removing that role or deleting the account would leave
+   *         the instance with zero administrators. Used to refuse the mutation
+   *         that would otherwise force the whole instance back into the
+   *         (token-gated, unreachable) bootstrap flow.
+   */
+  default boolean isLastAdministrator(Long id) {
+    if (id == null) {
+      return false;
+    }
+    AppUser target = findById(id).orElse(null);
+    if (target == null || !target.roles().contains(AuthorizationRole.PLATFORM_ADMIN)) {
+      return false;
+    }
+    return all().noneMatch(u -> !u.id().equals(id)
+        && u.roles().contains(AuthorizationRole.PLATFORM_ADMIN));
+  }
+
   /** @return {@code true} if a user with this username already exists. */
   boolean usernameExists(String username);
 
