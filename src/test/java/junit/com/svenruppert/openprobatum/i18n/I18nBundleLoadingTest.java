@@ -81,6 +81,46 @@ class I18nBundleLoadingTest {
   }
 
   @Test
+  @DisplayName("neither bundle defines a key twice — duplicates silently shadow each other (P009)")
+  void noDuplicateKeys() throws Exception {
+    for (String bundle : List.of(
+        "vaadin-i18n/translations.properties",
+        "vaadin-i18n/translations_de.properties")) {
+      List<String> duplicates = duplicateKeys(bundle);
+      assertEquals(List.of(), duplicates,
+          bundle + " defines these keys more than once — java.util.Properties keeps "
+              + "only the LAST value, so one view silently shows another's text "
+              + "(e.g. the admin sessions view showing coaching text): " + duplicates);
+    }
+  }
+
+  private List<String> duplicateKeys(String resource) throws Exception {
+    ClassLoader cl = getClass().getClassLoader();
+    java.util.Map<String, Integer> counts = new java.util.LinkedHashMap<>();
+    try (InputStream in = cl.getResourceAsStream(resource);
+         java.io.BufferedReader r = new java.io.BufferedReader(
+             new java.io.InputStreamReader(java.util.Objects.requireNonNull(in), StandardCharsets.UTF_8))) {
+      String line;
+      while ((line = r.readLine()) != null) {
+        String trimmed = line.strip();
+        if (trimmed.isEmpty() || trimmed.startsWith("#") || trimmed.startsWith("!")) {
+          continue;
+        }
+        int eq = trimmed.indexOf('=');
+        if (eq <= 0) {
+          continue;
+        }
+        String key = trimmed.substring(0, eq).strip();
+        counts.merge(key, 1, Integer::sum);
+      }
+    }
+    return counts.entrySet().stream()
+        .filter(e -> e.getValue() > 1)
+        .map(java.util.Map.Entry::getKey)
+        .toList();
+  }
+
+  @Test
   @DisplayName("Vaadin's DefaultI18NProvider has the JVM-fallback bug — diagnostic only")
   void defaultProviderHasJvmFallbackBug() {
     // This test DOCUMENTS the bug we're fixing. On a German JVM,

@@ -67,8 +67,8 @@ public class CoachingSessionView extends Composite<VerticalLayout> implements I1
   private void render() {
     VerticalLayout root = getContent();
     root.removeAll();
-    root.add(new PageHeader(tr("sessions.heading", "Coaching sessions"),
-        tr("sessions.subtitle", "Complete your booked sessions to credential the learner.")));
+    root.add(new PageHeader(tr("coaching.sessions.heading", "Coaching sessions"),
+        tr("coaching.sessions.subtitle", "Complete your booked sessions to credential the learner.")));
 
     Long me = currentCoachId();
     List<CoachingSlot> booked = CoachingSlotRepositoryProvider.repository()
@@ -78,8 +78,8 @@ public class CoachingSessionView extends Composite<VerticalLayout> implements I1
         .toList();
     if (booked.isEmpty()) {
       root.add(new EmptyState(VaadinIcon.COMMENTS,
-          tr("sessions.empty.title", "Nothing to complete"),
-          tr("sessions.empty.body", "Your booked sessions appear here.")));
+          tr("coaching.sessions.empty.title", "Nothing to complete"),
+          tr("coaching.sessions.empty.body", "Your booked sessions appear here.")));
       return;
     }
     booked.forEach(s -> root.add(row(s)));
@@ -96,11 +96,11 @@ public class CoachingSessionView extends Composite<VerticalLayout> implements I1
         .orElse(slot.offerId().toString());
     card.add(new H4(offerTitle + " — " + slot.learnerName()));
 
-    TextField notes = new TextField(tr("sessions.notes", "Session notes"));
+    TextField notes = new TextField(tr("coaching.sessions.notes", "Session notes"));
     notes.setWidthFull();
     notes.getElement().setAttribute("data-notes-input", slot.id().toString());
 
-    Button complete = new Button(tr("sessions.action.complete", "Complete"),
+    Button complete = new Button(tr("coaching.sessions.action.complete", "Complete"),
         e -> completeAndIssue(slot, notes.getValue()));
     complete.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_SMALL);
     complete.getElement().setAttribute("data-action", "complete");
@@ -124,7 +124,7 @@ public class CoachingSessionView extends Composite<VerticalLayout> implements I1
         .findById(completed.offerId()).orElse(null);
     int version = offer == null ? 1 : offer.version();
     String title = offer == null
-        ? tr("sessions.credential.default", "Coaching") : offer.title();
+        ? tr("coaching.sessions.credential.default", "Coaching") : offer.title();
     new IssuanceService(CredentialRepositoryProvider.repository(), IssuerIdentity.fromConfig())
         .issueForCoaching(completed.offerId(), version, completed.recipientId(),
             completed.learnerName(), title, CredentialType.COMPLETION_CERTIFICATE, null);
